@@ -125,14 +125,14 @@ CrossDiff is under active development, starting with dependable daily text, fold
 
 **PDF, Word, spreadsheets, and three-way merging are not available yet.** Images currently use previews up to 1600 px on the longest edge, text files have a 20 MB limit, and folder operations do not provide full synchronization. Read the [implementation limits](docs/development.md#current-implementation-limits), [roadmap](docs/roadmap.md), and [changelog](CHANGELOG.md).
 
-## Build with us
+<!-- ## Build with us
 
 Bug reports, translations, design feedback, and focused improvements are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the [development guide](docs/development.md) covers architecture, local builds, and tests.
 
 ```sh
 bash scripts/check.sh       # Core behavior, no XCTest dependency
 bash scripts/check-all.sh   # Full suite; requires a native macOS session
-```
+``` -->
 
 ## License
 

@@ -125,14 +125,14 @@ CrossDiff 正在持续开发，首先打磨可靠的文本、文件夹与图片�
 
 **PDF、Word、表格和三方合并尚未实现。** 图片当前使用最长边不超过 1600 像素的预览，文本文件上限为 20 MB，文件夹操作尚不支持完整同步。详见[实现边界](docs/development.md#current-implementation-limits)、[路线图](docs/roadmap.md)与[更新记录](CHANGELOG.md)。
 
-## 一起完善 CrossDiff
+<!-- ## 一起完善 CrossDiff
 
 欢迎提交问题、翻译、设计反馈和范围明确的改进。请先阅读[贡献指南](CONTRIBUTING.md)；[开发指南](docs/development.md)介绍项目结构、构建与测试方式。
 
 ```sh
 bash scripts/check.sh       # 核心行为检查，不依赖 XCTest
 bash scripts/check-all.sh   # 完整检查，需要原生 macOS 应用会话
-```
+``` -->
 
 ## 许可证
 
