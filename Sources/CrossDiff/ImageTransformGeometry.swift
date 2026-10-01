@@ -81,10 +81,10 @@ enum ImageTransformGeometry {
                                 max(ImageComparisonTransform.scaleRange.lowerBound, projectedY))
         }
         // Moving the center by half of the diagonal change keeps the opposite corner fixed.
-        let dx = (xAxis.x * signedWidth * (result.scaleX - initial.scaleX) +
-                  yAxis.x * signedHeight * (result.scaleY - initial.scaleY)) / 2
-        let dy = (xAxis.y * signedWidth * (result.scaleX - initial.scaleX) +
-                  yAxis.y * signedHeight * (result.scaleY - initial.scaleY)) / 2
+        let widthChange = Double(signedWidth) * (result.scaleX - initial.scaleX)
+        let heightChange = Double(signedHeight) * (result.scaleY - initial.scaleY)
+        let dx: Double = (Double(xAxis.x) * widthChange + Double(yAxis.x) * heightChange) / 2
+        let dy: Double = (Double(xAxis.y) * widthChange + Double(yAxis.y) * heightChange) / 2
         guard dx.isFinite, dy.isFinite else { return initial }
         // Stop resizing when the center reaches an offset bound, instead of clamping
         // the center independently and silently moving the supposedly fixed corner.

@@ -14,6 +14,10 @@ Checked on macOS / Apple silicon for the Base and Full editions, official plugin
 - Both `scripts/build-app.sh` and `--edition base --output dist/editions/base/CrossDiff.app` completed. Both applications passed `codesign --verify --deep --strict`; signatures are ad-hoc, not Developer ID or notarization.
 - Source/history and both application-bundle publication audits passed the configured sensitive-information patterns. This is a heuristic scan, not proof of the absence of all sensitive data. README asset/link checks and `git diff --check` passed.
 
+## CI compatibility correction
+
+The initial remote run on Swift 6.1.2 exposed a type-checker timeout in the image corner-resize calculation, which compiled on local Swift 6.3.3. The calculation was split into explicit Double displacement terms. All 569 image-rendering/geometry assertions passed after the change, and the native image workflow rebuilt successfully. Its additional live run exposed one right-top-corner drag that did not take effect; the other corner, rotation, reflection and source-preservation checks passed. That isolated interaction failure is under investigation. The subsequent Actions run is the evidence for older-toolchain compilation.
+
 ## Release verification
 
 The release pipeline packages the exact clean tagged commit into Base and Full application ZIPs, official Archive/PDF packages, a separate JSON example, `plugins.json`, matching source, build information and SHA-256 checksums. Its upload job downloads every uploaded asset again and verifies its bytes before completing. Check the actual [Actions runs](https://github.com/JunyangZhangUSTC/CrossDiff/actions) for the final tagged commit; this source record does not claim a remote run that had not yet happened when written.
