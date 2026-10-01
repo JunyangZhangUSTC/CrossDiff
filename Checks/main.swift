@@ -1,6 +1,9 @@
 import Foundation
 import CrossDiffCore
 
+// CI captures stdout through a pipe. Keep completed checks visible if a later one crashes.
+setbuf(stdout, nil)
+
 func runStorageChecks() throws {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("CrossDiff-storage-" + UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

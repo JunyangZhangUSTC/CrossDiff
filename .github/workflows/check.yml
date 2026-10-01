@@ -5,10 +5,17 @@ permissions:
 jobs:
   macos:
     runs-on: macos-15
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
+      - name: Report build environment
+        run: |
+          source scripts/project-env.sh
+          sw_vers
+          swift --version
       - name: Check patch formatting and public source
         run: |
           source scripts/project-env.sh
