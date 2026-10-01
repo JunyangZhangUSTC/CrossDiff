@@ -32,8 +32,8 @@ class InventoryTests(unittest.TestCase):
         catalog = json.loads(self.catalog)
         self.assertEqual(catalog["releaseTag"], f"v{self.version}")
         self.assertEqual(catalog["formatVersion"], 1)
-        self.assertEqual([p["id"] for p in catalog["plugins"]], ["org.crossdiff.archive", "org.crossdiff.pdf"])
-        self.assertEqual(len(self.packages), 3)
+        self.assertEqual([p["id"] for p in catalog["plugins"]], ["org.crossdiff.archive", "org.crossdiff.pdf", "org.crossdiff.photography"])
+        self.assertEqual(len(self.packages), 4)
         self.assertTrue(any(name.startswith("CrossDiff-Example-JSON-") for name in self.packages))
         for plugin in catalog["plugins"]:
             contents = self.packages[plugin["asset"]]
@@ -44,10 +44,10 @@ class InventoryTests(unittest.TestCase):
             for field in ("id", "version", "name", "summary"):
                 self.assertEqual(plugin[field], manifest[field])
 
-    def test_full_to_base_rebuild_removes_pdf_and_keeps_identical_offline_catalog(self):
+    def test_full_to_base_rebuild_removes_optional_plugins_and_keeps_identical_offline_catalog(self):
         resources, release_dir = self.directory / "Resources", self.directory / "release"
         self.run_inventory("--bundle-resources", resources, "--edition", "full")
-        self.assertEqual(len(list((resources / "Plugins").iterdir())), 2)
+        self.assertEqual(len(list((resources / "Plugins").iterdir())), 3)
         (resources / "Plugins/stale.crossdiffplugin").write_text("previous build")
         self.run_inventory("--bundle-resources", resources, "--edition", "base")
         self.assertEqual([p.name for p in (resources / "Plugins").iterdir()], ["dev.crossdiff.archive.crossdiffplugin"])
@@ -58,7 +58,7 @@ class InventoryTests(unittest.TestCase):
         inventory.validate_catalog((release_dir / "plugins.json").read_bytes(), self.packages, self.version)
 
     def test_standalone_official_packagers_match_release_payload_bytes(self):
-        for label, script in (("Archive", "package-archive-plugin.py"), ("PDF", "package-pdf-plugin.py")):
+        for label, script in (("Archive", "package-archive-plugin.py"), ("PDF", "package-pdf-plugin.py"), ("Photography", "package-photography-plugin.py")):
             target = self.directory / (label + ".crossdiffplugin")
             subprocess.run([sys.executable, "scripts/" + script, "--output", str(target)], cwd=ROOT,
                            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

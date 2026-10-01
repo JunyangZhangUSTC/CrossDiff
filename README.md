@@ -53,6 +53,7 @@
 | **图片** | 并排、叠加、滑动与像素差异；独立缩放、旋转、翻转、拖动对齐与四角调整，支持只比较重叠区域。 |
 | **二进制 / Hex** | 原生双栏十六进制与 ASCII，真实地址、插删对齐、差异导航、地址跳转和选中复制。按需读取，只读比较。 |
 | **PDF 文档** | 页面匹配、插删页导航、原生页面对照与可提取文字差异。完整版预装，基础版可安装官方 PDF 插件。 |
+| **摄影 · 0.9.0 源码预览** | 只读双图、RGB／HSL 直方图、局部框选与命名区域、拍摄信息、有记录的处理曲线；Apple 原生 RAW 解码与 OpenCV 专业统计。[摄影指南](docs/usage.md#photography) |
 
 <details>
 <summary><b>细节也值得认真对比</b></summary>
@@ -75,7 +76,9 @@
 
 ## 选择适合你的版本
 
-**当前开发预览：0.8.0 · macOS 14+ · Apple 芯片（arm64）**
+**已发布下载：0.8.0 · 源码开发预览：0.9.0 · macOS 14+ · Apple 芯片（arm64）**
+
+摄影插件已加入 0.9.0 源码预览，尚未发布到 GitHub Release。要体验摄影对比，请从本仓库构建；上方下载链接仍是已发布的 0.8.0。
 
 基础版适合日常使用；想预装 PDF，就选完整版。两者均免费、开源，无需账号。
 
@@ -92,7 +95,7 @@
 
 **[前往 GitHub Releases 下载 →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
 
-在版本的 **Assets** 中选择所需文件。每次发布同时提供源码、构建信息和 `SHA256SUMS` 校验和。JSON 插件单独作为开发示例提供，不属于完整版预装插件。尚未发布的 Office、摄影、音视频等能力不包含在当前完整版中。
+在版本的 **Assets** 中选择所需文件。每次发布同时提供源码、构建信息和 `SHA256SUMS` 校验和。JSON 插件单独作为开发示例提供，不属于完整版预装插件。0.8.0 的完整版不包含摄影插件。0.9.0 源码构建的完整版额外预装 Photography 0.1.0，基础版可安装从同一源码打包的摄影插件；发布后再从对应 Release 下载。Office、音视频等仍属后续能力。
 
 </details>
 
@@ -108,7 +111,7 @@ Intel 构建尚未实测。当前为持续开发中的预览版本，也可按�
 
 官方插件列表可以离线查看。**仅在你主动下载插件时联网；文件比较继续留在本机。** 不需要注册或登录 GitHub。
 
-基础能力也可以用插件实现：压缩包就是随基础版交付的官方插件。扩展接口允许不同算法配合原生目录树、文档页面与表格视图，保持一致的 Mac 体验。希望开发新能力？查看[中文插件规范](docs/plugins/development.md)、[English guide](docs/plugins/development.en.md) 和 [JSON 示例](Plugins/Examples/JSON/compare.js)。
+基础能力也可以用插件实现：压缩包就是随基础版交付的官方插件。扩展接口允许不同算法配合原生目录树、文档页面、表格与摄影分析视图，保持一致的 Mac 体验。希望开发新能力？查看[中文插件规范](docs/plugins/development.md)、[English guide](docs/plugins/development.en.md) 和 [JSON 示例](Plugins/Examples/JSON/compare.js)。
 
 ## 快速开始
 
@@ -168,6 +171,8 @@ bash scripts/build-app.sh
 bash scripts/open-dev-app.command
 ```
 
+首次构建会下载经 SHA-256 固定的 OpenCV 4.12.0 源码，仅编译 `core`／`imgproc`；缺少 CMake 时也会在项目内准备。依赖、工具与缓存均保存在 `.build/photo-deps/`，不全局安装。
+
 项目使用 Swift 5 语言模式，构建本机架构。应用生成在 `dist/CrossDiff.app`。开发启动入口将会话、偏好与缓存留在当前项目，不安装全局依赖或写入 `/Applications`。版本打包与发布见[发布指南](docs/releasing.md)。
 
 </details>
@@ -184,11 +189,11 @@ bash scripts/open-dev-app.command
 
 | 已经可以使用 | 接下来探索 |
 | :--- | :--- |
-| 文本、文件夹、图片、Hex、压缩包与 PDF 插件 | 远程文件夹来源、文本三方合并、多对象比较 |
-| 原生工作台、插件安装管理、基础版与完整版 | Office、API／日志／报文、数据库、摄影与 RAW、音频、视频、模型结构与张量插件 |
+| 文本、文件夹、图片、Hex、压缩包、PDF；0.9.0 源码新增摄影插件 | 远程文件夹来源、文本三方合并、多对象比较 |
+| 原生工作台、插件安装管理、基础版与完整版 | Office、API／日志／报文、数据库、摄影高级分析、音频、视频、模型结构与张量插件 |
 | 中英文界面、浅深色主题、本机会话恢复 | 面向摄影师、媒体工作者与开发者的插件组合 |
 
-右侧为**未来规划**，不代表已实现或当前完整版已包含。现有界面和插件提供两方比较；PDF 尚无 OCR，压缩包尚不支持 RAR／7z／加密包，文件夹尚不支持完整同步。图片预览最长边为 1600 像素，文本文件上限为 20 MB。详见[路线图](docs/roadmap.md)与[实现边界](docs/development.md#current-implementation-limits)。
+右侧为**未来规划**，不代表已实现或当前完整版已包含。现有界面和插件提供两方比较；PDF 尚无 OCR，压缩包尚不支持 RAR／7z／加密包，文件夹尚不支持完整同步。基础图片预览最长边为 1600 像素，文本文件上限为 20 MB。摄影插件使用独立颜色管理与有界统计管线：每张照片最多 256 MiB／6400 万像素，RAW 支持依赖 macOS、机型与编码模式，不能从成片恢复原作者的调色设置。详见[路线图](docs/roadmap.md)与[实现边界](docs/development.md#current-implementation-limits)。
 
 欢迎通过 [Issues](https://github.com/JunyangZhangUSTC/CrossDiff/issues) 反馈问题和建议，一起把比较体验打磨得更好。[贡献指南](CONTRIBUTING.md) · [开发指南](docs/development.md) · [产品方向](docs/product-vision.md) · [更新记录](CHANGELOG.md)
 

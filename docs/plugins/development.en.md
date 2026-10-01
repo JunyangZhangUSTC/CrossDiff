@@ -1,6 +1,6 @@
 # Plugin development · Experimental v1
 
-Status: 2026-10-01, for the CrossDiff 0.7.0 working preview. The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
+Status: 2026-10-02, for the unpublished CrossDiff 0.9.0 source preview (Photography 0.1.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
 
 The contract is implemented in [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift), [PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift), [PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) and [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift). Future capabilities discussed in the [architecture design](../architecture/compare-everything.md) are not automatically available in this preview.
 
@@ -13,6 +13,7 @@ Plugins supply comparison algorithms. The host reads inputs, runs tasks and disp
 | `text` | Decoded text `{text: "…"}` | `table`: a read-only results table |
 | `pdf` | Page text, dimensions and preview fingerprints | `documentPages`: native PDF pages and text differences; `table` is also accepted |
 | `archiveCatalog` | Virtual paths, kinds, sizes, full content digests and verification states from an archive or local folder | `archiveTree`: a read-only directory tree and content groups across paths |
+| `photoAnalysis` | Bounded, normalized Apple/OpenCV RGB/HSL distributions, neutral share and analysis metadata | `photography`: paired photos, regions, histograms, recorded curves and capture information |
 
 The bundled [PDF plugin](../../Plugins/PDF/) contains the JavaScript algorithm that aligns and classifies pages. PDFKit extracts and presents them in the host. The independently installable [JSON example](../../Plugins/Examples/JSON/) compares top-level JSON values through the same contract.
 
@@ -48,6 +49,15 @@ python3 scripts/package-archive-plugin.py --output dist/Plugins/Archive.crossdif
 ```
 
 The script in [Archive sources](../../Plugins/Official/Archive/) computes path classifications, directory states and content groups. `org.crossdiff.archive` is also a reserved bundled ID. Third-party algorithms use their own IDs and can reuse the same restricted runtime and native directory view. Ordinary ZIP/TAR files are comparison sources; only `.crossdiffplugin` files are installation packages.
+
+Photography uses the normal package installation and restricted execution flow:
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-photography-plugin.py --output dist/Plugins/Photography.crossdiffplugin
+```
+
+The [Photography algorithm](../../Plugins/Official/Photography/) derives bilingual comparisons from host-provided statistics. OpenCV is a fixed capability of the matching Base/Full host, not native code installed from the plugin package. Full bundles `org.crossdiff.photography`; Base can install it separately. Other plugin IDs can use the same contract without an official-ID execution branch. The 0.8.0 host does not understand this input kind; use a matching 0.9.0 host during development. Catalog URLs for an unpublished version are not yet downloadable assets.
 
 ## 3. A package is one JSON file
 
@@ -85,7 +95,7 @@ Example manifest:
 
 Use these camelCase field names exactly, including `zhHans` and `en`. IDs are at most 128 UTF-8 bytes, begin with a lowercase English letter, and contain lowercase letters and digits in segments separated by `.` or `-`. Versions use three numeric components with optional prerelease/build suffixes, up to 64 bytes. Each localized name is nonempty and at most 512 bytes; each summary is nonempty and at most 4096 bytes.
 
-`fileExtensions` contains 1–32 unique lowercase extensions without a leading dot. Each is at most 16 bytes and may contain letters, digits, `_` and `-`. `supportedModes` must be nonempty and unique. The host protocol range must include `1`. `documentPages` requires `pdf` input. `archiveCatalog` and `archiveTree` must be paired, with `supportedModes: ["pairwise"]`; archive input cannot use `table`. The host supplies its reserved identifier list explicitly; an official-looking name does not grant official status.
+`fileExtensions` contains 1–32 unique lowercase extensions without a leading dot. Each is at most 16 bytes and may contain letters, digits, `_` and `-`. `supportedModes` must be nonempty and unique. The host protocol range must include `1`. `documentPages` requires `pdf` input. `archiveCatalog` and `archiveTree` must be paired, with `supportedModes: ["pairwise"]`; archive input cannot use `table`. `photoAnalysis` likewise requires `photography` with `supportedModes: ["pairwise"]` and cannot use `table`. The host supplies its reserved identifier list explicitly; an official-looking name does not grant official status.
 
 ## 4. Requests and the JavaScript entry point
 
@@ -219,6 +229,43 @@ Each input entry appears exactly once on its side. Non-null pairs must share a p
 
 `sameContentGroups` contains complete cohorts of verified regular files sharing size + SHA-256. Both sides must be nonempty and the union must contain at least two distinct paths. Return side-specific ID lists without a Cartesian product. A same-path-only pair is not a content group. Groups show identical content, without asserting a unique rename or move. The host independently validates coverage, classification, directory aggregation and complete cohorts against the current catalogs before rendering; unknown rows require partial status. Compression methods, timestamps and permission metadata do not participate in content equality.
 
+### `crossdiff.photography/1`
+
+Declare `inputKind: "photoAnalysis"`, `resultView: "photography"` and `supportedModes: ["pairwise"]`. The host reads user-authorized photographs using Apple color management/RAW decoding and OpenCV 4.12.0 conversion/statistics on background tasks. Each input `content` has this shape (arrays are abbreviated; valid requests require the lengths below):
+
+```json
+{
+  "red": [], "green": [], "blue": [], "lightness": [], "hue": [], "saturation": [],
+  "neutralFraction": 0.25,
+  "analyzedPixels": 4096,
+  "sampled": false,
+  "analysisSpace": "sRGB · SDR [0, 1] · HSL lightness · OpenCV 4.12.0"
+}
+```
+
+| Field | Meaning and validation |
+| --- | --- |
+| `red`, `green`, `blue`, `lightness`, `saturation` | 256 finite bins each, values in 0–1, each array summing to 1 within `0.0001`; L means HSL lightness, not physical luminance |
+| `hue` | 360 bins over 0–360°, finite values in 0–1 divided by all valid pixels; sum is `1 - neutralFraction` within the same tolerance |
+| `neutralFraction` | Finite 0–1 share with HSL S < 0.02; these pixels are excluded from hue bins |
+| `analyzedPixels` | Integer 1–100,000,000; current host samples have at most a 4096 px longest edge; this counts valid samples, not necessarily source pixels |
+| `sampled` | Boolean, true when the source region is resampled for the size budget |
+| `analysisSpace` | Nonempty, up to 1024 UTF-8 bytes, identical on both sides; respect its color-space and range semantics |
+
+Statistics use color-managed floating-point sRGB SDR, clamped to 0–1. Fully transparent/non-finite samples are excluded; other valid samples receive equal weight. OpenCV `cvtColor(COLOR_RGB2HLS)` returns H, L, S channels; `calcHist` produces the distributions. Hue excludes near-neutral pixels and must not be renormalized to 1. Identical distributions do not establish identical pixels or photographic quality.
+
+Photo pixels, absolute paths, EXIF and XMP stay in the host; scripts receive none of these or read callbacks. Input `name` still contains the filename. Changing regions starts a new task, with cancellation and stale-result protection. The host persists named pairs and selected XMP paths. Third-party plugins can interpret the supplied distributions, but cannot load custom native dependencies or add arbitrary chart types through JSON.
+
+Return schema `crossdiff.photography/1` with this payload:
+
+```json
+{"findings": [{"zhHans": "右侧低明度区域占比更高。", "en": "The right region has a higher low-lightness share."}]}
+```
+
+`findings` contains 0–8 entries, each with nonempty `zhHans` and `en` strings of at most 2048 UTF-8 bytes. The host shows the first three by default and the remainder under analysis information. Standard `summary`, `diagnostics` and `status` validation still applies. Charts use host statistics directly. Apple ImageIO reads actual Adobe CRS curve control points, with illustrative connecting lines rather than reproduced rendering. Do not claim to infer shutter speed, Kelvin temperature, exposure adjustments or the creator’s HSL/curve slider settings from rendered images.
+
+Each source is limited to 256 MiB/64 megapixels, display previews to a 2048 px longest edge, and ROI statistics to 4096 px. RAW support depends on the OS, camera and encoding; embedded previews never substitute for full decoding. XMP is limited to 8 MiB and sidecars require explicit selection rather than automatic adjacent-file access. See the [photography design](../architecture/photography-comparison.md).
+
 ## 6. Runtime boundaries
 
 ### Restricted JavaScript
@@ -227,7 +274,7 @@ Each task runs in a separate JavaScriptCore helper process. Only JSON text enter
 
 Default wall time is 15 seconds; host configuration cannot exceed 60 seconds. Helper CPU time is capped at no more than 30 seconds. The stdin envelope limit is 32 MiB, output 8 MiB, and default parent stderr limit 16 KiB. Where system policy allows reading process statistics, the host checks a 512 MiB RSS budget. This is polling and may be denied by the system; it is **not a hard memory-isolation guarantee**. Cancellation or exceeded limits terminate the helper and discard output.
 
-This is a **restricted JavaScript runtime, not an operating-system sandbox**. A separate process and absent I/O APIs do not defend against every JavaScriptCore vulnerability. Host-side PDFKit and archive parsing are outside that helper. There is no silent fallback to full-trust execution.
+This is a **restricted JavaScript runtime, not an operating-system sandbox**. A separate process and absent I/O APIs do not defend against every JavaScriptCore vulnerability. Host-side PDFKit, archive and Apple/OpenCV image parsing are outside that helper. There is no silent fallback to full-trust execution.
 
 ### Full-trust native executables
 
@@ -257,6 +304,10 @@ bash scripts/tests/check-plugin-runtime.sh
 bash scripts/tests/check-pdf.sh
 bash scripts/tests/check-archive-plugin.sh
 bash scripts/tests/check-plugin-workflow.sh
+bash scripts/tests/check-photography-plugin.sh
+bash scripts/tests/check-photo-engine.sh
+bash scripts/tests/check-photo-metadata.sh
+bash scripts/tests/check-photo-workflow.sh
 ```
 
 Core checks exercise package/store public boundaries, persistence failure and native digest trust. Runtime checks execute the real helper and native fixtures. PDF checks exercise the algorithm, mappings and unchanged sources. Archive plugin checks run the packaged algorithm through the real child process and exercise entry limits, linear groups and malformed inputs. Workflow checks use real windows. Use synthetic data and isolated directories; native checks run serially. A build-only run or timeout does not establish GUI correctness.

@@ -13,12 +13,17 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "JunyangZhangUSTC/CrossDiff"
+APP_LICENSE_FILES = ("LICENSE", "NOTICE", "ThirdParty/OpenCV/LICENSE",
+                     "ThirdParty/OpenCV/COPYRIGHT", "ThirdParty/OpenCV/NOTICE.md",
+                     "ThirdParty/OpenCV/NOTICE-SOURCE.txt", "ThirdParty/OpenCV/SoftFloat-COPYING.txt")
 # Explicit inventory: adding an example never silently adds it to a production edition.
 PLUGINS = (
     {"source": "Plugins/Official/Archive", "id": "org.crossdiff.archive", "label": "Archive", "official": True,
      "bundled": "dev.crossdiff.archive.crossdiffplugin", "editions": ("base", "full")},
     {"source": "Plugins/PDF", "id": "org.crossdiff.pdf", "label": "PDF", "official": True,
      "bundled": "dev.crossdiff.pdf.crossdiffplugin", "editions": ("full",)},
+    {"source": "Plugins/Official/Photography", "id": "org.crossdiff.photography", "label": "Photography", "official": True,
+     "bundled": "dev.crossdiff.photography.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Examples/JSON", "id": "example.crossdiff.json-keys", "label": "JSON", "official": False,
      "bundled": None, "editions": ()},
 )
@@ -97,7 +102,7 @@ def validate_app_archive(path: Path, edition: str, catalog: bytes, packages: dic
                 raise ValueError("Unsafe app archive entry or personal ZIP metadata.")
         if plistlib.loads(archive.read(prefix + "Info.plist")) != metadata:
             raise ValueError("Application metadata differs from the release source.")
-        for notice in ("LICENSE", "NOTICE"):
+        for notice in APP_LICENSE_FILES:
             if prefix + "Resources/" + notice not in names:
                 raise ValueError("Missing application license notice.")
         if archive.read(prefix + "Resources/OfficialPlugins.json") != catalog:

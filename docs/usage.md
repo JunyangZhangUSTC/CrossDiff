@@ -1,10 +1,10 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. There is no sign-in. For build instructions, see the [development guide](development.md); for planned formats such as Word and spreadsheets, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac; the 0.9.0 source preview adds a Photography plugin. There is no sign-in. For build instructions, see the [development guide](development.md); for planned formats such as Word and spreadsheets, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
-Click **New… / 新建…** (`⌘N`) in the toolbar or File menu. Choose a comparison type, then prepare the left and right inputs on the next page and start the comparison. Text accepts temporary pasted content or a file on each side. Folder, image and binary comparisons accept the corresponding sources; archive and PDF comparisons appear when their bundled plugins are enabled. **More Comparisons / 更多对比项** opens plugin management. The **Compare** menu goes directly to the input page for a chosen type.
+Click **New… / 新建…** (`⌘N`) in the toolbar or File menu. Choose a comparison type, then prepare the left and right inputs on the next page and start the comparison. Text accepts temporary pasted content or a file on each side. Folder, image and binary comparisons accept the corresponding sources; archive, PDF and photography comparisons appear when the corresponding installed plugins are enabled. **More Comparisons / 更多对比项** opens plugin management. The **Compare** menu goes directly to the input page for a chosen type.
 
 **File → Open…** (`⌘O`) still selects multiple files or folders and detects their types. Two compatible items open as a comparison. When you select more items, assign explicit left/right pairs before opening each comparison in its own tab. Finder opening and dropping items into the comparison window retain this automatic routing. You can also paste directly into an existing text comparison.
 
@@ -87,6 +87,36 @@ All adjustments are manual and affect previews only; CrossDiff does not automati
 
 Comparison uses an 8-bit sRGB preview with a maximum 1600-pixel longest edge. Images are decoded at a shared scale, and an enlarged or rotated canvas is reduced again if needed. Zoom and difference counts refer to these previews, not to a full-resolution lossless analysis. Scaling, rotation, resampling, and source compression can leave small differences even after visual alignment. Only the first frame of animated images is compared.
 
+<a id="photography"></a>
+## Photography / 摄影对比
+
+**0.9.0 源码开发预览，尚未发布。** 当前公开下载仍为 0.8.0，不含摄影插件。源码默认完整版预装 Photography 0.1.0；从同一源码构建的基础版可安装独立摄影包。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
+
+**Available in the unpublished 0.9.0 source preview.** The public 0.8.0 download does not include Photography. The default Full source build bundles Photography 0.1.0; a Base build from the same source can install its standalone package. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
+
+默认以双图为主，显示同刻度的 RGB 与 **HSL 明度 L** 直方图，以及低明度、高明度、高饱和区域占比的简短对比。**专业图表**展开 HSL、处理曲线、拍摄与分析信息。HSL L 不是物理亮度或曝光值，图表描述所选画面的分布，不给作品评分，也不反推调色滑块。快门、光圈、ISO、焦距等仅显示实际文件记录，缺失不猜测。
+
+The default view pairs the photographs with RGB and **HSL lightness L** histograms on shared scales and short comparisons of low-lightness, high-lightness and high-saturation shares. **More Analysis** reveals HSL distributions, recorded curves, and capture/analysis information. HSL L is not physical luminance or exposure. Charts describe selected image content, without quality scores or inferred editing sliders. Shutter speed, aperture, ISO and focal length come only from recorded metadata.
+
+- **框选区域 / Select regions:** 在照片上拖动矩形，松开后重新统计。左右默认独立，可在不同位置选择天空或肤色等可比内容；不修改源照片。Drag a rectangle and release to analyze it. Each side is independent by default, so matching subjects may occupy different positions.
+- **联动选区 / Link Regions:** 开启后，之后的框选在两图使用相同的归一化位置与比例；不是物体识别或自动配准。Future selections share normalized coordinates and proportions, without object recognition or registration.
+- **保存区域 / Save Region Pair:** 点击加号、命名，最多保存 32 组左右配对；通过“已存区域”切换或删除。区域与所选 XMP 路径随本机会话保存。Use the plus button to name up to 32 pairs, then switch or delete them in Saved Regions. Region pairs and selected XMP paths persist with the local session.
+- **全图 / Whole Image:** 清除当前框选并重新统计全图，不删除已存区域。Clears active selections without deleting saved pairs.
+- **处理曲线 / Recorded Curves:** 显示图片内嵌或手动选择的 Adobe CRS XMP 控制点；选择旁路 XMP 时以该记录为准。连线只作示意，不复现原软件插值、显影或调色效果。不存在记录时显示“未记录处理曲线”。Shows actual embedded or explicitly selected Adobe CRS XMP control points; a selected sidecar takes precedence. Lines are illustrative, not the original editor’s interpolation or rendering. Missing records remain missing.
+- **重新读取 / Reload:** 重新加载照片并分析。查看预览的缩放相对于显示预览像素，不能当作原图 100% 细节。Reloads photographs and statistics. Inspector zoom is relative to preview pixels, not 100% original-image detail.
+
+Apple ImageIO／Core Image 读取普通图片和颜色配置，`CIRAWFilter` 以 Apple 默认设置显影 RAW。常见 RAW 后缀包括 DNG、CR2／CR3、NEF、ARW、RAF、RW2、ORF 等，但支持依赖**具体机型、编码模式和 macOS 版本**；后缀可选不代表可解码。失败时明确报错，不用内嵌预览冒充完整 RAW。默认显影不等于相机原始采样值或原作者调色结果。
+
+Apple ImageIO/Core Image reads ordinary images and color profiles; `CIRAWFilter` renders RAW with Apple defaults. Common RAW extensions include DNG, CR2/CR3, NEF, ARW, RAF, RW2 and ORF, but support depends on the **camera, encoding mode and macOS version**. An accepted extension is not a decoding guarantee. Unsupported RAW fails explicitly without substituting an embedded preview. Default rendering is neither raw sensor samples nor the creator’s final edit.
+
+分析使用统一的 **sRGB 浮点 SDR 0–1** 数据，OpenCV 4.12.0 提供 HSL 转换和直方图。超范围数值截至端点，不能以此判断 RAW 过曝；完全透明和非有限像素排除，其余有效像素等权，HSL 饱和度低于 2% 的像素单独记作中性色并排除出色相分布。直方图按有效像素占比归一化，不因选区大而自动更高。
+
+Analysis uses **floating-point sRGB SDR values in 0–1**, with OpenCV 4.12.0 providing HSL conversion and histograms. Out-of-range values are clamped, not interpreted as RAW overexposure. Fully transparent and non-finite samples are excluded; other valid pixels receive equal weight. HSL saturation below 2% counts as neutral and is excluded from hue bins. Histograms show fractions of valid pixels, so larger selections do not automatically produce taller charts.
+
+每张照片上限 **256 MiB／6400 万像素**。显示预览最长边 **2048**；统计直接来自颜色管理后的源图选区，最长边超过 **4096** 时采用有界采样，并显示采样状态及尺寸。多帧文件只分析首帧。波形、矢量示波图、噪声／锐度评分、HDR 专业分析、图表点选反向高亮、报告导出和照片编辑不在此版范围内。
+
+Each photograph is limited to **256 MiB and 64 megapixels**. Display previews have a **2048 px** longest edge. Statistics use the color-managed source region, with bounded resampling above a **4096 px** longest edge and an explicit sample indicator/dimensions. Only the first frame is analyzed. Waveforms, vectorscopes, noise/sharpness scores, professional HDR analysis, reverse highlighting from chart selections, report export and photo editing are not included.
+
 ## Language and appearance
 
 **CrossDiff → 设置/Setting…** (`⌘,`) opens a separate settings window. In **语言/Language**, choose **English** or **简体中文**. App-owned menus, controls, and messages update immediately without restarting or resetting edits. These two entry labels always remain bilingual so that you can find the language setting again.
@@ -127,9 +157,9 @@ Choose each side through New… → PDF Documents, or open two PDFs through File
 
 Manage extensions under CrossDiff → Plugins…: choose or drop a `.crossdiffplugin` file, or enter an HTTPS URL and click Download & Inspect. Review the name, identifier, version, unverified publisher and runtime permissions before installation. Downloads from arbitrary URLs require review before installation. Changed packages must use a new version number.
 
-官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；完整版额外预装 PDF。基础版可以在此单独安装 PDF。联网只发生在你主动下载时，比较内容仍在本机处理。
+官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；0.8.0 完整版额外预装 PDF，0.9.0 源码完整版再加入摄影。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
 
-The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive; Full additionally bundles PDF. Base can install PDF here. Network access occurs only when you request a download; comparison content stays on your Mac.
+The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full 0.8.0 adds PDF, and Full 0.9.0 source builds add Photography. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
 
 停用或卸载后，会话保留并提示需要对应插件。外部插件更新后可回退至上一版本。内置 PDF 的更新随应用分发，不能由外部同名标识覆盖。
 

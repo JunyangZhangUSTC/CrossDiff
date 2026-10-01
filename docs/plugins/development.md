@@ -1,6 +1,6 @@
 # 插件开发 · 实验 v1
 
-状态：2026-10-01，面向 CrossDiff 0.7.0 工作预览。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
+状态：2026-10-02，面向尚未发布的 CrossDiff 0.9.0 源码预览（Photography 0.1.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
 
 实现依据为 [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift)、[PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift)、[PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) 与 [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift)。早期[框架设计](../architecture/compare-everything.md)描述的远期能力不代表本版本已经支持。
 
@@ -13,6 +13,7 @@
 | `text` | 已解码文字 `{text: "…"}` | `table`：只读结果表格 |
 | `pdf` | 页面文字、尺寸与预览指纹 | `documentPages`：原生 PDF 页面与文字差异；也可返回 `table` |
 | `archiveCatalog` | 压缩包或本地文件夹的虚拟路径、类型、大小、完整内容摘要与验证状态 | `archiveTree`：只读目录树与跨路径同内容组 |
+| `photoAnalysis` | Apple／OpenCV 管线生成的有界归一化 RGB／HSL 分布、中性色比例及分析说明 | `photography`：双图、选区、直方图、记录曲线与拍摄信息 |
 
 内置 [PDF 插件](../../Plugins/PDF/)的 JavaScript 决定页面对应与分类；PDFKit 在宿主侧提取并显示页面。独立 [JSON 示例插件](../../Plugins/Examples/JSON/)自行比较 JSON 顶层键值，使用相同安装和执行协议。
 
@@ -48,6 +49,15 @@ python3 scripts/package-archive-plugin.py --output dist/Plugins/Archive.crossdif
 ```
 
 [Archive 源码](../../Plugins/Official/Archive/)中的脚本实际计算路径分类、目录状态和内容组。`org.crossdiff.archive` 同样是内置保留 ID；第三方实现使用自己的 ID，并可复用相同的受限运行时和原生目录视图。普通 ZIP/TAR 是比较来源，`.crossdiffplugin` 才是安装包，两者用途不同。
+
+摄影插件同样通过普通包安装与受限进程运行：
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-photography-plugin.py --output dist/Plugins/Photography.crossdiffplugin
+```
+
+[Photography 源码](../../Plugins/Official/Photography/)根据宿主的统计结果计算双语差异说明。OpenCV 不是装在插件包内的原生代码，而是同版本 Base／Full 宿主提供的固定分析能力；Full 预装 `org.crossdiff.photography`，Base 可安装独立包。该契约可由其他 ID 的插件使用，不依赖官方 ID 的特殊执行路径。0.8.0 宿主不认识此输入类型；开发时应配套 0.9.0 宿主和插件，尚未发布的目录 URL 不代表下载已可用。
 
 ## 3. 包是一个 JSON 文件
 
@@ -85,7 +95,7 @@ python3 scripts/package-archive-plugin.py --output dist/Plugins/Archive.crossdif
 
 字段名严格使用上述 camelCase，双语字段是 `zhHans` / `en`。ID 最多 128 UTF-8 字节，以小写英文字母开头，由小写字母、数字及分隔段的 `.` / `-` 组成。版本为最多 64 字节的三段版本号，可带 prerelease/build 后缀。名称每种语言最多 512 字节，说明最多 4096 字节，均不能为空。
 
-`fileExtensions` 为 1–32 个不重复、小写且不带点号的扩展名；单项最多 16 字节，可含字母、数字、`_`、`-`。`supportedModes` 非空且无重复；协议范围必须覆盖当前宿主版本 `1`。`documentPages` 只接受 `pdf` 输入。`archiveCatalog` 与 `archiveTree` 必须配套，且 `supportedModes` 必须为 `["pairwise"]`；不能把该输入交给 `table`。标识保留名单由宿主明确提供，不会因为第三方填写了类似官方的名称就授予官方身份。
+`fileExtensions` 为 1–32 个不重复、小写且不带点号的扩展名；单项最多 16 字节，可含字母、数字、`_`、`-`。`supportedModes` 非空且无重复；协议范围必须覆盖当前宿主版本 `1`。`documentPages` 只接受 `pdf` 输入。`archiveCatalog` 与 `archiveTree` 必须配套，且 `supportedModes` 必须为 `["pairwise"]`；不能把该输入交给 `table`。`photoAnalysis` 同样必须配套 `photography` 和 `supportedModes: ["pairwise"]`，不能返回 `table`。标识保留名单由宿主明确提供，不会因为第三方填写了类似官方的名称就授予官方身份。
 
 ## 4. 请求与 JavaScript 入口
 
@@ -219,6 +229,43 @@ JSON 示例按解析后的值比较，忽略对象键顺序与空白；重复键
 
 `sameContentGroups` 按 verified 普通文件的 size + SHA-256 分组，左右均非空且至少有两个不同路径；每组必须包括该摘要与大小的全部成员。只返回左右 ID 列表，不生成笛卡尔积；同路径的一对相同文件不单独成组。组表示相同内容，不推断唯一重命名或移动。宿主会独立验证覆盖、分类、父目录汇总与分组完整性，且只展示当前 catalog 中的条目；unknown 结果必须为 partial。压缩方式、时间和权限元数据不参与当前内容相等判断。
 
+### `crossdiff.photography/1`
+
+声明 `inputKind: "photoAnalysis"`、`resultView: "photography"`、`supportedModes: ["pairwise"]`。宿主读取用户授权的照片，在后台使用 Apple 颜色管理、RAW 解码和 OpenCV 4.12.0 现成转换／统计接口；脚本收到的 `content` 如下（数组长度见表，不能直接用省略数组作为有效请求）：
+
+```json
+{
+  "red": [], "green": [], "blue": [], "lightness": [], "hue": [], "saturation": [],
+  "neutralFraction": 0.25,
+  "analyzedPixels": 4096,
+  "sampled": false,
+  "analysisSpace": "sRGB · SDR [0, 1] · HSL lightness · OpenCV 4.12.0"
+}
+```
+
+| 字段 | 约束与含义 |
+| --- | --- |
+| `red`、`green`、`blue`、`lightness`、`saturation` | 各 256 个有限、0–1 的分箱占比；每个数组和为 1，容差 `0.0001`；L 是 HSL 明度，非物理亮度 |
+| `hue` | 360 个色相分箱（0–360°），值均为有限的 0–1，占比仍除以全部有效像素；和为 `1 - neutralFraction`，容差相同 |
+| `neutralFraction` | 有限的 0–1；HSL S < 0.02 的有效像素占比，这些像素不进入色相分布 |
+| `analyzedPixels` | 1–100,000,000 的整数；当前宿主统计长边最多 4096，表示有效采样数，不一定是源像素数 |
+| `sampled` | 布尔值；所选源区域因尺寸预算缩小时为 true |
+| `analysisSpace` | 非空、最多 1024 UTF-8 字节，两侧必须完全一致；插件须尊重其色彩空间与值域含义 |
+
+统计使用颜色管理后的浮点 sRGB SDR，值截至 0–1；完全透明／非有限样本排除，其余有效样本等权。`cvtColor(COLOR_RGB2HLS)` 输出通道顺序为 H、L、S，`calcHist` 直接提供各分布。色相总和不包含近中性色，不能重新归一化为 1。相同直方图不能证明照片像素相同，更不能证明作品质量相同。
+
+宿主保留照片像素、绝对路径、EXIF 与 XMP 记录；脚本不接收这些数据或读取回调。输入 `name` 仍为文件名。当前选区改变会生成新任务，取消／过期结果不发布；命名区域和选定 XMP 路径由宿主会话持久化。第三方插件只能解释现有分布，不能通过 JSON 加载自己的原生库或增加未实现的图表。
+
+结果 `schema` 为 `crossdiff.photography/1`，payload 示例：
+
+```json
+{"findings": [{"zhHans": "右侧低明度区域占比更高。", "en": "The right region has a higher low-lightness share."}]}
+```
+
+`findings` 为 0–8 项，每项 `zhHans`／`en` 均须非空、最多 2048 UTF-8 字节。宿主默认显示前 3 项，其余在分析信息中显示，沿用通用 `summary`／`diagnostics`／`status` 校验。图表直接来自宿主统计；文件曲线由 Apple ImageIO 解析实际 Adobe CRS 控制点，仅示意连接，不复现显影算法。插件不应声称从成片反推快门、Kelvin 色温、曝光调整或原作者的 HSL／曲线滑块。
+
+每张源图最多 256 MiB／6400 万像素，预览长边 2048，ROI 统计长边 4096；RAW 支持取决于系统、机型和编码，不使用内嵌预览冒充完整解码。XMP 上限 8 MiB，需用户显式选择旁路文件，不自动读取同目录的其他文件。[摄影设计与语义](../architecture/photography-comparison.md)
+
 ## 6. 运行边界
 
 ### 受限 JavaScript
@@ -227,7 +274,7 @@ JSON 示例按解析后的值比较，忽略对象键顺序与空白；重复键
 
 默认 wall-time 为 15 秒，宿主可配置但不超过 60 秒；helper CPU 上限不超过 30 秒。stdin envelope 最多 32 MiB，结果最多 8 MiB，宿主默认 stderr 上限为 16 KiB。宿主在系统允许读取子进程统计时检查 512 MiB RSS；该检查是轮询预算，可能被系统拒绝，**不是硬内存隔离保证**。取消或超限会终止 helper，并丢弃结果。
 
-这是**受限 JavaScript 运行时，不是操作系统沙箱**。进程隔离和没有 I/O API 不等于能够防御所有 JavaScriptCore 漏洞；宿主侧 PDFKit 与归档解析也不在该 helper 内。不会静默改用完全信任运行方式。
+这是**受限 JavaScript 运行时，不是操作系统沙箱**。进程隔离和没有 I/O API 不等于能够防御所有 JavaScriptCore 漏洞；宿主侧 PDFKit、归档和 Apple/OpenCV 图片解析也不在该 helper 内。不会静默改用完全信任运行方式。
 
 ### 完全信任原生可执行文件
 
@@ -257,6 +304,10 @@ bash scripts/tests/check-plugin-runtime.sh
 bash scripts/tests/check-pdf.sh
 bash scripts/tests/check-archive-plugin.sh
 bash scripts/tests/check-plugin-workflow.sh
+bash scripts/tests/check-photography-plugin.sh
+bash scripts/tests/check-photo-engine.sh
+bash scripts/tests/check-photo-metadata.sh
+bash scripts/tests/check-photo-workflow.sh
 ```
 
 核心检查覆盖包/存储公开边界、失败持久化和 native 摘要信任；运行时检查使用真实 helper 与原生 fixture；PDF 检查覆盖算法、映射和源文件保持；Archive 插件检查通过真实子进程执行打包产物，并验证最大条目数、线性分组及非法输入；workflow 检查覆盖实际窗口。运行这些脚本时使用虚构文件与隔离目录，原生检查必须串行。`--build-only` 或超时不代表通过界面验收。

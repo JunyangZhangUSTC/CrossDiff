@@ -106,15 +106,16 @@ extension PluginManifest {
               fileExtensions.allSatisfy({ $0.utf8.count <= 16 && $0.range(of: #"^[a-z0-9][a-z0-9_-]*$"#, options: .regularExpression) != nil }) else {
             throw PluginValidationError.invalidField("fileExtensions")
         }
-        guard (resultView == "table" && inputKind != .archiveCatalog)
+        guard (resultView == "table" && (inputKind == .text || inputKind == .pdf))
                 || (resultView == "documentPages" && inputKind == .pdf)
-                || (resultView == "archiveTree" && inputKind == .archiveCatalog) else {
+                || (resultView == "archiveTree" && inputKind == .archiveCatalog)
+                || (resultView == "photography" && inputKind == .photoAnalysis) else {
             throw PluginValidationError.invalidField("resultView")
         }
         guard !supportedModes.isEmpty, Set(supportedModes).count == supportedModes.count else {
             throw PluginValidationError.invalidField("supportedModes")
         }
-        guard inputKind != .archiveCatalog || supportedModes == [.pairwise] else {
+        guard (inputKind != .archiveCatalog && inputKind != .photoAnalysis) || supportedModes == [.pairwise] else {
             throw PluginValidationError.unsupportedMode
         }
         guard minHostProtocol >= 1, maxHostProtocol >= minHostProtocol,

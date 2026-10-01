@@ -3,6 +3,7 @@ set -euo pipefail
 project_root="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$project_root/scripts/project-env.sh"
 cd "$project_root"
+source "$project_root/scripts/photo-build-flags.sh"
 check_build="$project_root/.build-ui-checks"
 variant="${1:-current}"
 build_only="${2:-}"
@@ -55,7 +56,7 @@ set --
 if [[ -f "$compile_sources/ComparisonTheme.swift" ]]; then
   set -- -D CROSSDIFF_EXPLICIT_THEME
 fi
-swiftc -swift-version 5 -D CROSSDIFF_UI_CHECKS "$@" -module-cache-path "$check_build/module-cache" \
+swiftc "${crossdiff_photo_swift_flags[@]}" -swift-version 5 -D CROSSDIFF_UI_CHECKS "$@" -module-cache-path "$check_build/module-cache" \
   -I "$check_build" -L "$check_build" -lCrossDiffCore -Xlinker -rpath -Xlinker "$check_build" \
   "$compile_sources"/*.swift "$project_root/scripts/tests/NativeUIRenderChecks.swift" -o "$check_build/$variant-ui-checks"
 if [[ "$build_only" == "--build-only" ]]; then

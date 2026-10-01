@@ -18,6 +18,7 @@ struct NewComparisonType: Identifiable, Equatable {
         case .plugin:
             if pluginID == ArchiveComparisonModel.pluginID { return L("压缩包", "Archives") }
             if pluginID == "org.crossdiff.pdf" { return L("PDF 文档", "PDF Documents") }
+            if pluginID == "org.crossdiff.photography" { return L("摄影", "Photography") }
             return manifest?.name.localized ?? L("插件比较", "Plugin Comparison")
         }
     }
@@ -30,10 +31,12 @@ struct NewComparisonType: Identifiable, Equatable {
         case .plugin:
             if acceptsFolders { return L("压缩包之间，或与本地文件夹比较", "Compare archives with archives or folders") }
             if pluginID == "org.crossdiff.pdf" { return L("页面对照与可提取文字差异", "Compare pages and extractable text") }
+            if manifest?.inputKind == .photoAnalysis { return L("影调、配色与局部区域分析", "Analyze tone, color and selected regions") }
             return manifest?.summary.localized ?? ""
         }
     }
     @MainActor var symbol: String {
+        if manifest?.inputKind == .photoAnalysis { return "camera.aperture" }
         if kind == .plugin { return acceptsFolders ? "archivebox" : pluginID == "org.crossdiff.pdf" ? "doc.richtext" : "puzzlepiece.extension" }
         return kind.symbol
     }

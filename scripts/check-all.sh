@@ -16,6 +16,9 @@ bash scripts/tests/check-plugin-manager.sh
 bash scripts/tests/check-official-plugins.sh
 bash scripts/tests/check-pdf.sh
 bash scripts/tests/check-image-comparison.sh
+bash scripts/tests/check-photography-plugin.sh
+bash scripts/tests/check-photo-metadata.sh
+bash scripts/tests/check-photo-engine.sh
 bash scripts/tests/check-editor.sh
 bash scripts/tests/check-alignment.sh
 bash scripts/tests/check-scroll-geometry.sh
@@ -27,3 +30,4 @@ bash scripts/tests/check-plugin-workflow.sh
 bash scripts/tests/check-official-plugin-ui.sh
 bash scripts/tests/check-binary-workflow.sh
 bash scripts/tests/check-archive-workflow.sh
+bash scripts/tests/check-photo-workflow.sh

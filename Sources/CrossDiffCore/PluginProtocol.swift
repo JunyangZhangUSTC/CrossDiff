@@ -60,7 +60,7 @@ public struct PluginLocalizedText: Codable, Equatable, Sendable {
 }
 
 public enum PluginRuntimeProfile: String, Codable, Sendable { case restrictedJavaScript, trustedExecutable }
-public enum PluginInputKind: String, Codable, Sendable { case text, pdf, archiveCatalog }
+public enum PluginInputKind: String, Codable, Sendable { case text, pdf, archiveCatalog, photoAnalysis }
 public enum PluginComparisonMode: String, Codable, Sendable { case pairwise, threeWayMerge, multiSubject }
 public enum PluginInputRole: String, Codable, Sendable { case left, right, base, ours, theirs, peer }
 public enum PluginResultStatus: String, Codable, Sendable { case completed, partial }
@@ -93,6 +93,7 @@ public struct PluginManifest: Codable, Equatable, Sendable {
         case "documentPages": return "crossdiff.document-pages/1"
         case "table": return "crossdiff.table/1"
         case "archiveTree": return "crossdiff.archive-tree/1"
+        case "photography": return "crossdiff.photography/1"
         default: return ""
         }
     }
@@ -131,6 +132,12 @@ public struct PluginComparisonRequest: Codable, Equatable, Sendable {
         guard inputs.allSatisfy({ !$0.id.isEmpty && $0.id.utf8.count <= 128 && $0.name.utf8.count <= 4096 }),
               Set(inputs.map(\.id)).count == inputs.count else { throw PluginValidationError.invalidField("inputs") }
         guard try JSONEncoder().encode(self).count <= 16 * 1024 * 1024 else { throw PluginValidationError.sizeLimit }
+        if manifest.inputKind == .photoAnalysis {
+            for input in inputs { try Self.validatePhotoStatistics(input.content) }
+            guard Set(inputs.compactMap { $0.content["analysisSpace"]?.stringValue }).count == 1 else {
+                throw PluginValidationError.invalidField("photo analysis spaces")
+            }
+        }
         let roles = inputs.map(\.role)
         switch mode {
         case .pairwise:
@@ -139,6 +146,33 @@ public struct PluginComparisonRequest: Codable, Equatable, Sendable {
             guard inputs.count == 3, Set(roles) == [.base, .ours, .theirs] else { throw PluginValidationError.invalidField("threeWayMerge roles") }
         case .multiSubject:
             guard (3...32).contains(inputs.count), roles.allSatisfy({ $0 == .peer }) else { throw PluginValidationError.invalidField("multiSubject roles") }
+        }
+    }
+}
+
+private extension PluginComparisonRequest {
+    static func validatePhotoStatistics(_ value: PluginJSONValue) throws {
+        guard let space = value["analysisSpace"]?.stringValue, !space.isEmpty, space.utf8.count <= 1024,
+              value["sampled"]?.boolValue != nil,
+              let count = value["analyzedPixels"]?.intValue, (1...100_000_000).contains(count),
+              let neutral = value["neutralFraction"]?.numberValue, neutral.isFinite, (0...1).contains(neutral) else {
+            throw PluginValidationError.invalidField("photography statistics")
+        }
+        for key in ["red", "green", "blue", "lightness", "hue", "saturation"] {
+            guard let bins = value[key]?.arrayValue, bins.count == (key == "hue" ? 360 : 256) else {
+                throw PluginValidationError.invalidField("photography histogram bins")
+            }
+            var sum = 0.0
+            for bin in bins {
+                guard let number = bin.numberValue, number.isFinite, (0...1).contains(number) else {
+                    throw PluginValidationError.invalidField("photography histogram value")
+                }
+                sum += number
+            }
+            let expected = key == "hue" ? 1 - neutral : 1
+            guard abs(sum - expected) <= 0.0001 else {
+                throw PluginValidationError.invalidField("photography histogram normalization")
+            }
         }
     }
 }
@@ -168,6 +202,13 @@ public struct PluginComparisonResult: Codable, Equatable, Sendable {
         }
         guard payload.objectValue != nil else { throw PluginValidationError.invalidField("result payload") }
         guard try JSONEncoder().encode(self).count <= 8 * 1024 * 1024 else { throw PluginValidationError.sizeLimit }
+        if schema == "crossdiff.photography/1" {
+            guard let findings = payload["findings"]?.arrayValue, findings.count <= 8,
+                  findings.allSatisfy({ value in
+                      guard let zh = value["zhHans"]?.stringValue, let en = value["en"]?.stringValue else { return false }
+                      return PluginManifest.validText(.init(zhHans: zh, en: en), maximumBytes: 2048)
+                  }) else { throw PluginValidationError.invalidField("photography findings") }
+        }
     }
 }
 

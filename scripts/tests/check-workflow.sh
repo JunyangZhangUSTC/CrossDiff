@@ -3,6 +3,7 @@ set -euo pipefail
 project_root="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$project_root/scripts/project-env.sh"
 cd "$project_root"
+source "$project_root/scripts/photo-build-flags.sh"
 check_build="$project_root/.build-workflow-checks"
 mkdir -p "$check_build/module-cache" "$check_build/data" "$check_build/renders"
 compile_sources="$(mktemp -d "$check_build/sources.XXXXXX")"
@@ -22,7 +23,7 @@ path.write_text(source)
 PY
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" -emit-module -emit-library -module-name CrossDiffCore \
   "$compile_sources/core"/*.swift -emit-module-path "$check_build/CrossDiffCore.swiftmodule" -o "$check_build/libCrossDiffCore.dylib"
-swiftc -swift-version 5 -D CROSSDIFF_UI_CHECKS -module-cache-path "$check_build/module-cache" \
+swiftc "${crossdiff_photo_swift_flags[@]}" -swift-version 5 -D CROSSDIFF_UI_CHECKS -module-cache-path "$check_build/module-cache" \
   -I "$check_build" -L "$check_build" -lCrossDiffCore -Xlinker -rpath -Xlinker "$check_build" \
   "$compile_sources/app"/*.swift "$project_root/scripts/tests/DeletionPreviewChecks.swift" "$project_root/scripts/tests/WorkflowChecks.swift" "$project_root/scripts/tests/MenuSettingsChecks.swift" "$project_root/scripts/tests/SurfaceLocalizationChecks.swift" "$project_root/scripts/tests/ToolbarChecks.swift" "$project_root/scripts/tests/NavigationChecks.swift" -o "$check_build/workflow-checks"
 if [[ "${1:-}" == "--build-only" ]]; then

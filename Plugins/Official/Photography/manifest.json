@@ -1,0 +1,13 @@
+{
+  "id": "org.crossdiff.photography",
+  "version": "0.1.0",
+  "name": { "zhHans": "摄影对比", "en": "Photography Comparison" },
+  "summary": { "zhHans": "只读比较照片影调、HSL 配色、命名选区、拍摄信息与有记录的处理曲线。RAW 支持取决于机型和 macOS。", "en": "Read-only tone, HSL color, named regions, capture metadata and recorded tone curves. RAW support depends on camera and macOS." },
+  "runtime": "restrictedJavaScript",
+  "inputKind": "photoAnalysis",
+  "fileExtensions": ["jpg", "jpeg", "png", "tif", "tiff", "heic", "heif", "webp", "bmp", "gif", "dng", "cr2", "cr3", "nef", "nrw", "arw", "sr2", "srf", "raf", "rw2", "orf", "pef", "raw", "rwl", "3fr", "fff", "iiq", "mos"],
+  "resultView": "photography",
+  "supportedModes": ["pairwise"],
+  "minHostProtocol": 1,
+  "maxHostProtocol": 1
+}

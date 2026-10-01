@@ -108,6 +108,13 @@ jobs:
       - name: Check image comparison
         run: bash scripts/tests/check-image-comparison.sh
 
+      - name: Photography comparison checks
+        run: |
+          bash scripts/tests/check-photography-plugin.sh
+          bash scripts/tests/check-photo-metadata.sh
+          bash scripts/tests/check-photo-engine.sh
+          bash scripts/tests/check-photo-workflow.sh --build-only
+
       - name: Compile native image workflow checks
         run: bash scripts/tests/check-image-workflow.sh --build-only
 

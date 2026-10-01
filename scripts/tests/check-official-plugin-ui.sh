@@ -3,6 +3,7 @@ set -euo pipefail
 project_root="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$project_root/scripts/project-env.sh"
 cd "$project_root"
+source "$project_root/scripts/photo-build-flags.sh"
 check_build="$project_root/.build-official-plugin-ui"
 mkdir -p "$check_build/module-cache" "$check_build/data" "$check_build/renders"
 compile_sources="$(mktemp -d "$check_build/sources.XXXXXX")"
@@ -22,17 +23,18 @@ path.write_text(source)
 PY
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" -emit-module -emit-library -module-name CrossDiffCore \
   "$compile_sources/core"/*.swift -emit-module-path "$check_build/CrossDiffCore.swiftmodule" -o "$check_build/libCrossDiffCore.dylib"
-swiftc -swift-version 5 -D CROSSDIFF_UI_CHECKS -module-cache-path "$check_build/module-cache" \
+swiftc "${crossdiff_photo_swift_flags[@]}" -swift-version 5 -D CROSSDIFF_UI_CHECKS -module-cache-path "$check_build/module-cache" \
   -I "$check_build" -L "$check_build" -lCrossDiffCore -Xlinker -rpath -Xlinker "$check_build" \
   "$compile_sources/app"/*.swift "$project_root/scripts/tests/DeletionPreviewChecks.swift" "$project_root/scripts/tests/OfficialPluginUIChecks.swift" -o "$check_build/official-plugin-ui-checks"
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" "$project_root/Sources/CrossDiffPluginHost/main.swift" -o "$check_build/CrossDiffPluginHost"
 python3 scripts/package-pdf-plugin.py --output "$check_build/PDF.crossdiffplugin"
+python3 scripts/package-photography-plugin.py --output "$check_build/Photography.crossdiffplugin"
 python3 scripts/package-archive-plugin.py --output "$check_build/Plugins/Archive.crossdiffplugin"
 python3 - "$check_build" <<'PYCAT'
 import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 entries = []
-for name, path in [('Archive', root / 'Plugins/Archive.crossdiffplugin'), ('PDF', root / 'PDF.crossdiffplugin')]:
+for name, path in [('Archive', root / 'Plugins/Archive.crossdiffplugin'), ('PDF', root / 'PDF.crossdiffplugin'), ('Photography', root / 'Photography.crossdiffplugin')]:
     data = path.read_bytes(); manifest = json.loads(data)['manifest']
     asset = f"CrossDiff-Plugin-{name}-{manifest['version']}.crossdiffplugin"
     entries.append({key:manifest[key] for key in ('id', 'version', 'name', 'summary')} | {

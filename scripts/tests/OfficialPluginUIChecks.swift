@@ -20,8 +20,8 @@ import CrossDiffCore
         try FileManager.default.createDirectory(at: D.output, withIntermediateDirectories: true)
         let manager = PluginManager(directory: root.appendingPathComponent("catalog-data-" + UUID().uuidString),
             bundledDirectory: root.appendingPathComponent("Plugins"), catalogURL: root.appendingPathComponent("OfficialPlugins.json"))
-        D.check(manager.officialPlugins.count == 2 && manager.officialCatalogError == nil, "two official catalog cards load offline")
-        D.check(manager.plugin(id: "org.crossdiff.archive")?.bundled == true && manager.plugin(id: "org.crossdiff.pdf") == nil, "Base shows bundled Archive and downloadable PDF")
+        D.check(manager.officialPlugins.count == 3 && manager.officialCatalogError == nil, "three official catalog cards load offline")
+        D.check(manager.plugin(id: "org.crossdiff.archive")?.bundled == true && manager.plugin(id: "org.crossdiff.pdf") == nil && manager.plugin(id: "org.crossdiff.photography") == nil, "Base shows bundled Archive and downloadable PDF and Photography")
         D.window = NSWindow(contentRect: NSRect(x: -10000, y: -10000, width: 720, height: 660), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         D.window.title = "CrossDiff"
         D.window.contentView = NSHostingView(rootView: PluginManagerView(manager: manager))

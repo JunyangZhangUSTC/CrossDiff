@@ -109,6 +109,10 @@ private struct PluginResultView: View {
                     ArchiveComparisonView(left: left, right: right, model: session.archiveComparisonModel,
                         execute: { try await execution.compare($0) },
                         executionID: plugin.package.manifest.version + plugin.package.sha256 + PluginManager.shared.revision.uuidString)
+                } else if plugin.package.manifest.resultView == "photography" {
+                    PhotoComparisonView(left: left, right: right, model: session.photoComparisonModel,
+                        execute: { try await execution.compare($0) },
+                        executionID: plugin.package.manifest.version + plugin.package.sha256 + PluginManager.shared.revision.uuidString)
                 } else if plugin.package.manifest.resultView == "documentPages" {
                     PDFComparisonView(left: left, right: right, model: session.pdfComparisonModel,
                         pluginName: plugin.package.manifest.name.localized, execute: { try await execution.compare($0) },

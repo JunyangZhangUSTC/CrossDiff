@@ -101,7 +101,7 @@ class ReleaseTests(unittest.TestCase):
         with zipfile.ZipFile(self.directory / name, "w") as archive:
             prefix = "CrossDiff.app/Contents/"
             archive.writestr(prefix + "Info.plist", plistlib.dumps(self.metadata))
-            for notice in ("LICENSE", "NOTICE"):
+            for notice in release.plugin_inventory.APP_LICENSE_FILES:
                 archive.writestr(prefix + "Resources/" + notice, "notice fixture")
             archive.writestr(prefix + "Resources/OfficialPlugins.json", self.catalog if catalog is None else catalog)
             for plugin_name, data in release.plugin_inventory.bundle_inventory(edition, packages or self.plugins).items():
@@ -124,7 +124,7 @@ class ReleaseTests(unittest.TestCase):
     def package(self):
         return release.validate_package(self.root, TAG, self.directory)
 
-    def test_creates_draft_with_all_nine_verified_downloads_and_can_retry(self):
+    def test_creates_draft_with_all_verified_downloads_and_can_retry(self):
         package = self.package()
         github = FakeGitHub()
         url = release.publish(github, self.root, package)
@@ -133,10 +133,11 @@ class ReleaseTests(unittest.TestCase):
         self.assertTrue(github.release["prerelease"])
         self.assertEqual(github.release["target_commitish"], COMMIT)
         self.assertEqual(github.release["make_latest"], "false")
-        self.assertEqual((github.upload_count, github.download_count), (9, 9))
+        asset_count = len(self.plugins) + 6  # Base, Full, source, catalog, build info and checksums.
+        self.assertEqual((github.upload_count, github.download_count), (asset_count, asset_count))
         release.publish(github, self.root, package)
-        self.assertEqual((github.upload_count, github.download_count), (18, 18))
-        self.assertEqual(len(github.release["assets"]), 9)
+        self.assertEqual((github.upload_count, github.download_count), (2 * asset_count, 2 * asset_count))
+        self.assertEqual(len(github.release["assets"]), asset_count)
         self.assertEqual(sum(method == "POST" for method, _ in github.calls), 1)
 
     def test_published_and_immutable_releases_are_never_modified(self):

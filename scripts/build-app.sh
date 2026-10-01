@@ -25,6 +25,7 @@ if output.exists() and any(path.is_symlink() for path in output.rglob('*')):
 print(output)
 CHECK_OUTPUT
 )"
+bash scripts/prepare-opencv.sh
 export CLANG_MODULE_CACHE_PATH="$PWD/.build/module-cache"
 export SWIFTPM_MODULECACHE_OVERRIDE="$CLANG_MODULE_CACHE_PATH"
 mkdir -p .build/cache .build/config .build/security
@@ -47,6 +48,8 @@ codesign --force --sign - "$bundle/Contents/Helpers/.CrossDiffPluginHost.new"
 mv -f "$bundle/Contents/Helpers/.CrossDiffPluginHost.new" "$bundle/Contents/Helpers/CrossDiffPluginHost"
 cp Resources/Info.plist "$bundle/Contents/Info.plist"
 cp LICENSE NOTICE "$bundle/Contents/Resources/"
+mkdir -p "$bundle/Contents/Resources/ThirdParty/OpenCV"
+cp ThirdParty/OpenCV/* "$bundle/Contents/Resources/ThirdParty/OpenCV/"
 # Remove the development-only notice left in bundles produced by older builds.
 rm -f "$bundle/Contents/Resources/THIRD_PARTY_NOTICES.md"
 swift scripts/make-icon.swift "$PWD/.build/CrossDiff.iconset"

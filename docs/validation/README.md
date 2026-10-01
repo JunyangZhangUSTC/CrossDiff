@@ -4,6 +4,7 @@ These records describe checks performed for specific development previews, inclu
 
 | Preview | Record |
 | --- | --- |
+| 0.9.0 | [Photography, RAW and regional analysis](validation-0.9.0.md) |
 | 0.8.0 | [Editions, official plugin installation and publication](validation-0.8.0.md) |
 | 0.7.1 | [New comparison flow](validation-0.7.1.md) |
 | 0.7.0 | [Archive comparison and bundled base plugin](validation-0.7.0.md) |

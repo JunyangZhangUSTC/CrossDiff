@@ -1,0 +1,4 @@
+module PhotoCVBridge {
+  header "PhotoCVBridge.h"
+  export *
+}

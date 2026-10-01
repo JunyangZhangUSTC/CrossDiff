@@ -1,10 +1,10 @@
 # Development guide
 
-CrossDiff is a native macOS application built with SwiftUI and AppKit. Its comparison, search, file I/O, and persistence logic live in a separate Swift module with no AppKit or SwiftUI dependency. The package currently has no third-party runtime dependencies.
+CrossDiff is a native macOS application built with SwiftUI and AppKit. Its comparison, search, file I/O, and persistence logic live in a separate Swift module with no AppKit or SwiftUI dependency. The macOS host statically links the `core` and `imgproc` modules of OpenCV 4.12.0 for photography analysis; `CrossDiffCore` remains independent of AppKit, SwiftUI and OpenCV.
 
 For product behavior, see the [user guide](usage.md), [specification](specification.md), and [roadmap](roadmap.md). Contribution expectations are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-The next framework direction is documented separately in the [product vision](product-vision.md), [architecture proposal](architecture/compare-everything.md), and [draft plugin guide](plugins/development.md). The broader architecture remains a proposal. The implemented experimental contract includes a JavaScriptCore helper and native table, document-page, and archive-tree renderers. Version 0.8.0 packages Base and Full editions with a shared offline official-plugin catalog; see the [implemented API](plugins/development.en.md). Shared comparison terms are in the [glossary](../GLOSSARY.md), with accepted design decisions under [docs/adr](adr/0001-comparison-modes.md).
+The next framework direction is documented separately in the [product vision](product-vision.md), [architecture proposal](architecture/compare-everything.md), and [draft plugin guide](plugins/development.md). The broader architecture remains a proposal. The implemented experimental contract includes a JavaScriptCore helper and native table, document-page, archive-tree and photography renderers. The unpublished 0.9.0 source preview adds Photography 0.1.0. Version 0.8.0 introduced Base and Full editions with a shared offline official-plugin catalog; see the [implemented API](plugins/development.en.md). Shared comparison terms are in the [glossary](../GLOSSARY.md), with accepted design decisions under [docs/adr](adr/0001-comparison-modes.md).
 
 ## Requirements
 
@@ -34,13 +34,13 @@ codesign --verify --deep --strict dist/CrossDiff.app
 bash scripts/open-dev-app.command
 ```
 
-The default build is **Full**: text, folders, images, Hex, the Archive plugin, and PDF. The output is `dist/CrossDiff.app`. You can also double-click `scripts/open-dev-app.command` in Finder. This launcher keeps runtime data local to the project. Opening the `.app` directly through Finder uses the ordinary application data directory, separate from development sessions.
+The default build is **Full**: text, folders, images, Hex, the Archive plugin, PDF and Photography. The output is `dist/CrossDiff.app`. You can also double-click `scripts/open-dev-app.command` in Finder. This launcher keeps runtime data local to the project. Opening the `.app` directly through Finder uses the ordinary application data directory, separate from development sessions.
 
 The build script replaces the executable atomically and applies an ad-hoc signature. Quit an older app normally before opening the new build; an already running process does not acquire newly built code. Do not force-terminate it and risk unsaved work. This is a local development package, not a Developer ID signed or notarized release.
 
 ### Build an edition
 
-Both editions compile the same host and renderers. **Base** bundles Archive; **Full** adds PDF. The independently packaged JSON example is not bundled in either edition.
+Both editions compile the same host and renderers. **Base** bundles Archive; **Full** adds PDF and Photography. The independently packaged JSON example is not bundled in either edition.
 
 ```sh
 # Explicit Full build (the default).
@@ -64,6 +64,22 @@ The project launcher opens the edition currently built at `dist/CrossDiff.app`. 
 The app reads the bundled catalog without contacting the network. In **New… → More Comparisons** or **CrossDiff → Plugins…**, an explicit **Download & Install** action downloads an uninstalled official plugin. Before installation, it checks the complete package's size and digest, ID, version, host compatibility, and restricted JavaScript runtime. Cancellation and failures leave installation state unchanged. This path installs and enables the verified package without another permission sheet; it cannot authorize native code or silently replace an installed plugin.
 
 Existing external plugins can be updated through the local-file or arbitrary-HTTPS review flow. Plugins already bundled with the running edition update with the app and cannot be overwritten by external packages. Native full-trust plugins retain explicit review and approval; see [SECURITY.md](../SECURITY.md). There is no background catalog polling or automatic update service. The fixed GitHub URLs become downloadable after the corresponding release is published.
+
+### Photography dependencies and boundaries
+
+`build-app.sh` prepares OpenCV automatically. For direct SwiftPM builds, prepare it first:
+
+```sh
+bash scripts/prepare-opencv.sh
+source scripts/project-env.sh
+swift build --disable-sandbox --cache-path .build/cache --config-path .build/config --security-path .build/security
+```
+
+The preparer downloads the checksum-pinned OpenCV 4.12.0 upstream archive into `.build/photo-deps/downloads/`, builds only static `core`/`imgproc`, and installs them into `.build/photo-deps/install-<architecture>/`. When CMake is unavailable, a pinned Kitware CMake archive is unpacked under the same project directory. No Homebrew, pip or global install is required. First-time dependency preparation needs network access; application comparisons do not. `CROSSDIFF_BUILD_JOBS` controls build parallelism (default 4); `CROSSDIFF_ARCH` selects `arm64` or `x86_64`, but selecting an architecture does not establish that it has been tested.
+
+The host supplies these modules in both Base and Full so a compatible Base build can install the small restricted Photography package without native-code installation. [`PhotoCVBridge`](../Sources/PhotoCVBridge/) calls OpenCV `cvtColor(COLOR_RGB2HLS)` and `calcHist`; it does not implement substitute color-conversion or histogram algorithms. Apple ImageIO, Core Image and `CIRAWFilter` own image decoding, RAW rendering, orientation, profiles and resampling. Source attribution and licenses are under [`ThirdParty/OpenCV`](../ThirdParty/OpenCV/).
+
+Use [`scripts/photo-build-flags.sh`](../scripts/photo-build-flags.sh) after the project environment when a check compiles app sources directly with `swiftc`. It prepares dependencies and the C++ bridge, then exposes the `crossdiff_photo_swift_flags` Bash array. The core-only checks do not need the native bridge. See the [photography design](architecture/photography-comparison.md) and [experimental plugin contract](plugins/development.en.md#crossdiffphotography1).
 
 ## Choose relevant checks
 
@@ -90,9 +106,13 @@ All commands below run from the repository root. Native window checks must run *
 | Plugin downloading and management | `bash scripts/tests/check-plugin-download.sh` and `bash scripts/tests/check-plugin-manager.sh` | Offline transport, HTTPS policy, size/cancel bounds, damaged-plugin recovery and install state |
 | Official catalog and installation | `bash scripts/tests/check-official-plugins.sh` | Offline discovery, exact package integrity and identity, restricted-only automatic installation, cancellation, failures, and Base/Full data preservation |
 | Official plugin window | `bash scripts/tests/check-official-plugin-ui.sh` | Bundled/downloadable cards, offline browsing without installation changes, and actual bilingual light/dark/minimum-width rendering |
+| Photography engine | `bash scripts/tests/check-photo-engine.sh` | Real OpenCV conversion/statistics, endpoints, neutrals, alpha, color profiles, source depth, orientation, ROI mapping, sample bounds and unsupported RAW failures |
+| Recorded photograph curves | `bash scripts/tests/check-photo-metadata.sh` | Embedded and explicitly selected XMP, namespace handling, absent/malformed curves and source preservation |
+| Photography plugin | `bash scripts/tests/check-photography-plugin.sh` | Real restricted algorithm, histogram/result contract validation, regions and legacy-session compatibility |
+| Native photography workflows | `bash scripts/tests/check-photo-workflow.sh` | Real plugin, paired regions, session persistence, cancellation/stale outputs, XMP, local installation and bilingual light/dark/narrow windows |
 | PDF domain | `bash scripts/tests/check-pdf.sh` | Page alignment, scanning limits, extraction, malformed inputs and source preservation |
 | Native plugin workflows | `bash scripts/tests/check-plugin-workflow.sh` | Install, disable, recovery, real external algorithm, PDF/page/table views and themes |
-| All behavioral suites | `bash scripts/check-all.sh` | Core, image, plugin packages/runtime/download/manager/official catalog, PDF, binary and archives; release/inventory safeguards; serialized native text, image, plugin, official-plugin, binary and archive workflows |
+| All behavioral suites | `bash scripts/check-all.sh` | Core, image, plugin packages/runtime/download/manager/official catalog, PDF, binary, archives and photography; release/inventory safeguards; serialized native text, image, plugin, official-plugin, binary, archive and photography workflows |
 | Edition packaging and plugin inventory | `source scripts/project-env.sh` then `python3 -m unittest discover -s scripts/tests -p 'test_plugin_inventory.py'` | Base/Full contents, matching standalone packages, catalog checksums and URLs, safe output locations, and invalid metadata rejection |
 | Release publishing | `source scripts/project-env.sh` then `python3 -m unittest discover -s scripts/tests -p 'test_github_release.py'` | Offline checks for version matching, draft retries, upload protection and download verification |
 
@@ -106,6 +126,7 @@ With a complete Xcode installation, the standard XCTest target can also run:
 
 ```sh
 source scripts/project-env.sh
+bash scripts/prepare-opencv.sh
 swift test --disable-sandbox --cache-path .build/cache --config-path .build/config --security-path .build/security
 ```
 
@@ -117,9 +138,9 @@ See [Preparing a release](releasing.md) for clean-commit Base/Full packaging, st
 
 ## Continuous integration
 
-[.github/workflows/check.yml](../.github/workflows/check.yml) configures a macOS runner to check patch formatting, audit repository history, run core, image-rendering, plugin/PDF, official-catalog, inventory, and release-publishing checks, run archive and binary core checks, compile the text, new-comparison, image, plugin, official-plugin, binary and archive native workflow checks, and build, verify, and audit the app. Compilation on CI does not replace native window interaction and pixel checks. Report a remote CI result only after that workflow has actually run.
+[.github/workflows/check.yml](../.github/workflows/check.yml) configures a macOS runner to check patch formatting, audit repository history, run core, image-rendering, plugin/PDF, official-catalog, inventory, and release-publishing checks, run archive, binary and photography engine/metadata/plugin checks, compile the text, new-comparison, image, plugin, official-plugin, binary, archive and photography native workflow checks, and build, verify, and audit the app. Compilation on CI does not replace native window interaction and pixel checks. Report a remote CI result only after that workflow has actually run.
 
-[.github/workflows/release.yml](../.github/workflows/release.yml) builds version tags, checks core, image, plugins/PDF, official-catalog and edition/release safeguards, compiles native workflow checks, and prepares verified draft prereleases containing Base, Full, standalone plugins, the catalog, matching source and checksums. Published and immutable releases are not overwritten by retries. See the [release guide](releasing.md) for tagging, reviewing, and publishing a preview.
+[.github/workflows/release.yml](../.github/workflows/release.yml) builds version tags, checks core, image, photography engine/metadata/plugin, plugins/PDF, official-catalog and edition/release safeguards, compiles native workflow checks, and prepares verified draft prereleases containing Base, Full, standalone plugins, the catalog, matching source and checksums. Published and immutable releases are not overwritten by retries. See the [release guide](releasing.md) for tagging, reviewing, and publishing a preview.
 
 Record release-specific results and unverified items under [docs/validation/](validation/README.md). Historical logs describe their original test run, not a guarantee for every subsequent commit.
 
@@ -130,10 +151,12 @@ CrossDiff/
 ├── Sources/
 │   ├── CrossDiff/             # macOS UI, native editors, app state
 │   ├── CrossDiffCore/         # Comparison, I/O, persistence and plugin contracts
-│   └── CrossDiffPluginHost/   # Restricted JavaScriptCore worker
-├── Plugins/                   # Official PDF/archive sources and an independent JSON example
+│   ├── CrossDiffPluginHost/   # Restricted JavaScriptCore worker
+│   └── PhotoCVBridge/         # Thin C ABI to pinned OpenCV algorithms
+├── Plugins/                   # Official PDF/archive/photography and independent JSON example
 ├── Checks/                    # Core behavior checks without XCTest
 ├── Tests/CrossDiffCoreTests/  # Standard XCTest target
+├── ThirdParty/                # Dependency licenses, attribution and source provenance
 ├── Resources/                 # Application metadata and brand assets
 ├── examples/                  # Small, synthetic comparison samples
 ├── scripts/                   # Local build, launcher, environment and checks
@@ -162,6 +185,7 @@ These limits are deliberate product boundaries, not silent data conversions:
 - Folder copying supports regular files, with a preview and revalidation before execution. It does not follow/copy symbolic links, delete batches, or perform full directory synchronization. Completed copies remain if a later item fails; the UI asks for a new comparison.
 - Sessions save on a serial background queue and flush the latest snapshot at termination. Manual file saves still run synchronously. Very large layouts and slow disks remain performance work.
 - PDF uses read-only snapshots: up to 48 MiB per file, the first 200 pages, bounded extracted text and 384 px page fingerprints. It is preview/text analysis, not exact full-resolution visual equality or OCR. Scanned pages need manual visual review.
-- Plugin v1 uses bounded single-file JSON packages and three native result schemas: `table`, `documentPages`, and `archiveTree`. The official catalog installs missing restricted plugins only; existing external-plugin updates retain review, and bundled plugins update with the app. Restricted JavaScript has no host I/O APIs; native full-trust code is not sandboxed and quarantined executables are refused. Custom native views, assets/dependency loading, remote sources, Word, spreadsheets, three-way merging, syntax highlighting, unified diff view, context folding, and report export are future work. See the [roadmap](roadmap.md).
+- Photography is a read-only plugin using the host’s Apple/OpenCV pipeline. Each source is limited to 256 MiB and 64 megapixels; the display preview has a 2048 px longest edge and source-region statistics resample above a 4096 px longest edge. Values are floating-point sRGB SDR clamped to 0–1. HSL L is lightness, not physical luminance or exposure. Fully transparent/non-finite samples are excluded; valid pixels have equal weight; saturation below 2% is neutral and excluded from hue bins. RAW availability depends on macOS, the camera and encoding mode. Unsupported RAW fails without embedded-preview substitution. XMP curves are actual recorded control points, never inferred editing settings. There is no photo editing, HDR analysis, waveform/vectorscope, noise/sharpness scoring or full-resolution inspector in this preview. See [photography usage](usage.md#photography).
+- Plugin v1 uses bounded single-file JSON packages and four native result views: `table`, `documentPages`, `archiveTree` and `photography`. The official catalog installs missing restricted plugins only; existing external-plugin updates retain review, and bundled plugins update with the app. Restricted JavaScript has no host I/O APIs; native full-trust code is not sandboxed and quarantined executables are refused. Custom native views, assets/dependency loading, remote sources, Word, spreadsheets, three-way merging, syntax highlighting, unified diff view, context folding, and report export are future work. See the [roadmap](roadmap.md).
 
 Normal app data lives in `~/Library/Application Support/CrossDiff/`: `sessions.json` for local restoration and `preferences.json` for language and appearance, `Plugins/` for external packages and version state, and `plugin-preferences.json` for bundled-plugin enablement. Files are owner-readable/writable, not encrypted by the application. See [SECURITY.md](../SECURITY.md) for the privacy boundary.
