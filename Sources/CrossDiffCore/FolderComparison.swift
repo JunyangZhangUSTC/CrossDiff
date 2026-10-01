@@ -208,7 +208,11 @@ public enum FolderComparison {
         } else if kind == .symbolicLink {
             if let parent {
                 var bytes = [UInt8](repeating: 0, count: Int(PATH_MAX))
-                let count = readlinkat(parent, name, &bytes, bytes.count)
+                // Pass the elements explicitly: older SDK imports can otherwise convert
+                // &bytes to the Array value's address instead of its contiguous storage.
+                let count = bytes.withUnsafeMutableBytes { buffer in
+                    readlinkat(parent, name, buffer.baseAddress!, buffer.count)
+                }
                 guard count >= 0 else { throw FolderComparisonError.filesystem(url.path) }
                 digest = String(decoding: bytes[0..<count], as: UTF8.self)
             } else { digest = try FileManager.default.destinationOfSymbolicLink(atPath: url.path) }

@@ -4,8 +4,24 @@ import CrossDiffCore
 // CI captures stdout through a pipe. Keep completed checks visible if a later one crashes.
 setbuf(stdout, nil)
 
+// Foundation on older macOS versions can ignore TMPDIR for temporaryDirectory.
+// Resolve the project environment explicitly so every fixture stays in this checkout.
+let checkTemporaryDirectory: URL = {
+    guard let path = ProcessInfo.processInfo.environment["TMPDIR"], !path.isEmpty else {
+        fputs("CrossDiff checks require the project environment. Run bash scripts/check.sh.\n", stderr)
+        exit(1)
+    }
+    let directory = URL(fileURLWithPath: path, isDirectory: true).resolvingSymlinksInPath()
+    let project = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true).resolvingSymlinksInPath()
+    guard directory.path.hasPrefix(project.path + "/") else {
+        fputs("CrossDiff check fixtures must remain inside the project. Run bash scripts/check.sh.\n", stderr)
+        exit(1)
+    }
+    return directory
+}()
+
 func runStorageChecks() throws {
-    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("CrossDiff-storage-" + UUID().uuidString)
+    let directory = checkTemporaryDirectory.appendingPathComponent("CrossDiff-storage-" + UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
     let original = "中文 👩🏽‍💻\r\n第二行\r\n"

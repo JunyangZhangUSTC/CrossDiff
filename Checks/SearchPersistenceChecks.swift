@@ -58,7 +58,7 @@ func runSearchPersistenceChecks() throws {
     precondition(expected.hunks.map(\.rightRange) == actual.hunks.map(\.rightRange))
     precondition(expected.rows.count == actual.rows.count && expected.simplified == actual.simplified)
 
-    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("CrossDiff-ordered-session-" + UUID().uuidString)
+    let directory = checkTemporaryDirectory.appendingPathComponent("CrossDiff-ordered-session-" + UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
     let file = directory.appendingPathComponent("sessions.json")

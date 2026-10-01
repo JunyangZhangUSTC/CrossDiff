@@ -4,7 +4,7 @@ import CrossDiffCore
 func runFolderChecks() throws {
     let manager = FileManager.default
     func folders(_ body: (URL, URL) throws -> Void) throws {
-        let base = manager.temporaryDirectory.appendingPathComponent("CrossDiff-folder-" + UUID().uuidString)
+        let base = checkTemporaryDirectory.appendingPathComponent("CrossDiff-folder-" + UUID().uuidString)
         let left = base.appendingPathComponent("left"), right = base.appendingPathComponent("right")
         try manager.createDirectory(at: left, withIntermediateDirectories: true)
         try manager.createDirectory(at: right, withIntermediateDirectories: true)
@@ -69,6 +69,24 @@ func runFolderChecks() throws {
         precondition(result.entries.map(\.path) == ["link"])
         precondition(result.entries.first?.left?.kind == .symbolicLink)
         mustThrow { _ = try FolderComparison.prepareCopy(result, paths: ["link"], toRight: true) }
+    }
+    try folders { left, right in
+        // Reading link targets must write into the byte buffer, never the Array value.
+        // Keep the target nonexistent: scanning compares link text without following it.
+        let target = String(repeating: "目录/", count: 80) + "文件👩🏽‍💻.txt"
+        for root in [left, right] {
+            try manager.createSymbolicLink(atPath: root.appendingPathComponent("same-link").path,
+                                          withDestinationPath: target)
+        }
+        try manager.createSymbolicLink(atPath: left.appendingPathComponent("changed-link").path,
+                                      withDestinationPath: target + "-old")
+        try manager.createSymbolicLink(atPath: right.appendingPathComponent("changed-link").path,
+                                      withDestinationPath: target + "-new")
+        let result = try FolderComparison.scan(left: left, right: right)
+        let states = Dictionary(uniqueKeysWithValues: result.entries.map { ($0.path, $0.status) })
+        precondition(states == ["same-link": .same, "changed-link": .changed])
+        precondition(result.entries.allSatisfy { $0.left?.kind == .symbolicLink && $0.right?.kind == .symbolicLink })
+        mustThrow { _ = try FolderComparison.prepareCopy(result, paths: ["changed-link"], toRight: true) }
     }
     try folders { left, right in
         try manager.createDirectory(at: left.appendingPathComponent("sub"), withIntermediateDirectories: true)

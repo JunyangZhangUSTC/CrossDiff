@@ -38,7 +38,7 @@ func runLocalizationChecks() throws {
     let summary = localizedErrorDescription(unexpected)
     precondition(summary.contains("CrossDiff.Test") && summary.contains("123") && !summary.contains("Private source content"))
 
-    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("CrossDiff-preferences-" + UUID().uuidString)
+    let directory = checkTemporaryDirectory.appendingPathComponent("CrossDiff-preferences-" + UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
     let file = directory.appendingPathComponent("preferences.json")
