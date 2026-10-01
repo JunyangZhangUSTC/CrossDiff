@@ -12,6 +12,8 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
     private var languageObserver: NSObjectProtocol?
     private var menuItemObserver: NSObjectProtocol?
     private var settingsController: NSWindowController?
+    private var pluginsController: NSWindowController?
+    private var pluginObserver: NSObjectProtocol?
     private(set) weak var comparisonWindow: NSWindow?
     private struct ManagedMenu {
         let menu: NSMenu
@@ -25,6 +27,10 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         super.init()
         languageObserver = NotificationCenter.default.addObserver(forName: .crossDiffLanguageChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.rebuild() }
+        }
+        pluginObserver = NotificationCenter.default.addObserver(forName: .crossDiffPluginsChanged, object: nil, queue: .main) { [weak self] _ in
+            // Avoid reentering manager initialization while building the first menu.
+            DispatchQueue.main.async { self?.rebuild() }
         }
         menuItemObserver = NotificationCenter.default.addObserver(forName: NSMenu.didAddItemNotification, object: nil, queue: .main) { [weak self] notification in
             MainActor.assumeIsolated {
@@ -76,6 +82,7 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         app.addItem(item(L("关于 CrossDiff", "About CrossDiff"), #selector(about(_:))))
         app.addItem(.separator())
         app.addItem(item(L("设置/Setting…", "设置/Setting…"), #selector(showSettings(_:)), key: ","))
+        app.addItem(item(L("插件…", "Plugins…"), #selector(showPlugins(_:))))
         app.addItem(.separator())
         let services = addMenu(L("服务", "Services"), to: app)
         NSApp.servicesMenu = services
@@ -87,7 +94,7 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         app.addItem(item(L("退出 CrossDiff", "Quit CrossDiff"), #selector(NSApplication.terminate(_:)), key: "q", native: true))
 
         let file = addMenu(L("文件", "File"), to: root)
-        file.addItem(item(L("新建文本比较", "New Text Comparison"), #selector(newComparison(_:)), key: "n"))
+        file.addItem(item(L("新建比较…", "New Comparison…"), #selector(newComparison(_:)), key: "n"))
         file.addItem(item(L("打开…", "Open…"), #selector(open(_:)), key: "o"))
         file.addItem(.separator())
         file.addItem(item(L("关闭", "Close"), #selector(close(_:)), key: "w"))
@@ -122,9 +129,15 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         view.addItem(item(L("进入全屏幕", "Enter Full Screen"), #selector(toggleFullScreen(_:)), key: "f", modifiers: [.command, .control]))
 
         let compare = addMenu(L("比较", "Compare"), to: root)
-        compare.addItem(item(L("文本比较", "Text Comparison"), #selector(newComparison(_:))))
+        compare.addItem(item(L("文本比较…", "Text Comparison…"), #selector(newTextComparison(_:))))
         compare.addItem(item(L("文件夹比较…", "Folder Comparison…"), #selector(openFolders(_:))))
         compare.addItem(item(L("图片比较…", "Image Comparison…"), #selector(openImages(_:))))
+        compare.addItem(item(L("二进制比较…", "Binary Comparison…"), #selector(openBinary(_:))))
+        for plugin in PluginManager.shared.enabledPlugins {
+            let entry = item(plugin.package.manifest.name.localized + "…", #selector(openPlugin(_:)))
+            entry.representedObject = plugin.id
+            compare.addItem(entry)
+        }
         compare.addItem(.separator())
         compare.addItem(item(L("下一处差异", "Next Difference"), #selector(nextDifference(_:)), key: String(UnicodeScalar(NSDownArrowFunctionKey)!), modifiers: [.command, .option]))
         compare.addItem(item(L("上一处差异", "Previous Difference"), #selector(previousDifference(_:)), key: String(UnicodeScalar(NSUpArrowFunctionKey)!), modifiers: [.command, .option]))
@@ -148,6 +161,7 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         mainMenu = root; NSApp.mainMenu = root
         scheduleMenuCleanup()
         settingsController?.window?.title = L("设置", "Settings")
+        pluginsController?.window?.title = L("插件", "Plugins")
     }
 
     // AppKit can append default editing/full-screen items again when the main
@@ -194,6 +208,9 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         case #selector(findSelection(_:)):
             return canEditComparison && selectedSourceText()?.isEmpty == false
         case #selector(nextDifference(_:)), #selector(previousDifference(_:)):
+            if comparisonActive, let session, session.kind == .binary {
+                return session.binaryComparisonModel.canNavigate
+            }
             return canEditComparison && session?.calculating == false && session?.result?.hunks.isEmpty == false
         case #selector(toggleDeletions(_:)):
             menuItem.state = session?.showDeletions == true ? .on : .off; return canEditComparison
@@ -206,7 +223,7 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
             let full = NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
             menuItem.title = full ? L("退出全屏幕", "Exit Full Screen") : L("进入全屏幕", "Enter Full Screen")
             return comparisonActive
-        case #selector(newComparison(_:)), #selector(open(_:)), #selector(openFolders(_:)), #selector(openImages(_:)):
+        case #selector(newComparison(_:)), #selector(newTextComparison(_:)), #selector(open(_:)), #selector(openFolders(_:)), #selector(openImages(_:)), #selector(openBinary(_:)), #selector(openPlugin(_:)):
             return comparisonWindow?.attachedSheet == nil && NSApp.modalWindow == nil
         case #selector(close(_:)): return NSApp.keyWindow != nil
         case #selector(clearHistory(_:)): return comparisonActive
@@ -229,10 +246,16 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         return (editor.string as NSString).substring(with: editor.selectedRange())
     }
     private func focusComparison() { comparisonWindow?.makeKeyAndOrderFront(nil) }
-    @objc func newComparison(_ sender: Any?) { focusComparison(); WorkspaceStore.shared.newText() }
+    @objc func newComparison(_ sender: Any?) { focusComparison(); WorkspaceStore.shared.beginNewComparison() }
+    @objc func newTextComparison(_ sender: Any?) { focusComparison(); WorkspaceStore.shared.beginNewComparison(kind: .text) }
     @objc func open(_ sender: Any?) { focusComparison(); WorkspaceStore.shared.openPanel() }
-    @objc func openFolders(_ sender: Any?) { focusComparison(); WorkspaceStore.shared.openPanel(kind: .folder) }
-    @objc func openImages(_ sender: Any?) { focusComparison(); WorkspaceStore.shared.openPanel(kind: .image) }
+    @objc func openFolders(_ sender: Any?) { focusComparison(); WorkspaceStore.shared.beginNewComparison(kind: .folder) }
+    @objc func openImages(_ sender: Any?) { focusComparison(); WorkspaceStore.shared.beginNewComparison(kind: .image) }
+    @objc func openBinary(_ sender: Any?) { focusComparison(); WorkspaceStore.shared.beginNewComparison(kind: .binary) }
+    @objc func openPlugin(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        focusComparison(); WorkspaceStore.shared.beginNewComparison(kind: .plugin, pluginID: id)
+    }
     @objc func close(_ sender: Any?) {
         if comparisonActive, let session { WorkspaceStore.shared.close(session) }
         else { NSApp.keyWindow?.performClose(sender) }
@@ -254,8 +277,13 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         guard canEditComparison, let text = selectedSourceText(), !text.isEmpty else { return }
         session?.searchQuery = text; beginFind(replacing: false)
     }
-    @objc func nextDifference(_ sender: Any?) { if canEditComparison { session?.navigate(1) } }
-    @objc func previousDifference(_ sender: Any?) { if canEditComparison { session?.navigate(-1) } }
+    @objc func nextDifference(_ sender: Any?) { navigateDifference(1) }
+    @objc func previousDifference(_ sender: Any?) { navigateDifference(-1) }
+    private func navigateDifference(_ direction: Int) {
+        guard comparisonActive, let session else { return }
+        if session.kind == .binary { session.binaryComparisonModel.navigate(direction) }
+        else if canEditComparison { session.navigate(direction) }
+    }
     @objc func toggleDeletions(_ sender: Any?) { if canEditComparison { session?.showDeletions.toggle() } }
     @objc func toggleAlignment(_ sender: Any?) { if canEditComparison { session?.alignDifferences.toggle() } }
     @objc func toggleScrolling(_ sender: Any?) { if canEditComparison { session?.synchronizedScrolling.toggle() } }
@@ -279,6 +307,24 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         settingsController?.window?.makeKeyAndOrderFront(sender)
     }
     @objc func toggleFullScreen(_ sender: Any?) { if comparisonActive { comparisonWindow?.toggleFullScreen(sender) } }
+    @objc func showPlugins(_ sender: Any?) {
+        if pluginsController == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 690, height: 510),
+                styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+            window.identifier = NSUserInterfaceItemIdentifier("crossdiff-plugins")
+            window.title = L("插件", "Plugins"); window.isReleasedWhenClosed = false
+            window.contentMinSize = NSSize(width: 650, height: 460)
+            window.contentView = NSHostingView(rootView: PluginManagerView(manager: .shared))
+            #if CROSSDIFF_UI_CHECKS
+            window.setFrameOrigin(NSPoint(x: -10000, y: -10000))
+            #else
+            window.center()
+            #endif
+            pluginsController = NSWindowController(window: window)
+        }
+        pluginsController?.showWindow(sender)
+        pluginsController?.window?.makeKeyAndOrderFront(sender)
+    }
     @objc func about(_ sender: Any?) {
         let alert = NSAlert()
         alert.messageText = "CrossDiff"

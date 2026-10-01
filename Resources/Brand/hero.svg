@@ -1,29 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="520" viewBox="0 0 1600 520" role="img" aria-label="CrossDiff">
-<rect x="0.0" y="0.0" width="1600.0" height="520.0" rx="28.0" fill="#F4F7FB" opacity="1.0"/>
-<rect x="1101.0" y="53.0" width="336.0" height="414.0" rx="150.0" fill="#E8EEF6" opacity="1.0"/>
-<text x="100.0" y="139.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#536A84">MACOS · FREE &amp; OPEN SOURCE</text>
-<text x="94.0" y="256.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="108.0" font-weight="700" letter-spacing="-0.5" fill="#233952">CrossDiff</text>
-<text x="100.0" y="322.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="34.0" font-weight="400" letter-spacing="-0.5" fill="#536A84">Native comparisons for macOS.</text>
-<text x="100.0" y="410.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="23.0" font-weight="400" letter-spacing="-0.5" fill="#657C96">Text  /  Folders  /  Images</text>
-<rect x="1079.21875" y="72.65625" width="381.5625" height="381.5625" rx="87.65625" fill="#14263E" opacity="0.08"/>
-<rect x="1077.5" y="67.5" width="385.0" height="385.0" rx="87.65625" fill="#DCE3EC" opacity="1.0"/>
-<rect x="1078.7890625" y="68.7890625" width="382.421875" height="381.5625" rx="86.3671875" fill="#F4F7FB" opacity="1.0"/>
-<rect x="1080.078125" y="69.6484375" width="379.84375" height="378.125" rx="85.078125" fill="#F8FAFC" opacity="1.0"/>
-<rect x="1145.390625" y="144.84375" width="108.28125" height="240.625" rx="17.1875" fill="#14263E" opacity="0.075"/>
-<rect x="1145.390625" y="134.53125" width="108.28125" height="240.625" rx="17.1875" fill="#273D58" opacity="1.0"/>
-<rect x="1146.25" y="135.390625" width="106.5625" height="238.90625" rx="16.328125" fill="#304A68" opacity="1.0"/>
-<rect x="1164.296875" y="166.7578125" width="70.46875" height="12.03125" rx="6.015625" fill="#E1EAF4" opacity="1.0"/>
-<rect x="1164.296875" y="191.25" width="46.40625" height="10.3125" rx="5.15625" fill="#8FA6C0" opacity="1.0"/>
-<rect x="1164.296875" y="332.6171875" width="57.578125" height="10.3125" rx="5.15625" fill="#8FA6C0" opacity="1.0"/>
-<rect x="1286.328125" y="144.84375" width="108.28125" height="240.625" rx="17.1875" fill="#14263E" opacity="0.075"/>
-<rect x="1286.328125" y="134.53125" width="108.28125" height="240.625" rx="17.1875" fill="#273D58" opacity="1.0"/>
-<rect x="1287.1875" y="135.390625" width="106.5625" height="238.90625" rx="16.328125" fill="#304A68" opacity="1.0"/>
-<rect x="1305.234375" y="166.7578125" width="70.46875" height="12.03125" rx="6.015625" fill="#E1EAF4" opacity="1.0"/>
-<rect x="1305.234375" y="191.25" width="46.40625" height="10.3125" rx="5.15625" fill="#8FA6C0" opacity="1.0"/>
-<rect x="1305.234375" y="332.6171875" width="57.578125" height="10.3125" rx="5.15625" fill="#8FA6C0" opacity="1.0"/>
-<rect x="1135.078125" y="228.6328125" width="128.90625" height="69.609375" rx="14.609375" fill="#F2A2A8" opacity="1.0"/>
-<rect x="1276.015625" y="228.6328125" width="128.90625" height="69.609375" rx="14.609375" fill="#8FD4BE" opacity="1.0"/>
-<rect x="1172.890625" y="257.421875" width="53.28125" height="12.03125" rx="6.015625" fill="#713846" opacity="1.0"/>
-<rect x="1313.828125" y="257.421875" width="53.28125" height="12.03125" rx="6.015625" fill="#215B50" opacity="1.0"/>
-<rect x="1334.453125" y="236.796875" width="12.03125" height="53.28125" rx="6.015625" fill="#215B50" opacity="1.0"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="640" viewBox="0 0 1600 640" role="img" aria-label="CrossDiff">
+<rect x="0.0" y="0.0" width="1600.0" height="640.0" rx="28.0" fill="#F4F7FA" opacity="1.0"/>
+<text x="88.0" y="109.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#667A91">A COMPARISON WORKSPACE FOR THE MAC</text>
+<text x="82.0" y="224.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="104.0" font-weight="700" letter-spacing="-0.5" fill="#233952">CrossDiff</text>
+<text x="88.0" y="308.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="54.0" font-weight="600" letter-spacing="-0.5" fill="#233952">Compare everything.</text>
+<text x="90.0" y="366.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="25.0" font-weight="400" letter-spacing="-0.5" fill="#536A84">See every change. Keep your files local.</text>
+<text x="90.0" y="411.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20.0" font-weight="400" letter-spacing="-0.5" fill="#667A91">Everyday comparisons. More possibilities with plugins.</text>
+<rect x="88.0" y="491.0" width="176.0" height="45.0" rx="22.5" fill="#E6EDF3" opacity="1.0"/>
+<text x="106.0" y="520.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Native macOS</text>
+<rect x="285.0" y="491.0" width="193.0" height="45.0" rx="22.5" fill="#E6EDF3" opacity="1.0"/>
+<text x="303.0" y="520.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Local &amp; private</text>
+<rect x="499.0" y="491.0" width="149.0" height="45.0" rx="22.5" fill="#E6EDF3" opacity="1.0"/>
+<text x="517.0" y="520.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">No sign-up</text>
+<rect x="669.0" y="491.0" width="222.0" height="45.0" rx="22.5" fill="#E6EDF3" opacity="1.0"/>
+<text x="687.0" y="520.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Free &amp; open source</text>
+<rect x="922.0" y="57.0" width="590.0" height="524.0" rx="28.0" fill="#233952" opacity="0.045"/>
+<rect x="922.0" y="50.0" width="590.0" height="524.0" rx="28.0" fill="#DEE7EF" opacity="1.0"/>
+<rect x="923.0" y="51.0" width="588.0" height="522.0" rx="27.0" fill="#FFFFFF" opacity="1.0"/>
+<rect x="1111.0703125" y="84.9609375" width="209.859375" height="209.859375" rx="48.2109375" fill="#14263E" opacity="0.08"/>
+<rect x="1110.125" y="82.125" width="211.75" height="211.75" rx="48.2109375" fill="#DCE3EC" opacity="1.0"/>
+<rect x="1110.833984375" y="82.833984375" width="210.33203125" height="209.859375" rx="47.501953125" fill="#F4F7FB" opacity="1.0"/>
+<rect x="1111.54296875" y="83.306640625" width="208.9140625" height="207.96875" rx="46.79296875" fill="#F8FAFC" opacity="1.0"/>
+<rect x="1147.46484375" y="124.6640625" width="59.5546875" height="132.34375" rx="9.453125" fill="#14263E" opacity="0.075"/>
+<rect x="1147.46484375" y="118.9921875" width="59.5546875" height="132.34375" rx="9.453125" fill="#273D58" opacity="1.0"/>
+<rect x="1147.9375" y="119.46484375" width="58.609375" height="131.3984375" rx="8.98046875" fill="#304A68" opacity="1.0"/>
+<rect x="1157.86328125" y="136.716796875" width="38.7578125" height="6.6171875" rx="3.30859375" fill="#E1EAF4" opacity="1.0"/>
+<rect x="1157.86328125" y="150.1875" width="25.5234375" height="5.671875" rx="2.8359375" fill="#8FA6C0" opacity="1.0"/>
+<rect x="1157.86328125" y="227.939453125" width="31.66796875" height="5.671875" rx="2.8359375" fill="#8FA6C0" opacity="1.0"/>
+<rect x="1224.98046875" y="124.6640625" width="59.5546875" height="132.34375" rx="9.453125" fill="#14263E" opacity="0.075"/>
+<rect x="1224.98046875" y="118.9921875" width="59.5546875" height="132.34375" rx="9.453125" fill="#273D58" opacity="1.0"/>
+<rect x="1225.453125" y="119.46484375" width="58.609375" height="131.3984375" rx="8.98046875" fill="#304A68" opacity="1.0"/>
+<rect x="1235.37890625" y="136.716796875" width="38.7578125" height="6.6171875" rx="3.30859375" fill="#E1EAF4" opacity="1.0"/>
+<rect x="1235.37890625" y="150.1875" width="25.5234375" height="5.671875" rx="2.8359375" fill="#8FA6C0" opacity="1.0"/>
+<rect x="1235.37890625" y="227.939453125" width="31.66796875" height="5.671875" rx="2.8359375" fill="#8FA6C0" opacity="1.0"/>
+<rect x="1141.79296875" y="170.748046875" width="70.8984375" height="38.28515625" rx="8.03515625" fill="#F2A2A8" opacity="1.0"/>
+<rect x="1219.30859375" y="170.748046875" width="70.8984375" height="38.28515625" rx="8.03515625" fill="#8FD4BE" opacity="1.0"/>
+<rect x="1162.58984375" y="186.58203125" width="29.3046875" height="6.6171875" rx="3.30859375" fill="#713846" opacity="1.0"/>
+<rect x="1240.10546875" y="186.58203125" width="29.3046875" height="6.6171875" rx="3.30859375" fill="#215B50" opacity="1.0"/>
+<rect x="1251.44921875" y="175.23828125" width="6.6171875" height="29.3046875" rx="3.30859375" fill="#215B50" opacity="1.0"/>
+<text x="1037.0" y="330.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22.0" font-weight="600" letter-spacing="-0.5" fill="#536A84">Different inputs. One workspace.</text>
+<rect x="956.0" y="364.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
+<rect x="968.0" y="380.0" width="40.0" height="36.0" rx="8.0" fill="#EEF2F7" opacity="1.0"/>
+<text x="977.0" y="404.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#506981">Aa</text>
+<text x="1018.0" y="405.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Text</text>
+<rect x="1134.0" y="364.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
+<rect x="1146.0" y="380.0" width="40.0" height="36.0" rx="8.0" fill="#EEF2F7" opacity="1.0"/>
+<text x="1163.0" y="404.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#506981">/</text>
+<text x="1196.0" y="405.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Folders</text>
+<rect x="1312.0" y="364.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
+<rect x="1324.0" y="380.0" width="40.0" height="36.0" rx="8.0" fill="#EEF2F7" opacity="1.0"/>
+<text x="1329.0" y="404.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14.0" font-weight="600" letter-spacing="-0.5" fill="#506981">ZIP</text>
+<text x="1374.0" y="405.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Archives</text>
+<rect x="956.0" y="447.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
+<rect x="968.0" y="463.0" width="40.0" height="36.0" rx="8.0" fill="#EDF6F1" opacity="1.0"/>
+<text x="973.0" y="487.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14.0" font-weight="600" letter-spacing="-0.5" fill="#3D7460">IMG</text>
+<text x="1018.0" y="488.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Images</text>
+<rect x="1134.0" y="447.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
+<rect x="1146.0" y="463.0" width="40.0" height="36.0" rx="8.0" fill="#FAEEEE" opacity="1.0"/>
+<text x="1151.0" y="487.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#A35766">0F</text>
+<text x="1196.0" y="488.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Hex</text>
+<rect x="1312.0" y="447.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
+<rect x="1324.0" y="463.0" width="40.0" height="36.0" rx="8.0" fill="#F1EDF8" opacity="1.0"/>
+<text x="1329.0" y="487.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14.0" font-weight="600" letter-spacing="-0.5" fill="#806699">PDF</text>
+<text x="1374.0" y="488.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">PDF plugin</text>
 </svg>

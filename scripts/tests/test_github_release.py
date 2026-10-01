@@ -3,6 +3,8 @@
 
 from copy import deepcopy
 import importlib.util
+import json
+import zipfile
 from pathlib import Path
 import plistlib
 import tempfile
@@ -22,7 +24,7 @@ TAG = "v0.4.0"
 class FakeGitHub:
     """In-memory API: tests must never authenticate or contact GitHub."""
 
-    repository = "owner/CrossDiff"
+    repository = "JunyangZhangUSTC/CrossDiff"
 
     def __init__(self, existing=None):
         self.release = deepcopy(existing)
@@ -40,8 +42,8 @@ class FakeGitHub:
         self.calls.append((method, path))
         if method == "POST":
             self.release = dict(payload, id=1, assets=[], published_at=None, immutable=False,
-                                upload_url="https://uploads.github.com/repos/owner/CrossDiff/releases/1/assets{?name,label}",
-                                html_url="https://github.com/owner/CrossDiff/releases/tag/v0.4.0")
+                                upload_url="https://uploads.github.com/repos/JunyangZhangUSTC/CrossDiff/releases/1/assets{?name,label}",
+                                html_url="https://github.com/JunyangZhangUSTC/CrossDiff/releases/tag/v0.4.0")
         elif method == "PATCH":
             self.release.update(payload)
         elif method == "DELETE":
@@ -73,18 +75,37 @@ class ReleaseTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.directory = self.root / "dist"
         self.directory.mkdir()
-        self.app = "CrossDiff-0.4.0-macOS-arm64.zip"
+        self.app = "CrossDiff-0.4.0-base-macOS-arm64.zip"
+        self.full = "CrossDiff-0.4.0-full-macOS-arm64.zip"
+        self.metadata = {"CFBundleShortVersionString": "0.4.0", "CFBundleVersion": "10"}
+        self.catalog, self.plugins = release.plugin_inventory.build_inventory("0.4.0")
         self.source = "CrossDiff-0.4.0-source.tar.gz"
-        (self.directory / self.app).write_bytes(b"app archive fixture")
+        for name, data in self.plugins.items():
+            (self.directory / name).write_bytes(data)
+        (self.directory / "plugins.json").write_bytes(self.catalog)
+        self.write_app(self.app, "base")
+        self.write_app(self.full, "full")
         (self.directory / self.source).write_bytes(b"source archive fixture")
         info = ("CrossDiff release bundle\nVersion: 0.4.0\nBuild: 10\n"
                 f"Source commit: {COMMIT}\nArchitecture: arm64\nLicense: AGPL-3.0-only\n"
                 "Signing: ad-hoc\nNotarized: no\n"
-                f"Application archive: {self.app}\nSource archive: {self.source}\n")
+                f"Base application archive: {self.app}\nFull application archive: {self.full}\n"
+                f"Plugin catalog: plugins.json\nSource archive: {self.source}\n")
         (self.directory / "BUILD-INFO.txt").write_text(info, encoding="utf-8")
         self.write_manifest()
         self.git = patch.object(release, "git", side_effect=self.git_value).start()
+        patch.object(release, "git_bytes", side_effect=lambda root, *args: (ROOT / args[-1].removeprefix("HEAD:")).read_bytes()).start()
         self.addCleanup(patch.stopall)
+
+    def write_app(self, name, edition, catalog=None, packages=None):
+        with zipfile.ZipFile(self.directory / name, "w") as archive:
+            prefix = "CrossDiff.app/Contents/"
+            archive.writestr(prefix + "Info.plist", plistlib.dumps(self.metadata))
+            for notice in ("LICENSE", "NOTICE"):
+                archive.writestr(prefix + "Resources/" + notice, "notice fixture")
+            archive.writestr(prefix + "Resources/OfficialPlugins.json", self.catalog if catalog is None else catalog)
+            for plugin_name, data in release.plugin_inventory.bundle_inventory(edition, packages or self.plugins).items():
+                archive.writestr(prefix + "Resources/Plugins/" + plugin_name, data)
 
     def git_value(self, root, *arguments):
         if arguments[0] == "rev-parse":
@@ -98,24 +119,24 @@ class ReleaseTests(unittest.TestCase):
     def write_manifest(self):
         (self.directory / "SHA256SUMS").write_text("".join(
             f"{release.checksum(self.directory / name)}  {name}\n"
-            for name in (self.app, self.source, "BUILD-INFO.txt")), encoding="utf-8")
+            for name in (self.app, self.full, self.source, *self.plugins, "plugins.json", "BUILD-INFO.txt")), encoding="utf-8")
 
     def package(self):
         return release.validate_package(self.root, TAG, self.directory)
 
-    def test_creates_draft_with_four_verified_downloads_and_can_retry(self):
+    def test_creates_draft_with_all_nine_verified_downloads_and_can_retry(self):
         package = self.package()
         github = FakeGitHub()
         url = release.publish(github, self.root, package)
-        self.assertEqual(url, "https://github.com/owner/CrossDiff/releases/tag/v0.4.0")
+        self.assertEqual(url, "https://github.com/JunyangZhangUSTC/CrossDiff/releases/tag/v0.4.0")
         self.assertTrue(github.release["draft"])
         self.assertTrue(github.release["prerelease"])
         self.assertEqual(github.release["target_commitish"], COMMIT)
         self.assertEqual(github.release["make_latest"], "false")
-        self.assertEqual((github.upload_count, github.download_count), (4, 4))
+        self.assertEqual((github.upload_count, github.download_count), (9, 9))
         release.publish(github, self.root, package)
-        self.assertEqual((github.upload_count, github.download_count), (8, 8))
-        self.assertEqual(len(github.release["assets"]), 4)
+        self.assertEqual((github.upload_count, github.download_count), (18, 18))
+        self.assertEqual(len(github.release["assets"]), 9)
         self.assertEqual(sum(method == "POST" for method, _ in github.calls), 1)
 
     def test_published_and_immutable_releases_are_never_modified(self):
@@ -133,6 +154,25 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(release.ReleaseError, "another source commit"):
             release.publish(github, self.root, self.package())
         self.assertEqual(github.calls, [])
+
+    def test_existing_draft_asset_conflicts_are_rejected_before_any_mutation(self):
+        cases = (
+            ([{"id": 1, "name": "maintainer-notes.txt", "state": "uploaded"}], "unexpected assets"),
+            ([{"id": 1, "name": self.app, "state": "uploaded"},
+              {"id": 2, "name": self.app, "state": "uploaded"}], "duplicate assets"),
+            ([{"id": 1, "name": self.app, "state": "processing"}], "Unexpected asset state"),
+        )
+        for assets, error in cases:
+            with self.subTest(error=error):
+                existing = {"id": 1, "draft": True, "published_at": None, "immutable": False,
+                            "target_commitish": COMMIT, "tag_name": TAG, "assets": assets,
+                            "name": "Maintainer's title", "body": "Maintainer's release notes"}
+                github = FakeGitHub(existing)
+                with self.assertRaisesRegex(release.ReleaseError, error):
+                    release.publish(github, self.root, self.package())
+                self.assertEqual(github.calls, [])
+                self.assertEqual(github.upload_count, 0)
+                self.assertEqual(github.release, existing)
 
     def test_bad_checksums_prevent_api_client_creation(self):
         (self.directory / self.app).write_bytes(b"corrupted")
@@ -152,7 +192,7 @@ class ReleaseTests(unittest.TestCase):
     def test_extra_files_and_duplicate_manifest_entries_are_rejected(self):
         extra = self.directory / "unexpected.txt"
         extra.write_text("not a release asset")
-        with self.assertRaisesRegex(release.ReleaseError, "exactly the four"):
+        with self.assertRaisesRegex(release.ReleaseError, "exactly the expected"):
             self.package()
         extra.unlink()
         manifest = self.directory / "SHA256SUMS"
@@ -160,8 +200,47 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(release.ReleaseError, "duplicate SHA256SUMS"):
             self.package()
 
+    def test_plugin_payload_and_catalog_must_match_committed_source(self):
+        path = self.directory / next(iter(self.plugins))
+        package = json.loads(path.read_bytes())
+        package["manifest"]["version"] = "9.0.0"
+        path.write_bytes(release.plugin_inventory.json_bytes(package))
+        self.write_manifest()
+        with self.assertRaisesRegex(release.ReleaseError, "committed plugin inventory"):
+            self.package()
+
+    def test_missing_plugin_asset_fails_even_if_catalog_exists(self):
+        (self.directory / next(iter(self.plugins))).unlink()
+        with self.assertRaisesRegex(release.ReleaseError, "exactly the expected"):
+            self.package()
+
+    def test_base_with_full_inventory_is_rejected(self):
+        self.write_app(self.app, "full")
+        self.write_manifest()
+        with self.assertRaisesRegex(release.ReleaseError, "wrong plugin packages"):
+            self.package()
+
+    def test_app_catalog_must_be_identical_to_release_catalog(self):
+        self.write_app(self.app, "base", catalog=self.catalog + b" ")
+        self.write_manifest()
+        with self.assertRaisesRegex(release.ReleaseError, "catalog differs"):
+            self.package()
+
+    def test_validated_payload_changed_before_retry_preserves_existing_draft(self):
+        package = self.package()
+        github = FakeGitHub()
+        release.publish(github, self.root, package)
+        old_release, old_contents = deepcopy(github.release), deepcopy(github.contents)
+        old_calls = len(github.calls)
+        (self.directory / next(iter(self.plugins))).write_bytes(b"changed after validation")
+        with self.assertRaisesRegex(release.ReleaseError, "Artifact changed"):
+            release.publish(github, self.root, package)
+        self.assertEqual(github.release, old_release)
+        self.assertEqual(github.contents, old_contents)
+        self.assertEqual(len(github.calls), old_calls)
+
     def test_404_looks_for_drafts_but_authentication_failure_stops(self):
-        github = release.GitHub("owner/CrossDiff", "test-value")
+        github = release.GitHub("JunyangZhangUSTC/CrossDiff", "test-value")
         draft = {"tag_name": TAG, "draft": True}
         github.api = Mock(side_effect=[release.APIError(404), [draft]])
         self.assertEqual(github.find_release(TAG), draft)
@@ -172,7 +251,7 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(github.api.call_count, 1)
 
     def test_remote_tag_handles_annotated_and_lightweight_and_rejects_movement(self):
-        github = release.GitHub("owner/CrossDiff", "test-value")
+        github = release.GitHub("JunyangZhangUSTC/CrossDiff", "test-value")
         github.api = Mock(return_value={"object": {"type": "commit", "sha": COMMIT}})
         github.assert_remote_tag(TAG, COMMIT)
         github.api = Mock(side_effect=[{"object": {"type": "tag", "sha": "c" * 40}},
@@ -192,14 +271,14 @@ class ReleaseTests(unittest.TestCase):
 
     def test_asset_redirect_strips_credentials_and_rejects_other_hosts(self):
         handler = release.AssetRedirects()
-        request = urllib.request.Request("https://api.github.com/repos/owner/CrossDiff/releases/assets/1",
+        request = urllib.request.Request("https://api.github.com/repos/JunyangZhangUSTC/CrossDiff/releases/assets/1",
                                          headers={"Authorization": "Bearer test-value"})
         redirected = handler.redirect_request(request, None, 302, "Found", {},
                                                "https://release-assets.githubusercontent.com/asset")
         self.assertIsNone(redirected.get_header("Authorization"))
         with self.assertRaises(release.ReleaseError):
             handler.redirect_request(request, None, 302, "Found", {}, "https://example.com/asset")
-        github = release.GitHub("owner/CrossDiff", "test-value")
+        github = release.GitHub("JunyangZhangUSTC/CrossDiff", "test-value")
         with patch.object(github, "open") as opened:
             with self.assertRaisesRegex(release.ReleaseError, "upload URL"):
                 github.upload({"id": 1, "upload_url": "https://example.com/upload"}, self.directory / self.app)
@@ -212,6 +291,13 @@ class ReleaseTests(unittest.TestCase):
             release.publish(github, self.root, self.package())
         self.assertEqual(github.calls, [])
         self.assertEqual(github.upload_count, 0)
+
+    def test_upload_repository_must_match_catalog_repository(self):
+        github = FakeGitHub()
+        github.repository = "example/another-repository"
+        with self.assertRaisesRegex(release.ReleaseError, "catalog repository"):
+            release.publish(github, self.root, self.package())
+        self.assertEqual(github.calls, [])
 
     def test_download_corruption_never_reports_success(self):
         github = FakeGitHub()

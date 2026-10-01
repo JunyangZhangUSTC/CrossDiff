@@ -12,7 +12,7 @@ enum ReadmeRenders {
         Task {
             do {
                 try await render()
-                print("Rendered bilingual light/dark comparison and deletion-preview windows.")
+                print("Rendered bilingual light/dark comparison, deletion-preview and new-comparison windows.")
                 exit(0)
             } catch {
                 print("README rendering failed: \(error)")
@@ -59,7 +59,7 @@ enum ReadmeRenders {
             let title = "Make every detail visible."
         }
 
-        let formats = ["Text", "Folders", "Images"]
+        let formats = ["Text", "Folders", "Images", "Hex", "Archives"]
         let greeting = "你好，CrossDiff 👋"
 
         // Your files stay on your Mac.
@@ -81,6 +81,16 @@ enum ReadmeRenders {
                     let name = "\(preview ? "deletions" : "text")-\(locale)-\(dark ? "dark" : "light")"
                     _ = try D.capture(full, rect: full.bounds, name: name)
                 }
+                WorkspaceStore.shared.beginNewComparison()
+                try await D.wait("new comparison sheet") { D.window.attachedSheet?.contentView != nil }
+                try await D.pause()
+                guard let sheet = D.window.attachedSheet, let full = sheet.contentView?.superview else {
+                    throw D.CheckError(description: "Missing native type chooser")
+                }
+                sheet.contentView?.layoutSubtreeIfNeeded()
+                _ = try D.capture(full, rect: full.bounds, name: "new-\(locale)-\(dark ? "dark" : "light")")
+                WorkspaceStore.shared.newComparison?.cancel()
+                try await D.wait("type chooser dismissed") { D.window.attachedSheet == nil }
             }
         }
     }

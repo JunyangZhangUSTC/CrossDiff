@@ -4,6 +4,13 @@ These records describe checks performed for specific development previews, inclu
 
 | Preview | Record |
 | --- | --- |
+| 0.8.0 | [Editions, official plugin installation and publication](validation-0.8.0.md) |
+| 0.7.1 | [New comparison flow](validation-0.7.1.md) |
+| 0.7.0 | [Archive comparison and bundled base plugin](validation-0.7.0.md) |
+| 0.6.0 | [Binary / Hex comparison](validation-0.6.0.md) |
+| 0.5.0 | [Plugin framework and PDF workflow](validation-0.5.0.md) |
+| 0.4.2 | [Image corner resizing and flips](validation-0.4.2.md) |
+| 0.4.1 | [Image alignment and native controls](validation-0.4.1.md) |
 | 0.4.0 | [Open-source publication preflight](validation-0.4.0.md) |
 | 0.3.2 | [Open button spacing](validation-0.3.2.md) |
 | 0.3.1 | [Settings, toolbar and navigation indicators](validation-0.3.1.md) |

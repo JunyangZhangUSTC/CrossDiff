@@ -1,0 +1,264 @@
+# Plugin development · Experimental v1
+
+Status: 2026-10-01, for the CrossDiff 0.7.0 working preview. The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
+
+The contract is implemented in [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift), [PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift), [PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) and [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift). Future capabilities discussed in the [architecture design](../architecture/compare-everything.md) are not automatically available in this preview.
+
+## 1. Available capabilities
+
+Plugins supply comparison algorithms. The host reads inputs, runs tasks and displays results.
+
+| Input kind | Data supplied by the host | Result view |
+| --- | --- | --- |
+| `text` | Decoded text `{text: "…"}` | `table`: a read-only results table |
+| `pdf` | Page text, dimensions and preview fingerprints | `documentPages`: native PDF pages and text differences; `table` is also accepted |
+| `archiveCatalog` | Virtual paths, kinds, sizes, full content digests and verification states from an archive or local folder | `archiveTree`: a read-only directory tree and content groups across paths |
+
+The bundled [PDF plugin](../../Plugins/PDF/) contains the JavaScript algorithm that aligns and classifies pages. PDFKit extracts and presents them in the host. The independently installable [JSON example](../../Plugins/Examples/JSON/) compares top-level JSON values through the same contract.
+
+The application currently starts only `pairwise` tasks. Public types distinguish `threeWayMerge` and `multiSubject` and validate their roles, but this release provides no corresponding UI or algorithms. Do not advertise unsupported modes or silently compare only the first two inputs.
+
+Custom native views, arbitrary schema renderers, artifact/resource handles, companion libraries, plugin dependencies, remote sources, plugin exports and write-back are deferred. Existing text, folder, image and binary Hex comparisons remain host features.
+
+## 2. Start with the example
+
+Run in Bash from the repository root. Development inputs, outputs and caches remain inside the repository:
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-plugin.py Plugins/Examples/JSON --output dist/Plugins/JSON.crossdiffplugin
+```
+
+Choose **Install from File…** in plugin management, or drop the generated file into CrossDiff. Review its name, version, identifier and runtime before installing. Select the JSON plugin from the Compare menu and open two files. Ordinary `.json` files still open with the existing text comparison by default; the example also declares `.cdjson`.
+
+The bundled PDF package has a reproducible packaging entry point:
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-pdf-plugin.py --output dist/Plugins/PDF.crossdiffplugin
+```
+
+The Full edition bundles `org.crossdiff.pdf`; Base can install it separately from the official catalog. An external package cannot replace an ID bundled in the running edition. For a custom PDF experiment, create a source directory inside the repository and use your own ID. Packaging does not replace validation at installation.
+
+Package the official Archive algorithm with:
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-archive-plugin.py --output dist/Plugins/Archive.crossdiffplugin
+```
+
+The script in [Archive sources](../../Plugins/Official/Archive/) computes path classifications, directory states and content groups. `org.crossdiff.archive` is also a reserved bundled ID. Third-party algorithms use their own IDs and can reuse the same restricted runtime and native directory view. Ordinary ZIP/TAR files are comparison sources; only `.crossdiffplugin` files are installation packages.
+
+## 3. A package is one JSON file
+
+A `.crossdiffplugin` is a bounded UTF-8 JSON file, **not a directory or ZIP archive**. There are no install scripts, archive paths, resource lists or native companion libraries.
+
+| Field | Rule |
+| --- | --- |
+| `formatVersion` | Integer `1` |
+| `manifest` | The manifest object below |
+| `script` | A nonempty JavaScript string for `restrictedJavaScript` |
+| `executable` | Nonempty executable bytes, encoded as a JSON base64 string, for `trustedExecutable` |
+| `sha256` | SHA-256 of the raw payload bytes, as 64 lowercase hexadecimal digits |
+
+Exactly one of `script` and `executable` must be present, matching the runtime. A script digest covers the string's UTF-8 bytes, not the package or escaped JSON representation. A native digest covers the complete base64-decoded executable. Sign native code **before** packaging and hashing: signing changes its bytes.
+
+The package limit is **16 MiB**, the script limit **2 MiB**, and the executable limit **8 MiB**. Local loading rejects directories, a symbolic link at the final path, and oversized files. A matching digest verifies the payload against the package declaration; it does not authenticate the author. Installation displays the publisher as unverified.
+
+Example manifest:
+
+```json
+{
+  "id": "example.crossdiff.json-keys",
+  "version": "0.1.0",
+  "name": {"zhHans": "JSON 键值比较", "en": "JSON Key Comparison"},
+  "summary": {"zhHans": "按顶层键比较 JSON 值。", "en": "Compare JSON values by top-level key."},
+  "runtime": "restrictedJavaScript",
+  "inputKind": "text",
+  "fileExtensions": ["json", "cdjson"],
+  "resultView": "table",
+  "supportedModes": ["pairwise"],
+  "minHostProtocol": 1,
+  "maxHostProtocol": 1
+}
+```
+
+Use these camelCase field names exactly, including `zhHans` and `en`. IDs are at most 128 UTF-8 bytes, begin with a lowercase English letter, and contain lowercase letters and digits in segments separated by `.` or `-`. Versions use three numeric components with optional prerelease/build suffixes, up to 64 bytes. Each localized name is nonempty and at most 512 bytes; each summary is nonempty and at most 4096 bytes.
+
+`fileExtensions` contains 1–32 unique lowercase extensions without a leading dot. Each is at most 16 bytes and may contain letters, digits, `_` and `-`. `supportedModes` must be nonempty and unique. The host protocol range must include `1`. `documentPages` requires `pdf` input. `archiveCatalog` and `archiveTree` must be paired, with `supportedModes: ["pairwise"]`; archive input cannot use `table`. The host supplies its reserved identifier list explicitly; an official-looking name does not grant official status.
+
+## 4. Requests and the JavaScript entry point
+
+Define a synchronous function:
+
+```javascript
+function compare(request) {
+  const left = request.inputs.find(input => input.role === "left").content.text;
+  const right = request.inputs.find(input => input.role === "right").content.text;
+  const equal = left === right;
+  return {
+    protocolVersion: 1,
+    runID: request.runID,
+    schema: "crossdiff.table/1",
+    status: "completed",
+    summary: {zhHans: equal ? "文字相同" : "文字不同", en: equal ? "Text matches" : "Text differs"},
+    diagnostics: [],
+    payload: {rows: [{label: "Text / 文字", left: left, right: right, state: equal ? "same" : "changed"}]}
+  };
+}
+```
+
+This minimal example is suitable for short text only. A full long document cannot be placed in one table cell. Production plugins should split results into meaningful rows, respect the limits below, and use `partial` with bilingual diagnostics when appropriate.
+
+Request structure:
+
+```json
+{
+  "protocolVersion": 1,
+  "runID": "host-generated-run-id",
+  "mode": "pairwise",
+  "inputs": [
+    {"id": "left", "role": "left", "name": "a.txt", "content": {"text": "甲"}},
+    {"id": "right", "role": "right", "name": "b.txt", "content": {"text": "乙"}}
+  ],
+  "options": {}
+}
+```
+
+Use input roles rather than array order. Input IDs must be unique; return `runID` unchanged.
+
+| Mode | Required roles | Application support |
+| --- | --- | --- |
+| `pairwise` | Exactly `left` and `right` | Implemented |
+| `threeWayMerge` | Exactly `base`, `ours` and `theirs` | Contract validation only |
+| `multiSubject` | 3–32 `peer` inputs with unique IDs | Contract validation only |
+
+JSON values are objects, arrays, strings, finite numbers, booleans and null. Swift uses `PluginJSONValue` with typed accessors and string/integer subscripts. A missing key is distinct from `.null`. Numbers use Double/JavaScript Number; domain contracts should use strings when exact large integers are required.
+
+Text plugins accept regular files up to 2 MiB per side, with at most 4 MiB of decoded UTF-8 text per side. The encoded request is limited to 16 MiB. Inputs do not contain arbitrary file handles, credentials or filesystem APIs.
+
+## 5. Result schemas
+
+Every result includes `protocolVersion`, `runID`, `schema`, `status`, `summary`, `diagnostics` and `payload`. Status is `completed` or `partial`. Exceptions, process failure, cancellation, timeout and protocol errors are handled as failures, not as successful empty results.
+
+The bilingual summary allows 16 KiB per language. There may be up to 128 bilingual diagnostics, each nonempty and at most 4096 bytes per language. Payload must be an object; the complete encoded result is limited to 8 MiB. The host validates protocol, run ID and the schema corresponding to the declared view, and discards obsolete task output.
+
+### `crossdiff.table/1`
+
+Use `resultView: "table"` and this payload:
+
+```json
+{"rows": [{"label": "name", "left": "old", "right": "new", "state": "changed"}]}
+```
+
+There may be up to 10,000 rows. `label`, `left` and `right` are strings, each at most 32,768 UTF-8 bytes. State is `same`, `changed`, `added`, `removed` or `unknown`. Cells are plain text, not HTML, native view declarations or executable code. The host handles colors, filtering, selection and localized UI.
+
+The JSON example compares parsed values, ignoring whitespace and object-key order; it does not preserve duplicate-key semantics. It bounds key count, nesting and numeric precision. It is not a raw JSON byte-equality check.
+
+### `crossdiff.document-pages/1`
+
+Use `inputKind: "pdf"` and `resultView: "documentPages"`. Each input content has this shape:
+
+```json
+{
+  "pages": [{"index": 0, "text": "Page text", "width": 595, "height": 842,
+             "fingerprint": "host-generated-sha256", "textTruncated": false}],
+  "truncated": false
+}
+```
+
+Page indices are zero-based and dimensions use PDF points. The host reads at most 48 MiB per PDF, extracts the first 200 pages, and limits text to 32,768 UTF-16 code units per page and 262,144 per document. Fingerprints come from previews with a maximum edge of 384 pixels. Original PDF data stays in the host and is not sent as base64 to the script.
+
+Example result payload:
+
+```json
+{"pairs": [
+  {"left": 0, "right": 0, "kind": "same"},
+  {"left": null, "right": 1, "kind": "added"},
+  {"left": 1, "right": 2, "kind": "changed"}
+]}
+```
+
+Kind is `same`, `changed`, `added`, `removed` or `unknown`. Added pages have only a right index; removed pages have only a left index. Other kinds require both indices. Indices must refer to extracted pages, and every extracted page on each side must appear exactly once. The host validates mappings before rendering.
+
+The official algorithm aligns pages using text and preview fingerprints. `same` means those representations match, not PDF byte identity or full-resolution visual identity. Scanned or blank pages may have no extractable text; OCR is not included. Truncated or copy-restricted extraction retains its limitations. Locked, corrupt or empty documents fail explicitly. Password entry and PDF write-back are unsupported. See [the decoder and limits](../../Sources/CrossDiff/PDFComparisonDocument.swift).
+
+### `crossdiff.archive-tree/1`
+
+Declare `inputKind: "archiveCatalog"`, `resultView: "archiveTree"` and `supportedModes: ["pairwise"]`. The host streams the user-selected archive or folder and hashes complete regular-file contents with SHA-256. The plugin receives only this content, without source absolute paths, file handles, original file bytes or read callbacks:
+
+```json
+{
+  "listingComplete": true,
+  "entries": [
+    {"id":"docs","path":"docs","kind":"directory","size":0,"sha256":null,"contentState":"verified"},
+    {"id":"docs/a.txt","path":"docs/a.txt","kind":"file","size":3,"sha256":"<64 lowercase hex>","contentState":"verified"},
+    {"id":"link","path":"link","kind":"symbolicLink","size":null,"sha256":null,"contentState":"unverified"}
+  ]
+}
+```
+
+Each side has at most 10,000 entries, including implicit ancestor directories supplied by the host. `id == path`: a normalized relative virtual path, at most 4096 UTF-8 bytes and 128 components. Absolute paths, empty components, `.`, `..`, NUL, backslashes and Windows drive prefixes are rejected. Paths are case-sensitive and preserve their Unicode spelling. The host rejects canonically equivalent duplicate paths on one side; the algorithm uses NFC internal keys to match sides while returning original IDs. A virtual path is display/reference data, never permission to read a local file.
+
+Kind is `file`, `directory`, `symbolicLink`, `hardLink` or `other`. Size is a nonnegative safe integer or null. Verified regular files require size and a 64-digit lowercase SHA-256 of their complete contents. Directories have size=0 and sha256=null. Links and special entries remain unverified and cannot enter content groups. Current scans succeed only after complete enumeration, so `listingComplete` is true; unverified contents may still produce a partial result. See [formats, read-only behavior and limits](../usage.md#archives).
+
+Result payload:
+
+```json
+{
+  "pairs": [
+    {"left":"docs","right":"docs","state":"changed"},
+    {"left":"docs/a.txt","right":null,"state":"removed"},
+    {"left":null,"right":"renamed.txt","state":"added"}
+  ],
+  "sameContentGroups": [{"left":["docs/a.txt"],"right":["renamed.txt"]}]
+}
+```
+
+Each input entry appears exactly once on its side. Non-null pairs must share a path; both sides cannot be null. Classification priority is: any present unverified entry → `unknown`; otherwise a missing side → `removed`/`added`; different kinds → `typeChanged`; verified regular files compare size + SHA-256 for `same`/`changed`. Matching directories start as same, then aggregate children deepest first: any unknown child makes the parent unknown; otherwise any non-same child makes it changed. Two empty directories remain same. If an incomplete listing is supplied, missing paths on that side cannot establish definite additions or removals.
+
+`sameContentGroups` contains complete cohorts of verified regular files sharing size + SHA-256. Both sides must be nonempty and the union must contain at least two distinct paths. Return side-specific ID lists without a Cartesian product. A same-path-only pair is not a content group. Groups show identical content, without asserting a unique rename or move. The host independently validates coverage, classification, directory aggregation and complete cohorts against the current catalogs before rendering; unknown rows require partial status. Compression methods, timestamps and permission metadata do not participate in content equality.
+
+## 6. Runtime boundaries
+
+### Restricted JavaScript
+
+Each task runs in a separate JavaScriptCore helper process. Only JSON text enters JavaScript; Foundation objects and filesystem, network, module-loading and subprocess APIs are not exposed. There is no `require`, `fetch`, native-object bridge or asynchronous task protocol. Return a JSON-serializable result synchronously.
+
+Default wall time is 15 seconds; host configuration cannot exceed 60 seconds. Helper CPU time is capped at no more than 30 seconds. The stdin envelope limit is 32 MiB, output 8 MiB, and default parent stderr limit 16 KiB. Where system policy allows reading process statistics, the host checks a 512 MiB RSS budget. This is polling and may be denied by the system; it is **not a hard memory-isolation guarantee**. Cancellation or exceeded limits terminate the helper and discard output.
+
+This is a **restricted JavaScript runtime, not an operating-system sandbox**. A separate process and absent I/O APIs do not defend against every JavaScriptCore vulnerability. Host-side PDFKit and archive parsing are outside that helper. There is no silent fallback to full-trust execution.
+
+### Full-trust native executables
+
+A native plugin receives a request JSON document on stdin, terminated by EOF, and writes exactly one result JSON document to stdout. Keep logs off stdout. The host supplies no plugin-selected command-line arguments. The program implements the contract itself; a nonzero exit signals failure.
+
+Installation requires separate user approval tied to the executable payload digest. Different bytes in a new version cannot reuse an earlier digest approval. The stored bytes are checked again before returning an executable path and before execution; execution also requires a valid code signature. A valid ad-hoc signature can establish code integrity without verifying a publisher or providing Apple notarization.
+
+The source package's `com.apple.quarantine` is preserved on the extracted executable. Native packages explicitly downloaded by the host also receive a provenance marker. **This preview refuses to execute quarantined native code.** It never removes quarantine or bypasses system approval; installation approval alone does not guarantee execution. There is no Gatekeeper approval UI or workflow for disabling system protections.
+
+Full-trust code can access local files, network services and other processes. A manifest, separate process and read-only host view cannot restrict those actions. Output/task budgets do not control child processes the code creates or its external effects. Grant this trust only with an understanding of the source and behavior.
+
+## 7. Installation and lifecycle
+
+The local picker, dropping a `.crossdiffplugin` file and an arbitrary HTTPS download share package validation and installation review. The separate official catalog is bundled with the app and browsable offline: an explicit Download & Install action fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier/version and restricted runtime, then installs it without a second review. This path cannot authorize native code. HTTPS URLs cannot embed credentials; redirects cannot downgrade to HTTP. There is no background marketplace polling or silent plugin update. Failed downloads or invalid packages do not replace the current installation.
+
+External plugins live under the data directory's `Plugins/` folder, normally `~/Library/Application Support/CrossDiff/Plugins/`. The development launcher uses repository-local `CROSSDIFF_DATA_DIR`. External installation does not alter the signed application bundle. Bundled plugins are assembled before app signing, updated with the app and can be disabled.
+
+Versions are immutable. Metadata is committed atomically before the active in-memory state changes. Different contents under the same ID and version are rejected. External plugins support enable/disable, rollback to the preceding version and uninstall. Uninstall atomically removes registration; failed cleanup may leave inactive files, without restoring their trust. Sessions retain source paths and plugin identifiers and show a recovery view when a plugin is missing or disabled.
+
+A running task captures its validated package version; management changes invalidate old view tasks and may resume or rerun already open comparisons. Packages have no installation hooks, but installing one does not guarantee that an existing session’s algorithm will remain idle. Plugin-state migration, arbitrary historical restoration and private-state compatibility across versions are not promised.
+
+## 8. Verification and delivery
+
+```sh
+bash scripts/tests/check-plugins-core.sh
+bash scripts/tests/check-plugin-runtime.sh
+bash scripts/tests/check-pdf.sh
+bash scripts/tests/check-archive-plugin.sh
+bash scripts/tests/check-plugin-workflow.sh
+```
+
+Core checks exercise package/store public boundaries, persistence failure and native digest trust. Runtime checks execute the real helper and native fixtures. PDF checks exercise the algorithm, mappings and unchanged sources. Archive plugin checks run the packaged algorithm through the real child process and exercise entry limits, linear groups and malformed inputs. Workflow checks use real windows. Use synthetic data and isolated directories; native checks run serially. A build-only run or timeout does not establish GUI correctness.
+
+Build with `bash scripts/build-app.sh` and verify with `codesign --verify --deep --strict dist/CrossDiff.app`. The deployment target is macOS 14 and the project uses Swift 5 language mode. Local builds are ad-hoc signed, not notarized releases. Intel and individual native architectures require separate validation. Before distributing plugins, review the licenses and origins of code, dependencies and resources, and disclose actual capabilities and limitations.

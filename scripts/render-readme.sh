@@ -21,7 +21,9 @@ swiftc -swift-version 5 -D CROSSDIFF_UI_CHECKS -module-cache-path "$render_build
   -I "$render_build" -L "$render_build" -lCrossDiffCore -Xlinker -rpath -Xlinker "$render_build" \
   "$render_sources"/*.swift scripts/tests/DeletionPreviewChecks.swift scripts/tests/ReadmeRenders.swift \
   -o "$render_build/readme-renders"
-CROSSDIFF_DATA_DIR="$render_build/data" CROSSDIFF_RENDER_DIR="$PWD/docs/assets/screenshots" \
+python3 scripts/package-pdf-plugin.py --output "$render_build/Plugins/PDF.crossdiffplugin"
+python3 scripts/package-archive-plugin.py --output "$render_build/Plugins/Archive.crossdiffplugin"
+CROSSDIFF_DATA_DIR="$render_build/data" CROSSDIFF_RENDER_DIR="$PWD/docs/assets/screenshots" CROSSDIFF_BUNDLED_PLUGINS_DIR="$render_build/Plugins" \
 python3 - "$render_build/readme-renders" <<'PY'
 import subprocess, sys
 try:

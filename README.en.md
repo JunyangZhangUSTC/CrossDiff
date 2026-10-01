@@ -1,11 +1,11 @@
 <div align="center">
 
-<img src="Resources/Brand/hero.png" alt="CrossDiff — Native comparisons for macOS. Text, folders, and images." width="100%">
+<img src="Resources/Brand/hero.png" alt="CrossDiff — Compare everything. Native to macOS, local and private, no sign-up, free and open source." width="100%">
 
-**See what changed. Keep your files to yourself.**
+**Compare everything. See every change.**
 
-A free, open-source comparison app built for the Mac.<br>
-Native controls. Thoughtful details. Everything stays local.
+A free, open-source comparison workspace built for the Mac.<br>
+Local processing. Native interaction. No sign-up. Ready when you are. Extend it with plugins.
 
 [简体中文](README.md) · [English](README.en.md)
 
@@ -14,90 +14,116 @@ Native controls. Thoughtful details. Everything stays local.
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[Download](https://github.com/JunyangZhangUSTC/CrossDiff/releases) · [Explore](#made-for-everyday-comparisons) · [Get started](#get-started) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#growing-in-the-open) · [Contribute](CONTRIBUTING.md)
+[Download CrossDiff](https://github.com/JunyangZhangUSTC/CrossDiff/releases) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
 
 </div>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/text-en-dark.png">
-  <img src="docs/assets/screenshots/text-en-light.png" alt="CrossDiff comparing code side by side with aligned lines and precise red and green character highlights" width="100%">
+  <img src="docs/assets/screenshots/text-en-light.png" alt="CrossDiff comparing code in a native window with aligned rows and precise red and green character highlights" width="100%">
 </picture>
 
-<p align="center"><sub>A real CrossDiff window with synthetic sample text. Light and dark appearances follow your GitHub theme.</sub></p>
+<p align="center"><sub>A real app window with sample text. Screenshots follow your GitHub light or dark theme.</sub></p>
 
-## Made for everyday comparisons
+## One workspace, every change in focus
 
-Compare a quick paste, review two code files, inspect a directory, or see what changed in an image. CrossDiff keeps the work in one quiet, focused workspace.
+From a quick text paste to code directories, archives, images, and research PDFs. CrossDiff brings different comparisons into one native Mac workspace: clear differences, direct controls, and files that stay in your hands.
 
 | | |
 | :--- | :--- |
-| **Native to the Mac**<br>SwiftUI and AppKit, native text editing, familiar menu commands, and Mac keyboard shortcuts. No bundled browser. | **Private by design**<br>No uploads, accounts, analytics, or application network requests. Compare files without an internet connection. |
-| **Free & open source**<br>AGPL v3 source you can inspect, build, and modify. No subscription, trial clock, or feature paywall. | **Details you can trust**<br>Character and line differences, aligned rows, Unicode-aware text, and a clear view of both additions and deletions. |
-| **You control the changes**<br>Edit either side, merge one block, undo independently, and save when ready. Comparing never overwrites source files. | **A considered workspace**<br>Light and dark themes, restrained highlights, comparison tabs, synchronized scrolling, and English / 简体中文. |
+| **Built for the Mac**<br>SwiftUI + AppKit, a native editor, standard menus, and familiar keyboard shortcuts. No bundled browser runtime. | **Local and private**<br>Compare files on your Mac without uploading them. No telemetry or tracking. Keep working offline. |
+| **Free and open source**<br>AGPL v3 source you can inspect, build, and modify. No subscriptions, trial clocks, or feature paywalls. | **No sign-up. Ready to use.**<br>No account, login, or activation. Open the app, choose the two inputs, and start comparing. |
+| **Precise differences, deliberate edits**<br>Character highlights, aligned rows, block merging, independent undo, and explicit saving. Comparing never overwrites your source files. | **Considered design, room to grow**<br>Light and dark themes, English and Simplified Chinese, tabs, and synchronized scrolling. Add plugins when you need more. |
 
-## One app, several ways to compare
+## Different inputs. A familiar workflow.
 
 | Compare | Available today |
 | :--- | :--- |
-| **Text & code files** | Paste or open two texts; inspect character or line changes; edit either side; merge individual blocks; find and replace; retain independent undo histories. |
-| **Folders** | Scan recursively, filter differences, inspect changed and one-sided files, and preview additions or overwrites before copying selected files. |
-| **Images** | Compare side by side, overlay, drag a wipe divider, inspect a difference image, and zoom. |
-
-The **Show Deletions** view adds removed text to the right-hand review as red strikethroughs. It is off by default and read-only; review marks never enter your saved source. Standard copy returns original text, while an explicit revision-copy action includes the changes.
+| **Text & code** | Paste text or open files; inspect character or line changes; align rows; edit either side; merge blocks; find and replace; undo independently. Works with text formats such as TXT, Markdown, HTML, JSON, XML, and YAML. |
+| **Local folders** | Compare directories recursively, filter differences, find one-sided files, and preview additions or overwrites before copying selected files. |
+| **Archives** | Treat ZIP, TAR, and common compressed TAR formats as virtual folders. Compare an archive with another archive or a local folder, verify contents, and find identical files across paths without extracting to disk. Bundled with Base. |
+| **Images** | Side-by-side, overlay, wipe, and pixel-difference views. Scale, rotate, flip, drag to align, resize from corners, or compare only the overlapping area. |
+| **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |
+| **PDF documents** | Page matching, inserted/deleted-page navigation, native page previews, and extracted-text differences. Included in Full; available as an official plugin for Base. |
 
 <details>
-<summary><b>See the deletion review</b></summary>
-<br>
+<summary><b>The details make a difference</b></summary>
+
+- **See removals as well as additions.** Turn on Show Deletions to display removed text as red strikethroughs on the right. This read-only review never writes markup into your source. Standard copy includes original text only; revision copy is an explicit action.
+- **Find a common view for your images.** Drag a corner to resize with the aspect ratio locked by default, or unlock it to stretch width and height independently. Size and rotation also accept numeric values. Changes affect the preview only. [Image alignment guide](docs/usage.md#compare-images)
+- **Make byte changes readable.** Hex keeps independent source offsets, aligns insertion/deletion gaps, and supports 8 or 16 bytes per row. Inputs can be up to 8 GiB each; complex regions are explicitly marked as approximately aligned. [Hex guide](docs/usage.md#binary-hex)
+- **Skip the extraction folder.** Compare ZIP, TAR, TAR.GZ/TGZ, TAR.BZ2, and TAR.XZ. By Path reveals directory changes; Same Content finds matching files across paths. Read-only streaming never extracts files to disk. [Archive guide](docs/usage.md#archives)
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/deletions-en-dark.png">
-  <img src="docs/assets/screenshots/deletions-en-light.png" alt="CrossDiff showing removed content as red strikethroughs beside the edited source" width="100%">
+  <img src="docs/assets/screenshots/deletions-en-light.png" alt="CrossDiff displaying removed text as red strikethroughs in the right-hand read-only review" width="100%">
 </picture>
+
 </details>
+
+## Choose your edition
+
+**Current developer preview: 0.8.0 · macOS 14+ · Apple silicon (arm64)**
+
+Every edition is free, open source, and account-free. Base and Full are the same app with different sets of preinstalled official plugins. Add or manage plugins at any time.
+
+| Download | Included | GitHub Release asset |
+| :--- | :--- | :--- |
+| **Base** | Text, folders, images, Hex, and the bundled Archive plugin. Start small and add what you need. | `CrossDiff-<version>-base-macOS-arm64.zip` |
+| **Full** | Everything in Base, plus every currently released official plugin. This release additionally includes PDF. | `CrossDiff-<version>-full-macOS-arm64.zip` |
+| **Individual plugins** | Base can install or update PDF separately; an Archive package is also provided. Bundled plugins update with the app. | `CrossDiff-Plugin-PDF-<plugin-version>.crossdiffplugin`<br>`CrossDiff-Plugin-Archive-<plugin-version>.crossdiffplugin` |
+
+**[Download from GitHub Releases →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
+
+Choose the files you need under a release's **Assets**. Each release also includes source, build information, and `SHA256SUMS`. The JSON plugin is distributed separately as a developer example and is not preinstalled in Full. Planned Office, photography, audio, and video capabilities are not part of the current Full edition.
+
+Intel builds have not yet been verified. CrossDiff is an actively developed preview; if no public release is available yet, use the source-build instructions below.
+
+## Extend your comparison workspace
+
+Choose **New… → More Comparisons**, or **CrossDiff → Plugins…**.
+
+- **Install in the app:** choose **Download & Install** in the official plugin list. CrossDiff downloads the matching GitHub Release package, verifies it, and completes the installation.
+- **Install a downloaded file:** get a `.crossdiffplugin` from Release Assets, then drag it into CrossDiff or select it in the plugin manager.
+- **Stay in control:** disable, uninstall, or roll back updated plugins while keeping existing comparison sessions.
+
+Browse the official list offline. **The app connects only when you choose to download a plugin; your comparisons stay local.** No registration or GitHub login is required.
+
+Base features can also be plugins: Archive ships as an official plugin with Base. Extension interfaces pair different algorithms with native directory trees, document pages, and table views, keeping a consistent Mac experience. Build something new with the [English plugin guide](docs/plugins/development.en.md), [中文规范](docs/plugins/development.md), and [JSON example](Plugins/Examples/JSON/compare.js).
 
 ## Get started
 
-**Current preview: 0.4.0.** Requires **macOS 14+**. A prebuilt app does not require a Swift toolchain.
+Download your edition, extract it, and open **CrossDiff.app**. Prebuilt apps do not require a Swift toolchain.
 
-This preview has been verified on **Apple silicon (arm64)**. Intel builds have not yet been validated.
+1. Click **New…** (⌘N), then choose text, folders, archives, images, binary files, or an installed plugin.
+2. Prepare the left and right inputs and click **Compare**. For text, paste directly or select a file.
+3. Review the differences. With text, edit either side, merge individual blocks, and save explicitly when ready.
 
-**[Download a preview → GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/new-en-dark.png">
+  <img src="docs/assets/screenshots/new-en-light.png" alt="CrossDiff New Comparison: choose text, folders, images, Hex, archives or PDF, then prepare the two inputs" width="100%">
+</picture>
 
-Under a published release’s **Assets**, choose `CrossDiff-<version>-macOS-arm64.zip`, extract it, and open the app. Each release also includes matching source, build information, and `SHA256SUMS`. The release workflow first creates a draft for maintainer review; if no release is public yet, use the source-build instructions below.
-
-**Build from source:** use a toolchain that supports **Swift 6.0 package manifests**, then run the following from a checkout. The project uses Swift 5 language mode and builds for your Mac's architecture.
-
-```sh
-bash scripts/build-app.sh
-bash scripts/open-dev-app.command
-```
-
-The app is created at `dist/CrossDiff.app`. The project launcher keeps development sessions, preferences, and caches inside the checkout. Nothing is installed globally or into `/Applications`.
+**File → Open…** (⌘O) accepts multiple files or folders, with explicit pairs opening in separate tabs. Clear Both starts a fresh text comparison, with an immediate restore action. See the [user guide](docs/usage.md), or try the repository's [Swift examples](examples/).
 
 ### First launch on macOS
 
-**This preview does not yet have an Apple Developer ID signature or Apple notarization.** Local builds use an ad-hoc signature. macOS may therefore ask you to approve a downloaded copy manually.
+This preview does not yet have an Apple Developer ID signature or notarization. Builds use an ad-hoc signature. The developer program's annual cost means that, for now, you may need to approve your first launch manually.
 
-After checking the download's source and its published `SHA256SUMS`:
+After confirming that the download came from this repository's Release:
 
 1. Extract the app and try opening **CrossDiff.app** once.
-2. If macOS blocks it because the developer cannot be verified, open **System Settings → Privacy & Security**, scroll to **Security**, and choose **Open Anyway** for CrossDiff.
-3. Confirm **Open** and authenticate if prompted. Later launches normally use the saved exception.
+2. If macOS cannot verify the developer, go to **System Settings → Privacy & Security** and choose **Open Anyway** for CrossDiff.
+3. Confirm **Open** and authenticate if prompted. Subsequent launches normally open directly.
 
-This follows [Apple's app-opening guidance](https://support.apple.com/en-us/102445); there is no need to disable Gatekeeper system-wide. See the [release guide](docs/releasing.md) for signing and packaging details.
+This follows [Apple's official guidance](https://support.apple.com/en-us/102445); there is no need to disable Gatekeeper system-wide. Source and release checksums are public, so you can inspect, verify, or build the app yourself. See the [release guide](docs/releasing.md).
 
-**Open source makes the app inspectable:** review the code, check the matching release source and checksums, or build it yourself. CrossDiff compares locally without uploading your files. Open source and checksums support verification; they are not a blanket guarantee that every build or download is safe.
-
-**Try it in a minute**
-
-1. Paste text into the two panes, or click **Open…** to select files or folders. Multiple inputs can be paired into separate comparison tabs.
-2. Move through differences, edit either side, and merge only the blocks you choose.
-3. Save explicitly. Use **Clear Both** for a fresh comparison, with an immediate restore action if needed.
-
-The repository includes [two small Swift examples](examples/) to explore. See the [user guide](docs/usage.md) for behavior and the full shortcut list.
+<details>
+<summary><b>Common shortcuts</b></summary>
 
 | Action | Shortcut |
 | :--- | :--- |
-| Open files or folders | ⌘O |
+| New comparison / open files or folders | ⌘N / ⌘O |
 | Undo / redo | ⌘Z / ⇧⌘Z |
 | Find / find and replace | ⌘F / ⌥⌘F |
 | Next / previous match | ⌘G / ⇧⌘G |
@@ -105,34 +131,43 @@ The repository includes [two small Swift examples](examples/) to explore. See th
 | Save the focused side | ⌘S |
 | Settings / language | ⌘, |
 
-Find **设置/Setting…** in the CrossDiff menu, then **语言/Language** to switch between English and 简体中文. The interface updates immediately.
+Choose **CrossDiff → 设置/Setting… → 语言/Language** to switch between English and 简体中文. The interface updates immediately, without restarting.
+
+</details>
+
+<details>
+<summary><b>Build from source</b></summary>
+
+Install a toolchain that supports **Swift 6.0 package manifests**, then run from the project root:
+
+```sh
+bash scripts/build-app.sh
+bash scripts/open-dev-app.command
+```
+
+The project uses Swift 5 language mode and builds for your Mac's architecture. The app is created at `dist/CrossDiff.app`. The development launcher keeps sessions, preferences, and caches inside the checkout; it installs nothing globally or into `/Applications`. See the [release guide](docs/releasing.md) for edition packaging and publishing.
+
+</details>
 
 ## Your work stays on your Mac
 
-CrossDiff performs comparison and editing locally. The application has no networking, telemetry, cloud sync, account system, or automatic update service. Using the app does not send document contents to a server.
+Built-in comparisons and restricted plugins process files on your computer, **without uploading comparison content**. No accounts, telemetry, analytics, or cloud sync. Once plugins are installed, you can keep comparing offline. Connections are for plugin downloads you initiate.
 
-Temporary comparisons can be restored from local session files. Normal launches store them in `~/Library/Application Support/CrossDiff/`; the project launcher uses an isolated project directory. **These files contain plain text and paths, and are not encrypted by CrossDiff.** You can clear local session history from the Session menu. Files in a cloud-synced folder remain subject to that folder's own sync behavior.
+Restore temporary comparisons locally or clear them from the Session menu. Sessions store text and paths in plain text. Storage locations, third-party plugin permissions, and security reporting are documented in [SECURITY.md](SECURITY.md).
 
-See the [privacy and security notes](SECURITY.md) for scope and responsible reporting. README badges and GitHub itself are external web services; they are not part of the desktop app.
+## Compare everything, one step at a time
 
-## Growing in the open
+Our direction is **“Compare everything. Make every comparison count.”** Start with everyday work, then connect more domains through extensible data sources, algorithms, and specialized views.
 
-CrossDiff is under active development, starting with dependable daily text, folder, and image comparison. Planned work includes:
+| Available today | Next to explore |
+| :--- | :--- |
+| Text, folders, images, Hex, archives, and the PDF plugin | Remote folder sources, three-way text merging, and multi-object comparison |
+| A native workspace, plugin management, Base and Full editions | Office, APIs/logs/packets, databases, photography and RAW, audio, video, model structures, and tensor plugins |
+| English and Simplified Chinese, light and dark themes, local session restoration | Plugin bundles for photographers, media professionals, and developers |
 
-- Context folding, clearer folder workflows, and accessibility polish.
-- PDF comparison for papers and documents.
-- Later: structured tables, Word documents, three-way merging, and export.
+The right column is **planned work**, not implemented functionality or content already included in Full. Current views and plugins provide two-way comparisons. PDF does not yet include OCR; archives do not yet support RAR, 7z, or encryption; folder operations do not provide full synchronization. Image previews are limited to 1600 px on the longest edge, and text files to 20 MB. See the [roadmap](docs/roadmap.md) and [implementation limits](docs/development.md#current-implementation-limits).
 
-**PDF, Word, spreadsheets, and three-way merging are not available yet.** Images currently use previews up to 1600 px on the longest edge, text files have a 20 MB limit, and folder operations do not provide full synchronization. Read the [implementation limits](docs/development.md#current-implementation-limits), [roadmap](docs/roadmap.md), and [changelog](CHANGELOG.md).
-
-<!-- ## Build with us
-
-Bug reports, translations, design feedback, and focused improvements are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the [development guide](docs/development.md) covers architecture, local builds, and tests.
-
-```sh
-bash scripts/check.sh       # Core behavior, no XCTest dependency
-bash scripts/check-all.sh   # Full suite; requires a native macOS session
-``` -->
+Share bugs and ideas in [Issues](https://github.com/JunyangZhangUSTC/CrossDiff/issues), and help make comparisons better. [Contributing](CONTRIBUTING.md) · [Development](docs/development.md) · [Product direction](docs/product-vision.md) · [Changelog](CHANGELOG.md)
 
 ## License
 

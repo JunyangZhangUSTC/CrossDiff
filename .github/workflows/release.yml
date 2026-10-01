@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing version tag, for example v0.4.0'
+        description: 'Existing version tag, for example v0.8.0'
         required: true
         type: string
 
@@ -23,9 +23,9 @@ defaults:
 
 jobs:
   build:
-    name: Build and verify Apple silicon app
+    name: Build and verify Base, Full and plugins
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     outputs:
@@ -69,12 +69,47 @@ jobs:
         run: |
           source scripts/project-env.sh
           python3 -m unittest discover -s scripts/tests -p 'test_github_release.py'
+          python3 -m unittest discover -s scripts/tests -p 'test_plugin_inventory.py'
 
       - name: Check core behavior
         run: bash scripts/check.sh
 
+      - name: Check plugin packages and processes
+        run: |
+          bash scripts/tests/check-plugins-core.sh
+          bash scripts/tests/check-plugin-runtime.sh
+          bash scripts/tests/check-plugin-download.sh
+          bash scripts/tests/check-official-plugins.sh
+          bash scripts/tests/check-official-plugin-ui.sh --build-only
+          bash scripts/tests/check-plugin-manager.sh
+          bash scripts/tests/check-pdf.sh
+
+      - name: Archive comparison checks
+        run: |
+          bash scripts/tests/check-archives-core.sh
+          bash scripts/tests/check-archive-plugin.sh
+          bash scripts/tests/check-archive-workflow.sh --build-only
+
+      - name: Binary comparison checks
+        run: |
+          bash scripts/tests/check-binary-core.sh
+          bash scripts/tests/check-binary-detection.sh
+          bash scripts/tests/check-binary-workflow.sh --build-only
+
+      - name: Compile native plugin workflow checks
+        run: bash scripts/tests/check-plugin-workflow.sh --build-only
+
+      - name: Compile new comparison workflow checks
+        run: bash scripts/tests/check-new-comparison-workflow.sh --build-only
+
       - name: Compile native workflow checks
         run: bash scripts/tests/check-workflow.sh --build-only
+
+      - name: Check image comparison
+        run: bash scripts/tests/check-image-comparison.sh
+
+      - name: Compile native image workflow checks
+        run: bash scripts/tests/check-image-workflow.sh --build-only
 
       - name: Build, audit, and package the exact commit
         run: |
@@ -89,6 +124,8 @@ jobs:
           path: |
             ${{ steps.metadata.outputs.directory }}/CrossDiff-*-macOS-arm64.zip
             ${{ steps.metadata.outputs.directory }}/CrossDiff-*-source.tar.gz
+            ${{ steps.metadata.outputs.directory }}/*.crossdiffplugin
+            ${{ steps.metadata.outputs.directory }}/plugins.json
             ${{ steps.metadata.outputs.directory }}/BUILD-INFO.txt
             ${{ steps.metadata.outputs.directory }}/SHA256SUMS
           if-no-files-found: error

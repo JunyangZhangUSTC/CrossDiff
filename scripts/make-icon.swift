@@ -120,20 +120,55 @@ do {
                    svg: brand.appendingPathComponent("icon.svg")) { $0.icon() }
         for chinese in [false, true] {
             let name = chinese ? "hero-zh-CN" : "hero"
-            try render(width: 1600, height: 520, png: brand.appendingPathComponent(name + ".png"),
+            try render(width: 1600, height: 640, png: brand.appendingPathComponent(name + ".png"),
                        svg: brand.appendingPathComponent(name + ".svg")) { canvas in
-                canvas.rounded(CGRect(x: 0, y: 0, width: 1600, height: 520), radius: 28, color: "F4F7FB")
-                canvas.rounded(CGRect(x: 1101, y: 53, width: 336, height: 414), radius: 150, color: "E8EEF6")
-                canvas.text(chinese ? "原生 macOS · 免费开源" : "MACOS · FREE & OPEN SOURCE",
-                            x: 100, baseline: 139, size: 18, weight: .semibold, color: "536A84")
-                canvas.text("CrossDiff", x: 94, baseline: 256, size: 108, weight: .bold, color: "233952")
-                canvas.text(chinese ? "看清每一处变化。" : "Native comparisons for macOS.",
-                            x: 100, baseline: 322, size: 34, weight: .regular, color: "536A84")
-                canvas.text(chinese ? "文本  /  文件夹  /  图片" : "Text  /  Folders  /  Images",
-                            x: 100, baseline: 410, size: 23, weight: .regular, color: "657C96")
-                canvas.icon(at: CGPoint(x: 1050, y: 40), size: 440)
+                canvas.rounded(CGRect(x: 0, y: 0, width: 1600, height: 640), radius: 28, color: "F4F7FA")
+                canvas.text(chinese ? "为 Mac 而生的比较工作台" : "A COMPARISON WORKSPACE FOR THE MAC",
+                            x: 88, baseline: 109, size: 19, weight: .semibold, color: "667A91")
+                canvas.text("CrossDiff", x: 82, baseline: 224, size: 104, weight: .bold, color: "233952")
+                canvas.text(chinese ? "对比一切。" : "Compare everything.",
+                            x: 88, baseline: 308, size: chinese ? 59 : 54, weight: .semibold, color: "233952")
+                canvas.text(chinese ? "看清每一处变化，文件留在本机。" : "See every change. Keep your files local.",
+                            x: 90, baseline: 366, size: 25, weight: .regular, color: "536A84")
+                canvas.text(chinese ? "从日常比较，到可以不断扩展的专业工作台。" : "Everyday comparisons. More possibilities with plugins.",
+                            x: 90, baseline: 411, size: 20, weight: .regular, color: "667A91")
+
+                let pillars = chinese ? ["原生 macOS", "本地隐私", "无需注册", "免费开源"]
+                                      : ["Native macOS", "Local & private", "No sign-up", "Free & open source"]
+                let positions: [CGFloat] = chinese ? [88, 260, 412, 564] : [88, 285, 499, 669]
+                let widths: [CGFloat] = chinese ? [151, 131, 131, 131] : [176, 193, 149, 222]
+                for (index, title) in pillars.enumerated() {
+                    canvas.rounded(CGRect(x: positions[index], y: 491, width: widths[index], height: 45),
+                                   radius: 22.5, color: "E6EDF3")
+                    canvas.text(title, x: positions[index] + 18, baseline: 520, size: 18,
+                                weight: .semibold, color: "3C566F")
+                }
+
+                // One restrained display panel links the established mark to available capabilities.
+                canvas.rounded(CGRect(x: 922, y: 57, width: 590, height: 524), radius: 28, color: "233952", opacity: 0.045)
+                canvas.rounded(CGRect(x: 922, y: 50, width: 590, height: 524), radius: 28, color: "DEE7EF")
+                canvas.rounded(CGRect(x: 923, y: 51, width: 588, height: 522), radius: 27, color: "FFFFFF")
+                canvas.icon(at: CGPoint(x: 1095, y: 67), size: 242)
+                canvas.text(chinese ? "多种比较，同样顺手。" : "Different inputs. One workspace.",
+                            x: chinese ? 1095 : 1037, baseline: 330, size: 22, weight: .semibold, color: "536A84")
+                let titles = chinese ? ["文本", "文件夹", "压缩包", "图片", "Hex", "PDF 插件"]
+                                     : ["Text", "Folders", "Archives", "Images", "Hex", "PDF plugin"]
+                let marks = ["Aa", "/", "ZIP", "IMG", "0F", "PDF"]
+                let tints = ["EEF2F7", "EEF2F7", "EEF2F7", "EDF6F1", "FAEEEE", "F1EDF8"]
+                let inks = ["506981", "506981", "506981", "3D7460", "A35766", "806699"]
+                for index in 0..<6 {
+                    let x: CGFloat = 956 + CGFloat(index % 3) * 178
+                    let y: CGFloat = 364 + CGFloat(index / 3) * 83
+                    canvas.rounded(CGRect(x: x, y: y, width: 165, height: 68), radius: 12, color: "F3F6F9")
+                    canvas.rounded(CGRect(x: x + 12, y: y + 16, width: 40, height: 36), radius: 8, color: tints[index])
+                    canvas.text(marks[index], x: x + (index == 0 ? 21 : index == 1 ? 29 : 17), baseline: y + 40,
+                                size: index > 1 && index != 4 ? 14 : 18, weight: .semibold, color: inks[index])
+                    canvas.text(titles[index], x: x + 62, baseline: y + 41,
+                                size: 17, weight: .semibold, color: "3C566F")
+                }
             }
         }
+
         try render(width: 800, height: 180, png: brand.appendingPathComponent("wordmark.png"),
                    svg: brand.appendingPathComponent("wordmark.svg")) { canvas in
             canvas.icon(at: CGPoint(x: 0, y: 0), size: 180)

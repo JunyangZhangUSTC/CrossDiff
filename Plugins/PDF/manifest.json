@@ -1,0 +1,13 @@
+{
+  "id": "org.crossdiff.pdf",
+  "version": "0.1.0",
+  "name": { "zhHans": "PDF 比较", "en": "PDF Comparison" },
+  "summary": { "zhHans": "页面对应、页面预览与可提取文字差异；不包含 OCR。", "en": "Page alignment, page previews and extractable text differences. OCR is not included." },
+  "runtime": "restrictedJavaScript",
+  "inputKind": "pdf",
+  "fileExtensions": ["pdf"],
+  "resultView": "documentPages",
+  "supportedModes": ["pairwise"],
+  "minHostProtocol": 1,
+  "maxHostProtocol": 1
+}

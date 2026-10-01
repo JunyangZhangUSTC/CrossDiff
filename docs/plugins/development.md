@@ -1,0 +1,264 @@
+# 插件开发 · 实验 v1
+
+状态：2026-10-01，面向 CrossDiff 0.7.0 工作预览。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
+
+实现依据为 [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift)、[PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift)、[PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) 与 [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift)。早期[框架设计](../architecture/compare-everything.md)描述的远期能力不代表本版本已经支持。
+
+## 1. 当前可用范围
+
+插件为宿主提供比较算法；宿主负责读取输入、运行任务以及显示结果。当前输入类型与宿主视图如下：
+
+| 输入类型 | 宿主交给插件的内容 | 结果视图 |
+| --- | --- | --- |
+| `text` | 已解码文字 `{text: "…"}` | `table`：只读结果表格 |
+| `pdf` | 页面文字、尺寸与预览指纹 | `documentPages`：原生 PDF 页面与文字差异；也可返回 `table` |
+| `archiveCatalog` | 压缩包或本地文件夹的虚拟路径、类型、大小、完整内容摘要与验证状态 | `archiveTree`：只读目录树与跨路径同内容组 |
+
+内置 [PDF 插件](../../Plugins/PDF/)的 JavaScript 决定页面对应与分类；PDFKit 在宿主侧提取并显示页面。独立 [JSON 示例插件](../../Plugins/Examples/JSON/)自行比较 JSON 顶层键值，使用相同安装和执行协议。
+
+当前应用只发起 `pairwise` 两方任务。公共类型同时区分 `threeWayMerge` 与 `multiSubject` 并验证角色，但本版没有它们的用户界面或比较/合并算法。不得声明一个插件实际不支持的模式，也不得收到多个输入时静默只比较前两个。
+
+自定义原生视图、任意 schema 渲染、工件/资源句柄、伴随动态库、插件依赖、远程来源、插件导出及写回尚未提供。现有文本、文件夹、图片与二进制 Hex 比较保持宿主功能。
+
+## 2. 从示例开始
+
+在项目根目录的 Bash 中运行；输入、输出和缓存都留在项目内：
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-plugin.py Plugins/Examples/JSON --output dist/Plugins/JSON.crossdiffplugin
+```
+
+在 CrossDiff 的插件管理窗口选择“从文件安装…”，或把生成的文件拖入应用。核对名称、版本、标识与运行方式后安装。通过比较菜单选择 JSON 插件并打开一对文件；普通 `.json` 文件仍默认进入原有文本比较，示例还声明 `.cdjson` 扩展名。
+
+PDF 的可重复打包入口为：
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-pdf-plugin.py --output dist/Plugins/PDF.crossdiffplugin
+```
+
+完整版内置 `org.crossdiff.pdf`；基础版可从官方目录单独安装。外部包不能覆盖当前版本已内置的同 ID 插件。要实验自定义 PDF 插件，请在项目内建立自己的源码目录并使用自己的 ID。打包脚本只生成格式；安装时的宿主校验仍是必需步骤。
+
+官方 Archive 插件的打包入口为：
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-archive-plugin.py --output dist/Plugins/Archive.crossdiffplugin
+```
+
+[Archive 源码](../../Plugins/Official/Archive/)中的脚本实际计算路径分类、目录状态和内容组。`org.crossdiff.archive` 同样是内置保留 ID；第三方实现使用自己的 ID，并可复用相同的受限运行时和原生目录视图。普通 ZIP/TAR 是比较来源，`.crossdiffplugin` 才是安装包，两者用途不同。
+
+## 3. 包是一个 JSON 文件
+
+`.crossdiffplugin` 是一个有大小上限的 UTF-8 JSON 文件，**不是目录或 ZIP**。它没有安装脚本、归档路径、资源列表或原生伴随库。顶层字段如下：
+
+| 字段 | 规则 |
+| --- | --- |
+| `formatVersion` | 整数 `1` |
+| `manifest` | 下述清单对象 |
+| `script` | `restrictedJavaScript` 的非空 UTF-8 JavaScript 字符串 |
+| `executable` | `trustedExecutable` 的非空可执行文件 bytes，以 JSON base64 字符串表示 |
+| `sha256` | payload 原始字节的 SHA-256，小写 64 位十六进制 |
+
+`script` 和 `executable` 必须恰好提供一个，并与 `runtime` 对应。脚本摘要针对字符串的 UTF-8 字节，不是包文件或 JSON 转义后的字节；原生摘要针对 base64 解码后的完整可执行文件。签名应在打包和计算摘要**之前**完成，签名后修改文件会改变摘要。
+
+包最多 **16 MiB**；脚本最多 **2 MiB**；原生可执行文件最多 **8 MiB**。本地读取拒绝目录、最终路径为符号链接的文件及超限输入。摘要验证只证明包中声明与 payload 一致，不能验证作者身份；发布者在安装预览中显示为未验证。
+
+清单示例：
+
+```json
+{
+  "id": "example.crossdiff.json-keys",
+  "version": "0.1.0",
+  "name": {"zhHans": "JSON 键值比较", "en": "JSON Key Comparison"},
+  "summary": {"zhHans": "按顶层键比较 JSON 值。", "en": "Compare JSON values by top-level key."},
+  "runtime": "restrictedJavaScript",
+  "inputKind": "text",
+  "fileExtensions": ["json", "cdjson"],
+  "resultView": "table",
+  "supportedModes": ["pairwise"],
+  "minHostProtocol": 1,
+  "maxHostProtocol": 1
+}
+```
+
+字段名严格使用上述 camelCase，双语字段是 `zhHans` / `en`。ID 最多 128 UTF-8 字节，以小写英文字母开头，由小写字母、数字及分隔段的 `.` / `-` 组成。版本为最多 64 字节的三段版本号，可带 prerelease/build 后缀。名称每种语言最多 512 字节，说明最多 4096 字节，均不能为空。
+
+`fileExtensions` 为 1–32 个不重复、小写且不带点号的扩展名；单项最多 16 字节，可含字母、数字、`_`、`-`。`supportedModes` 非空且无重复；协议范围必须覆盖当前宿主版本 `1`。`documentPages` 只接受 `pdf` 输入。`archiveCatalog` 与 `archiveTree` 必须配套，且 `supportedModes` 必须为 `["pairwise"]`；不能把该输入交给 `table`。标识保留名单由宿主明确提供，不会因为第三方填写了类似官方的名称就授予官方身份。
+
+## 4. 请求与 JavaScript 入口
+
+脚本定义一个同步函数：
+
+```javascript
+function compare(request) {
+  const left = request.inputs.find(input => input.role === "left").content.text;
+  const right = request.inputs.find(input => input.role === "right").content.text;
+  const equal = left === right;
+  return {
+    protocolVersion: 1,
+    runID: request.runID,
+    schema: "crossdiff.table/1",
+    status: "completed",
+    summary: {zhHans: equal ? "文字相同" : "文字不同", en: equal ? "Text matches" : "Text differs"},
+    diagnostics: [],
+    payload: {rows: [{label: "Text / 文字", left: left, right: right, state: equal ? "same" : "changed"}]}
+  };
+}
+```
+
+该最小示例仅适合短文字；整份长文件不能塞进一个表格单元格。生产插件应按语义拆行、遵守下述单元格与结果上限，必要时返回 `partial` 和双语诊断。
+
+请求结构：
+
+```json
+{
+  "protocolVersion": 1,
+  "runID": "host-generated-run-id",
+  "mode": "pairwise",
+  "inputs": [
+    {"id": "left", "role": "left", "name": "a.txt", "content": {"text": "甲"}},
+    {"id": "right", "role": "right", "name": "b.txt", "content": {"text": "乙"}}
+  ],
+  "options": {}
+}
+```
+
+不要依赖输入数组顺序，使用 `role`。`id` 必须唯一；`runID` 原样返回。公共验证器要求：
+
+| 模式 | 角色形状 | 当前应用执行 |
+| --- | --- | --- |
+| `pairwise` | 恰好 `left`、`right` | 支持 |
+| `threeWayMerge` | 恰好 `base`、`ours`、`theirs` | 仅契约验证 |
+| `multiSubject` | 3–32 个 `peer`，各自 ID 唯一 | 仅契约验证 |
+
+JSON 值仅包含对象、数组、字符串、有限数字、布尔和 null。Swift 侧为 `PluginJSONValue`，提供类型访问器及字符串/整数下标；缺失键与 `.null` 不同。JSON 数字经 Double/JavaScript Number 表达，精确大整数不能假设无损，应由领域协议用字符串表达。
+
+宿主文字插件每侧最多读 2 MiB 的普通文件，解码后的 UTF-8 文字最多 4 MiB；整个编码请求最多 16 MiB。输入内容不包含任意文件句柄、凭据或文件系统 API。
+
+## 5. 结果 schema
+
+所有结果包含 `protocolVersion`、`runID`、`schema`、`status`、`summary`、`diagnostics` 和 `payload`。`status` 仅为 `completed` 或 `partial`。脚本抛错、进程退出、取消、超时或协议失败由宿主作为失败处理，不以空结果代替成功。
+
+`summary` 使用 `zhHans` / `en`，每种语言最多 16 KiB。`diagnostics` 最多 128 项，每项双语非空且每种语言最多 4096 字节。payload 必须为对象，完整编码结果最多 8 MiB。宿主核对协议、runID 和清单视图对应的 schema；旧任务结果不能替换当前任务。
+
+### `crossdiff.table/1`
+
+清单 `resultView` 为 `table`，payload 为：
+
+```json
+{"rows": [{"label": "name", "left": "old", "right": "new", "state": "changed"}]}
+```
+
+最多 10,000 行。`label`、`left`、`right` 必须是字符串，各最多 32,768 UTF-8 字节；`state` 为 `same`、`changed`、`added`、`removed` 或 `unknown`。不要返回 HTML、原生视图描述或可执行代码作为单元格。宿主负责差异颜色、筛选、文本选择以及双语界面。
+
+JSON 示例按解析后的值比较，忽略对象键顺序与空白；重复键不能据此做无损判断。它限制键数量、嵌套深度和安全数字范围，不应被描述为原始 JSON 字节相等检查。
+
+### `crossdiff.document-pages/1`
+
+清单 `inputKind` 为 `pdf`、`resultView` 为 `documentPages`。每侧 content 为：
+
+```json
+{
+  "pages": [{"index": 0, "text": "页面文字", "width": 595, "height": 842,
+             "fingerprint": "host-generated-sha256", "textTruncated": false}],
+  "truncated": false
+}
+```
+
+页面下标从 0 开始，尺寸以 PDF 页面点数表达。当前宿主每个 PDF 最多读取 48 MiB，提取前 200 页，每页最多 32,768 个 UTF-16 码元、每文档最多 262,144 个 UTF-16 码元。页面指纹来自最长边 384 像素的预览；原始 PDF 数据保留在宿主，不作为 base64 传给脚本。
+
+结果 payload 示例：
+
+```json
+{"pairs": [
+  {"left": 0, "right": 0, "kind": "same"},
+  {"left": null, "right": 1, "kind": "added"},
+  {"left": 1, "right": 2, "kind": "changed"}
+]}
+```
+
+`kind` 为 `same`、`changed`、`added`、`removed` 或 `unknown`。新增仅有 right，删除仅有 left；其他分类必须有两侧索引。索引必须在本次已提取页面范围内，每侧页面恰好出现一次，不允许重复或漏掉。宿主对映射验证后才渲染。
+
+官方算法结合文字与预览指纹进行页面对齐；`same` 表示这些表示匹配，不代表 PDF 文件字节相同或全分辨率视觉相同。扫描/空白页可能没有可提取文字；没有 OCR。截断或禁止文字复制会保留限制信息；加密锁定、损坏、无页面等情况明确失败。没有密码输入或 PDF 回写能力。[实现与完整限制](../../Sources/CrossDiff/PDFComparisonDocument.swift)
+
+### `crossdiff.archive-tree/1`
+
+清单必须声明 `inputKind: "archiveCatalog"`、`resultView: "archiveTree"` 和 `supportedModes: ["pairwise"]`。宿主流式读取用户选中的归档或文件夹，计算完整普通文件的 SHA-256；插件只收到以下 content，不接收来源绝对路径、文件句柄、原始文件内容或读取回调：
+
+```json
+{
+  "listingComplete": true,
+  "entries": [
+    {"id":"docs","path":"docs","kind":"directory","size":0,"sha256":null,"contentState":"verified"},
+    {"id":"docs/a.txt","path":"docs/a.txt","kind":"file","size":3,"sha256":"<64 lowercase hex>","contentState":"verified"},
+    {"id":"link","path":"link","kind":"symbolicLink","size":null,"sha256":null,"contentState":"unverified"}
+  ]
+}
+```
+
+每侧最多 10,000 条，包含宿主补齐的隐式父目录。`id == path`，为最多 4096 UTF-8 字节、最多 128 层的规范相对虚拟路径；无绝对路径、空段、`.`、`..`、NUL、反斜线或 Windows 盘符前缀。路径区分大小写，保留原始 Unicode 拼写；宿主拒绝同侧规范等价的重复路径，插件用 NFC 内部键匹配左右路径，并返回原始 ID。路径仅是显示及引用数据，不能被当作本地文件读取授权。
+
+`kind` 为 `file`、`directory`、`symbolicLink`、`hardLink` 或 `other`。`size` 为非负安全整数或 null；verified 普通文件必须有 size 和完整内容的 64 位小写十六进制 SHA-256。目录固定 size=0、sha256=null；链接与特殊条目为 unverified，不能进入同内容组。当前扫描必须完整枚举才能成功，故发送 `listingComplete=true`；内容未验证仍可使结果 partial。[读取格式、只读边界和限额](../usage.md#archives)
+
+结果结构为：
+
+```json
+{
+  "pairs": [
+    {"left":"docs","right":"docs","state":"changed"},
+    {"left":"docs/a.txt","right":null,"state":"removed"},
+    {"left":null,"right":"renamed.txt","state":"added"}
+  ],
+  "sameContentGroups": [{"left":["docs/a.txt"],"right":["renamed.txt"]}]
+}
+```
+
+每侧每个输入条目必须恰好覆盖一次；双侧非空时必须同路径，不允许双 null。状态按顺序判定：任一存在条目 unverified → `unknown`；否则单边 → `removed`/`added`；类型不同 → `typeChanged`；verified 普通文件按 size + SHA-256 → `same`/`changed`。双方目录先视为 same，再从最深处向上汇总：任一子项 unknown → unknown，否则任一子项非 same → changed，双方空目录 → same。若提供不完整 listing，不能把对侧未找到的路径判定为确定增加或删除。
+
+`sameContentGroups` 按 verified 普通文件的 size + SHA-256 分组，左右均非空且至少有两个不同路径；每组必须包括该摘要与大小的全部成员。只返回左右 ID 列表，不生成笛卡尔积；同路径的一对相同文件不单独成组。组表示相同内容，不推断唯一重命名或移动。宿主会独立验证覆盖、分类、父目录汇总与分组完整性，且只展示当前 catalog 中的条目；unknown 结果必须为 partial。压缩方式、时间和权限元数据不参与当前内容相等判断。
+
+## 6. 运行边界
+
+### 受限 JavaScript
+
+每个任务在独立 JavaScriptCore helper 进程执行，只向 JavaScript 注入 JSON 文本，不暴露 Foundation 对象、文件系统、网络、模块加载或子进程 API。没有 `require`、`fetch`、宿主对象桥接或异步任务协议。函数应同步返回可 JSON 序列化的结果。
+
+默认 wall-time 为 15 秒，宿主可配置但不超过 60 秒；helper CPU 上限不超过 30 秒。stdin envelope 最多 32 MiB，结果最多 8 MiB，宿主默认 stderr 上限为 16 KiB。宿主在系统允许读取子进程统计时检查 512 MiB RSS；该检查是轮询预算，可能被系统拒绝，**不是硬内存隔离保证**。取消或超限会终止 helper，并丢弃结果。
+
+这是**受限 JavaScript 运行时，不是操作系统沙箱**。进程隔离和没有 I/O API 不等于能够防御所有 JavaScriptCore 漏洞；宿主侧 PDFKit 与归档解析也不在该 helper 内。不会静默改用完全信任运行方式。
+
+### 完全信任原生可执行文件
+
+原生插件通过 stdin 接收请求 JSON，读到 EOF；stdout 返回一个结果 JSON，不能混入日志。宿主不提供插件自选命令行参数。程序必须自行处理契约与错误；非零退出表示失败。
+
+安装需要用户单独批准，该批准绑定当前可执行 payload 摘要。不同字节的新版本不能继承旧摘要批准。返回执行路径及运行前再次核对 bytes；运行前还检查有效代码签名。有效 ad-hoc 签名可证明相应代码完整性，但不等于验证发布者或完成 Apple 公证。
+
+来源包的 `com.apple.quarantine` 会保留到提取的原生文件；宿主显式下载的原生包同样带来源标记。**带 quarantine 的原生程序在此预览版直接拒绝执行**，不会删除标记或绕过系统批准流程；安装审批本身不保证该程序可运行。本版没有 Gatekeeper 批准界面，也不提供关闭系统保护的工作流。
+
+完全信任代码可能读取本机文件、联网或启动程序；清单、独立进程和宿主的只读结果视图不能限制这些行为。输出、运行时限和任务取消机制不构成对其自行创建进程或访问外部系统的权限控制。只在明确理解来源与行为时授权。
+
+## 7. 安装与生命周期
+
+本地选择、拖入 `.crossdiffplugin` 和任意 HTTPS 链接下载均进入同一包校验与安装预览。官方目录另设“下载并安装”：目录随应用内嵌、可离线查看；用户点击后，从固定版本的 GitHub Release 获取插件，核对完整包 SHA-256、大小、标识／版本和受限运行方式后直接安装，不再弹出第二次检查。此入口不能批准原生代码。HTTPS 不接受 URL 中的用户名/密码；重定向不能降为 HTTP。没有后台商店轮询或静默更新。下载失败或包无效不会替换已安装版本。
+
+外部插件保存在用户数据目录的 `Plugins/` 下，默认是 `~/Library/Application Support/CrossDiff/Plugins/`；项目启动使用项目内 `CROSSDIFF_DATA_DIR`。外部安装不修改已签名应用包。内置插件在应用打包前装配，只能随应用更新；用户可以停用。
+
+安装保留不可变版本，原子提交元数据后才切换当前版本。同 ID、同版本却不同内容会拒绝。可以启用/停用、回退至上一版本或卸载外部插件。卸载原子移除注册，清理失败可能留下不再激活的文件；不会以这些残留文件恢复信任。会话保留来源路径与插件标识，缺失或停用时显示恢复入口。
+
+运行任务固定已验证的插件版本；管理操作会使旧视图任务失效，并可能恢复或重新运行已打开会话的比较。包没有安装钩子，但不能据此承诺安装后绝不执行已有会话的算法。没有插件状态迁移、任意历史版本恢复或跨版本私有数据兼容承诺。
+
+## 8. 验证与交付
+
+```sh
+bash scripts/tests/check-plugins-core.sh
+bash scripts/tests/check-plugin-runtime.sh
+bash scripts/tests/check-pdf.sh
+bash scripts/tests/check-archive-plugin.sh
+bash scripts/tests/check-plugin-workflow.sh
+```
+
+核心检查覆盖包/存储公开边界、失败持久化和 native 摘要信任；运行时检查使用真实 helper 与原生 fixture；PDF 检查覆盖算法、映射和源文件保持；Archive 插件检查通过真实子进程执行打包产物，并验证最大条目数、线性分组及非法输入；workflow 检查覆盖实际窗口。运行这些脚本时使用虚构文件与隔离目录，原生检查必须串行。`--build-only` 或超时不代表通过界面验收。
+
+应用打包仍使用 `bash scripts/build-app.sh` 与 `codesign --verify --deep --strict dist/CrossDiff.app`。最低系统为 macOS 14；本项目使用 Swift 5 语言模式。当前本地构建使用 ad-hoc 签名，不是已公证发行包；Intel 与具体原生插件架构必须另行实测。分发插件前检查自身代码、依赖和资源的许可证与来源，并向用户披露实际能力及限制。

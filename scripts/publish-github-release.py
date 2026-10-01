@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upload one verified arm64 preview to a GitHub draft. Never publishes it."""
+"""Upload verified Base/Full arm64 previews and plugin packages to a GitHub draft. Never publishes it."""
 
 from __future__ import annotations
 
@@ -16,6 +16,10 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import plugin_inventory
 
 
 class ReleaseError(Exception):
@@ -113,7 +117,7 @@ class GitHub:
         if release["upload_url"].split("{", 1)[0] != expected:
             raise ReleaseError("Unexpected release upload URL.")
         url = expected + "?" + urllib.parse.urlencode({"name": path.name})
-        mime = "application/zip" if path.suffix == ".zip" else "application/gzip" if path.suffix == ".gz" else "text/plain"
+        mime = "application/zip" if path.suffix == ".zip" else "application/gzip" if path.suffix == ".gz" else "application/json" if path.suffix in {".json", ".crossdiffplugin"} else "text/plain"
         with self.open("POST", url, path.read_bytes(), content_type=mime) as response:
             return json.loads(response.read())
 
@@ -129,6 +133,13 @@ def git(root: Path, *arguments: str) -> str:
         return subprocess.check_output(["git", "-C", str(root), *arguments], stderr=subprocess.PIPE).decode("utf-8").strip()
     except subprocess.CalledProcessError:
         raise ReleaseError("Could not resolve the expected Git commit, tag, or committed release metadata.") from None
+
+
+def git_bytes(root: Path, *arguments: str) -> bytes:
+    try:
+        return subprocess.check_output(["git", "-C", str(root), *arguments], stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError:
+        raise ReleaseError("Could not read committed plugin package source.") from None
 
 
 def checksum(path: Path) -> str:
@@ -152,11 +163,14 @@ def validate_package(root: Path, tag: str, directory: Path) -> dict:
     version, build = metadata["CFBundleShortVersionString"], metadata["CFBundleVersion"]
     if tag != f"v{version}" or not re.fullmatch(r"[0-9]+", build):
         raise ReleaseError("The tag and committed app version must agree.")
-    app = f"CrossDiff-{version}-macOS-arm64.zip"
+    base = f"CrossDiff-{version}-base-macOS-arm64.zip"
+    full = f"CrossDiff-{version}-full-macOS-arm64.zip"
+    committed_read = lambda path: git_bytes(root, "show", f"HEAD:{path}")
+    catalog, plugins = plugin_inventory.build_inventory(version, committed_read)
     source = f"CrossDiff-{version}-source.tar.gz"
-    names = [app, source, "BUILD-INFO.txt", "SHA256SUMS"]
+    names = [base, full, source, *plugins, "plugins.json", "BUILD-INFO.txt", "SHA256SUMS"]
     if {path.name for path in directory.iterdir()} != set(names):
-        raise ReleaseError("The release directory must contain exactly the four expected arm64 artifacts.")
+        raise ReleaseError("The release directory must contain exactly the expected edition, plugin, catalog and source artifacts.")
     if any((directory / name).is_symlink() or not (directory / name).is_file() for name in names):
         raise ReleaseError("Release artifacts must be regular files, not symlinks.")
     manifest = {}
@@ -166,18 +180,26 @@ def validate_package(root: Path, tag: str, directory: Path) -> dict:
             raise ReleaseError("Invalid or duplicate SHA256SUMS entry.")
         manifest[match[2]] = match[1]
     if set(manifest) != set(names[:-1]):
-        raise ReleaseError("SHA256SUMS must cover exactly both archives and BUILD-INFO.txt.")
+        raise ReleaseError("SHA256SUMS must cover every release artifact except itself.")
     for name, expected in manifest.items():
         if checksum(directory / name) != expected:
             raise ReleaseError(f"Checksum mismatch: {name}.")
     lines = (directory / "BUILD-INFO.txt").read_text(encoding="utf-8").splitlines()
     expected_info = {"Version": version, "Build": build, "Source commit": commit,
                      "Architecture": "arm64", "License": "AGPL-3.0-only", "Signing": "ad-hoc",
-                     "Notarized": "no", "Application archive": app, "Source archive": source}
+                     "Notarized": "no", "Base application archive": base, "Full application archive": full,
+                     "Plugin catalog": "plugins.json", "Source archive": source}
     if not lines or lines[0] != "CrossDiff release bundle" or len(lines[1:]) != len(expected_info):
         raise ReleaseError("Invalid BUILD-INFO.txt.")
     if any(": " not in line for line in lines[1:]) or dict(line.split(": ", 1) for line in lines[1:]) != expected_info:
         raise ReleaseError("BUILD-INFO.txt does not match the committed version, source, architecture, or signing status.")
+    try:
+        plugin_inventory.validate_catalog((directory / "plugins.json").read_bytes(),
+                                          {name: (directory / name).read_bytes() for name in plugins}, version, committed_read)
+        for edition, name in (("base", base), ("full", full)):
+            plugin_inventory.validate_app_archive(directory / name, edition, catalog, plugins, metadata)
+    except (ValueError, KeyError, zipfile.BadZipFile) as error:
+        raise ReleaseError(f"Release inventory validation failed: {error}") from None
     notes = git(root, "show", f"HEAD:docs/releases/{version}.md")
     if not notes:
         raise ReleaseError("Committed release notes are empty.")
@@ -193,7 +215,29 @@ def assert_draft(release: dict, package: dict):
         raise ReleaseError("The existing draft belongs to another source commit; it will not be changed.")
 
 
+def assert_draft_assets(release: dict, package: dict):
+    names = [asset["name"] for asset in release["assets"]]
+    if any(name not in package["names"] for name in names):
+        raise ReleaseError("The draft contains unexpected assets; it will not be overwritten.")
+    if len(names) != len(set(names)):
+        raise ReleaseError("The draft contains duplicate assets.")
+    if any(asset["state"] not in {"uploaded", "starter"} for asset in release["assets"]):
+        raise ReleaseError("Unexpected asset state; refusing to overwrite it.")
+
+
 def publish(github: GitHub, root: Path, package: dict) -> str:
+    if github.repository != plugin_inventory.REPOSITORY:
+        raise ReleaseError("The upload repository must match the official plugin catalog repository.")
+
+    def unchanged(name):
+        path = package["directory"] / name
+        if path.is_symlink() or not path.is_file() or checksum(path) != package["hashes"][name]:
+            raise ReleaseError(f"Artifact changed during publication: {name}.")
+        return path
+
+    # Do not mutate an existing draft when a validated input was replaced locally.
+    for name in package["names"]:
+        unchanged(name)
     github.assert_remote_tag(package["tag"], package["commit"])
     release = github.find_release(package["tag"])
     values = {"tag_name": package["tag"], "target_commitish": package["commit"],
@@ -203,33 +247,29 @@ def publish(github: GitHub, root: Path, package: dict) -> str:
         release = github.api("POST", "/releases", values)
     else:
         assert_draft(release, package)
+        assert_draft_assets(release, package)
         release = github.api("PATCH", f"/releases/{release['id']}", values)
     assert_draft(release, package)
+    assert_draft_assets(release, package)
     release_id = release["id"]
 
     def guarded_release():
         github.assert_remote_tag(package["tag"], package["commit"])
         current = github.api("GET", f"/releases/{release_id}")
         assert_draft(current, package)
-        if any(asset["name"] not in package["names"] for asset in current["assets"]):
-            raise ReleaseError("The draft contains unexpected assets; it will not be overwritten.")
+        assert_draft_assets(current, package)
         return current
 
     for name in package["names"]:
+        path = unchanged(name)
         release = guarded_release()
         matches = [asset for asset in release["assets"] if asset["name"] == name]
-        if len(matches) > 1:
-            raise ReleaseError("The draft contains duplicate assets.")
         if matches:
             asset = matches[0]
-            if asset["state"] not in {"uploaded", "starter"}:
-                raise ReleaseError("Unexpected asset state; refusing to overwrite it.")
             github.api("DELETE", f"/releases/assets/{asset['id']}")
             release = guarded_release()
         # Recheck local input immediately before sending it to GitHub.
-        path = package["directory"] / name
-        if checksum(path) != package["hashes"][name]:
-            raise ReleaseError(f"Artifact changed during publication: {name}.")
+        path = unchanged(name)
         uploaded = github.upload(release, path)
         if uploaded.get("name") != name or uploaded.get("state") != "uploaded":
             raise ReleaseError("GitHub did not confirm a complete asset upload.")
@@ -237,7 +277,7 @@ def publish(github: GitHub, root: Path, package: dict) -> str:
     release = guarded_release()
     assets = release["assets"]
     if len(assets) != len(package["names"]) or {asset["name"] for asset in assets} != set(package["names"]):
-        raise ReleaseError("The draft does not contain exactly the four expected assets.")
+        raise ReleaseError("The draft does not contain exactly the expected release assets.")
     verification = root / ".build" / "release-verification"
     verification.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="github-", dir=verification) as temporary:
@@ -269,7 +309,7 @@ def main() -> int:
         if summary:
             with open(summary, "a", encoding="utf-8") as output:
                 output.write(f"### CrossDiff {package['tag']}\n\n[Open draft release]({url})\n\n"
-                             f"Source: `{package['commit']}`. All four uploaded assets were downloaded and SHA-256 verified.\n\n"
+                             f"Source: `{package['commit']}`. All {len(package['names'])} uploaded assets were downloaded and SHA-256 verified.\n\n"
                              "Draft prerelease only; Apple silicon, ad-hoc signed, not notarized.\n")
         return 0
     except (ReleaseError, OSError, ValueError, KeyError) as error:

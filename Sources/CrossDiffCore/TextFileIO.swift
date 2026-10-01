@@ -100,10 +100,11 @@ public struct StoredTextSide: Codable, Sendable {
 public struct StoredComparison: Codable, Sendable, Identifiable {
     public var id: UUID
     public var kind: String
+    public var pluginID: String?
     public var left: StoredTextSide
     public var right: StoredTextSide
-    public init(id: UUID = UUID(), kind: String, left: StoredTextSide, right: StoredTextSide) {
-        self.id = id; self.kind = kind; self.left = left; self.right = right
+    public init(id: UUID = UUID(), kind: String, left: StoredTextSide, right: StoredTextSide, pluginID: String? = nil) {
+        self.id = id; self.kind = kind; self.left = left; self.right = right; self.pluginID = pluginID
     }
 }
 

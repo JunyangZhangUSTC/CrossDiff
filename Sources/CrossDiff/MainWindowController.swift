@@ -7,7 +7,7 @@ import CrossDiffCore
 /// This keeps native responder routing stable when Settings becomes the key window.
 @MainActor
 final class MainWindowController: NSWindowController, NSToolbarDelegate {
-    private static let openID = NSToolbarItem.Identifier("crossdiff.open")
+    private static let newID = NSToolbarItem.Identifier("crossdiff.new")
     private static let appearanceID = NSToolbarItem.Identifier("crossdiff.appearance")
     private static let activityID = NSToolbarItem.Identifier("crossdiff.activity")
     private static let undoID = NSToolbarItem.Identifier("crossdiff.undo")
@@ -49,12 +49,12 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [Self.openID, Self.activityID, .flexibleSpace, Self.undoID, Self.redoID, .space, Self.appearanceID]
+        [Self.newID, Self.activityID, .flexibleSpace, Self.undoID, Self.redoID, .space, Self.appearanceID]
     }
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { toolbarAllowedItemIdentifiers(toolbar) }
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier identifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
         let item = ValidatedToolbarItem(itemIdentifier: identifier)
-        item.isNavigational = identifier == Self.openID
+        item.isNavigational = identifier == Self.newID
         if identifier == Self.activityID {
             let progress = NSProgressIndicator(frame: NSRect(x: 0, y: 0, width: 16, height: 16))
             progress.style = .spinning; progress.controlSize = .small
@@ -62,21 +62,21 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         } else {
             let action: Selector
             switch identifier {
-            case Self.openID: action = #selector(NativeMenuController.open(_:))
+            case Self.newID: action = #selector(NativeMenuController.newComparison(_:))
             case Self.undoID: action = #selector(NativeMenuController.undo(_:))
             case Self.redoID: action = #selector(NativeMenuController.redo(_:))
             default: action = #selector(toggleAppearance(_:))
             }
             let button = ChromeToolbarButton(title: "", target: identifier == Self.appearanceID ? self : NativeMenuController.shared, action: action)
-            button.outlined = identifier == Self.openID
+            button.outlined = identifier == Self.newID
             button.bezelStyle = .texturedRounded; button.isBordered = false
             // A toolbar click must act on the current editor or search field,
             // rather than move first responder to the button itself.
             button.refusesFirstResponder = true
             // Center the icon and title together so the extra width becomes
             // balanced outer padding instead of a gap after a leading icon.
-            button.imagePosition = identifier == Self.openID ? .imageLeading : .imageOnly
-            button.imageHugsTitle = identifier == Self.openID
+            button.imagePosition = identifier == Self.newID ? .imageLeading : .imageOnly
+            button.imageHugsTitle = identifier == Self.newID
             item.view = button
             if identifier != Self.appearanceID {
                 let command = NSMenuItem(title: "", action: action, keyEquivalent: "")
@@ -89,13 +89,13 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     }
     private func configure(_ item: NSToolbarItem) {
         guard let button = item.view as? ChromeToolbarButton else { return }
-        let opening = item.itemIdentifier == Self.openID
+        let opening = item.itemIdentifier == Self.newID
         let dark = AppAppearance.shared.isDark
         let label: String, symbol: String, help: String
         switch item.itemIdentifier {
-        case Self.openID:
-            label = L("打开…", "Open…"); symbol = "folder"
-            help = L("选择文件或文件夹（⌘O）", "Open files or folders (⌘O)")
+        case Self.newID:
+            label = L("新建…", "New…"); symbol = "plus"
+            help = L("新建比较（⌘N）", "New comparison (⌘N)")
         case Self.undoID:
             label = L("撤销", "Undo"); symbol = "arrow.uturn.backward"
             help = L("撤销（⌘Z）", "Undo (⌘Z)")

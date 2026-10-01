@@ -1,0 +1,13 @@
+{
+  "id": "example.crossdiff.json-keys",
+  "version": "0.1.0",
+  "name": {"zhHans": "JSON 键值比较", "en": "JSON Key Comparison"},
+  "summary": {"zhHans": "示例插件：忽略对象键顺序，按顶层键对比 JSON 值。", "en": "Example plugin: compare top-level JSON values independently of object key order."},
+  "runtime": "restrictedJavaScript",
+  "inputKind": "text",
+  "fileExtensions": ["json", "cdjson"],
+  "resultView": "table",
+  "supportedModes": ["pairwise"],
+  "minHostProtocol": 1,
+  "maxHostProtocol": 1
+}

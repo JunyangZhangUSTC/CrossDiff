@@ -71,9 +71,16 @@ struct WorkspaceView: View {
                     if let l = session.left.path, let r = session.right.path {
                         FolderComparisonView(left: URL(fileURLWithPath: l), right: URL(fileURLWithPath: r), onOpenPair: store.openPair).id(session.id)
                     }
+                case .plugin: PluginComparisonView(session: session).id(session.id)
+                case .binary:
+                    if let l = session.left.path, let r = session.right.path {
+                        BinaryComparisonView(left: URL(fileURLWithPath: l), right: URL(fileURLWithPath: r),
+                                             model: session.binaryComparisonModel).id(session.id)
+                    }
                 case .image:
                     if let l = session.left.path, let r = session.right.path {
-                        ImageComparisonView(left: URL(fileURLWithPath: l), right: URL(fileURLWithPath: r)).id(session.id)
+                        ImageComparisonView(left: URL(fileURLWithPath: l), right: URL(fileURLWithPath: r),
+                                            model: session.imageComparisonModel).id(session.id)
                     }
                 }
             }
@@ -84,11 +91,15 @@ struct WorkspaceView: View {
         .preferredColorScheme(appearance.isDark ? .dark : .light)
         .onAppear { appearance.apply() }
         .environment(\.locale, settings.locale)
-        .sheet(isPresented: $store.pairing) { PairingView(store: store) }
+        .sheet(isPresented: $store.pairing, onDismiss: store.resumeDeferredOpens) { PairingView(store: store) }
+        .sheet(item: $store.newComparison, onDismiss: store.newComparisonDidDismiss) { draft in
+            NewComparisonView(model: draft)
+        }
         .alert("CrossDiff", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) {
             Button(L("好", "OK")) { store.message = nil }
         } message: { Text(store.message ?? "") }
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: nil) { providers in
+            guard store.newComparison == nil else { return false }
             Task {
                 var urls: [URL] = []
                 for provider in providers {
@@ -139,7 +150,7 @@ struct PairingView: View {
     @State private var pairs: [PendingPair] = []
     private var left: OpenCandidate? { store.candidates.first { $0.id == leftID } }
     private var right: OpenCandidate? { store.candidates.first { $0.id == rightID } }
-    private var valid: Bool { left != nil && right != nil && leftID != rightID && left?.kind == right?.kind }
+    private var valid: Bool { left != nil && right != nil && leftID != rightID && left.map { item in right.map { item.isCompatible(with: $0) } ?? false } == true }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -149,7 +160,7 @@ struct PairingView: View {
             HStack(spacing: 16) {
                 picker(L("左侧", "Left"), selection: $leftID, candidates: store.candidates)
                 Image(systemName: "arrow.left.arrow.right").foregroundStyle(.secondary)
-                picker(L("右侧", "Right"), selection: $rightID, candidates: store.candidates.filter { $0.id != leftID && (left == nil || $0.kind == left?.kind) })
+                picker(L("右侧", "Right"), selection: $rightID, candidates: store.candidates.filter { $0.id != leftID && (left == nil || left!.isCompatible(with: $0)) })
             }
             Button(L("加入比较", "Add Pair")) {
                 if let left, let right, valid {
@@ -158,7 +169,7 @@ struct PairingView: View {
                 }
             }.disabled(!valid)
             if pairs.isEmpty {
-                Text(store.candidates.count == 1 ? L("已选择一个项目，添加另一个项目后即可配对。", "One item selected. Add another item to create a pair.") : L("文件只能与兼容文件配对；文件夹与文件夹配对。", "Pair compatible files with each other, or a folder with another folder."))
+                Text(store.candidates.count == 1 ? L("已选择一个项目，添加另一个项目后即可配对。", "One item selected. Add another item to create a pair.") : L("请选择兼容项目配对；压缩包也可与本地文件夹比较。", "Pair compatible items; archives can also be compared with local folders."))
                     .foregroundStyle(.secondary).font(.callout).frame(maxWidth: .infinity, minHeight: 80)
             } else {
                 List {
@@ -175,7 +186,7 @@ struct PairingView: View {
             }
         }
         .padding(24).frame(width: 650)
-        .onChange(of: leftID) { _, _ in if right?.kind != left?.kind || rightID == leftID { rightID = "" } }
+        .onChange(of: leftID) { _, _ in if !valid { rightID = "" } }
     }
     private func picker(_ title: String, selection: Binding<String>, candidates: [OpenCandidate]) -> some View {
         VStack(alignment: .leading, spacing: 8) {

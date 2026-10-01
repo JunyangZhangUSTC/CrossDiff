@@ -8,9 +8,9 @@ extension Notification.Name {
 }
 
 enum ComparisonKind: String, CaseIterable {
-    case text, folder, image
-    var title: String { switch self { case .text: return L("文本比较", "Text Comparison"); case .folder: return L("文件夹比较", "Folder Comparison"); case .image: return L("图片比较", "Image Comparison") } }
-    var symbol: String { switch self { case .text: return "doc.text"; case .folder: return "folder"; case .image: return "photo" } }
+    case text, folder, image, binary, plugin
+    var title: String { switch self { case .text: return L("文本比较", "Text Comparison"); case .folder: return L("文件夹比较", "Folder Comparison"); case .image: return L("图片比较", "Image Comparison"); case .binary: return L("二进制比较", "Binary Comparison"); case .plugin: return L("插件比较", "Plugin Comparison") } }
+    var symbol: String { switch self { case .text: return "doc.text"; case .folder: return "folder"; case .image: return "photo"; case .binary: return "number.square"; case .plugin: return "puzzlepiece.extension" } }
 }
 
 enum Side: Hashable { case left, right }
@@ -43,7 +43,7 @@ private enum ReplacementInputError: LocalizedError {
 private struct UnsupportedDocumentError: LocalizedError {
     let fileName: String
     var errorDescription: String? {
-        L("\(fileName)：文档与表格比较将在后续版本加入，当前支持文本、文件夹和图片。", "\(fileName): Document and spreadsheet comparison is planned for a future version. This version supports text, folders, and images.")
+        L("\(fileName)：尚未安装支持此文档格式的比较器。", "\(fileName): No comparison provider is installed for this document format.")
     }
 }
 
@@ -51,6 +51,7 @@ private struct UnsupportedDocumentError: LocalizedError {
 final class ComparisonSession: ObservableObject, Identifiable {
     let id: UUID
     let kind: ComparisonKind
+    let pluginID: String?
     @Published var left: StoredTextSide
     @Published var right: StoredTextSide
     @Published var result: TextDiffResult?
@@ -113,6 +114,12 @@ final class ComparisonSession: ObservableObject, Identifiable {
     // Retain the actual text views across tab switches, including selections and undo targets.
     var leftEditorState: TextEditorState?
     var rightEditorState: TextEditorState?
+    // Keep image alignment and decoded previews when switching comparison tabs.
+    lazy var imageComparisonModel = ImageComparisonModel()
+    lazy var binaryComparisonModel = BinaryComparisonModel()
+    lazy var pdfComparisonModel = PDFComparisonModel()
+    lazy var pluginTableModel = PluginTableModel()
+    lazy var archiveComparisonModel = ArchiveComparisonModel()
     private struct ClearedText {
         let left: String
         let right: String
@@ -121,8 +128,8 @@ final class ComparisonSession: ObservableObject, Identifiable {
     @Published private var clearedText: ClearedText?
     private var changingClearAction = false
 
-    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init()) {
-        self.id = id; self.kind = kind; self.left = left; self.right = right
+    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil) {
+        self.id = id; self.kind = kind; self.left = left; self.right = right; self.pluginID = pluginID
         if kind == .text { compare() }
     }
     deinit {
@@ -134,10 +141,11 @@ final class ComparisonSession: ObservableObject, Identifiable {
     var title: String {
         let l = left.path.map { URL(fileURLWithPath: $0).lastPathComponent }
         let r = right.path.map { URL(fileURLWithPath: $0).lastPathComponent }
-        return l == nil && r == nil ? L("临时文本", "Untitled Comparison") : "\(l ?? L("临时文本", "Untitled")) ↔ \(r ?? L("待选择", "Not Selected"))"
+        let unnamed = kind == .text ? L("临时文本", "Temporary Text") : L("待选择", "Not Selected")
+        return l == nil && r == nil ? L("临时文本", "Untitled Comparison") : "\(l ?? unnamed) ↔ \(r ?? unnamed)"
     }
     var dirty: Bool { !left.text.utf16.elementsEqual(left.savedText.utf16) || !right.text.utf16.elementsEqual(right.savedText.utf16) }
-    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right) }
+    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID) }
     var canClearText: Bool { kind == .text && (!left.text.isEmpty || !right.text.isEmpty) }
     var canRestoreClearedText: Bool { clearedText != nil && left.text.isEmpty && right.text.isEmpty }
     func value(_ side: Side) -> StoredTextSide { side == .left ? left : right }
@@ -432,6 +440,14 @@ final class ComparisonSession: ObservableObject, Identifiable {
 struct OpenCandidate: Identifiable, Hashable {
     let url: URL
     let kind: ComparisonKind
+    var pluginID: String? = nil
+    var acceptsFolders = false
+    func isCompatible(with other: OpenCandidate) -> Bool {
+        if kind == .folder && other.kind == .plugin && other.acceptsFolders { return true }
+        if other.kind == .folder && kind == .plugin && acceptsFolders { return true }
+        if [.text, .binary].contains(kind), [.text, .binary].contains(other.kind) { return true }
+        return kind == other.kind && pluginID == other.pluginID
+    }
     var id: String { url.path }
     var name: String { url.lastPathComponent }
 }
@@ -449,6 +465,8 @@ final class WorkspaceStore: ObservableObject {
     @Published var selectedID: UUID?
     @Published var candidates: [OpenCandidate] = []
     @Published var pairing = false
+    @Published var newComparison: NewComparisonModel?
+    var showPluginsAfterNewComparison = false
     @Published var opening = false
     @Published private var messageProvider: (() -> String)?
     var message: String? {
@@ -464,6 +482,9 @@ final class WorkspaceStore: ObservableObject {
     private var recoveryFailed = false
     private var openGeneration = 0
     private var openingBatches = 0
+    private var pairingPluginID: String?
+    private var pairingKind: ComparisonKind?
+    private var deferredOpenRequests: [(urls: [URL], pluginID: String?, kind: ComparisonKind?)] = []
 
     private init() {
         let directory = ProcessInfo.processInfo.environment["CROSSDIFF_DATA_DIR"].map { URL(fileURLWithPath: $0) }
@@ -473,7 +494,7 @@ final class WorkspaceStore: ObservableObject {
         do {
             for record in try SessionFile.load(from: sessionURL) {
                 guard let kind = ComparisonKind(rawValue: record.kind) else { continue }
-                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right))
+                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID))
             }
         } catch {
             recoveryFailed = true
@@ -489,6 +510,25 @@ final class WorkspaceStore: ObservableObject {
         sessions.append(session)
     }
     func newText() { let session = ComparisonSession(); attach(session); selectedID = session.id; schedulePersistence() }
+    func beginNewComparison(kind: ComparisonKind? = nil, pluginID: String? = nil) {
+        guard !pairing, newComparison == nil else { return }
+        let draft = NewComparisonModel(store: self)
+        if let kind, let type = draft.types.first(where: { $0.kind == kind && $0.pluginID == pluginID }) { draft.select(type) }
+        newComparison = draft
+    }
+    func newComparisonDidDismiss() {
+        if showPluginsAfterNewComparison {
+            showPluginsAfterNewComparison = false
+            NativeMenuController.shared.showPlugins(nil)
+        }
+        resumeDeferredOpens()
+    }
+    func resumeDeferredOpens() {
+        while newComparison == nil, !pairing, !deferredOpenRequests.isEmpty {
+            let request = deferredOpenRequests.removeFirst()
+            accept(request.urls, pluginID: request.pluginID, kind: request.kind)
+        }
+    }
     func close(_ session: ComparisonSession) {
         if session.dirty {
             let alert = NSAlert(); alert.messageText = L("关闭这个比较？", "Close this comparison?")
@@ -496,72 +536,123 @@ final class WorkspaceStore: ObservableObject {
             alert.addButton(withTitle: L("取消", "Cancel")); alert.addButton(withTitle: L("关闭并丢弃", "Discard Changes and Close"))
             guard alert.runModal() == .alertSecondButtonReturn else { return }
         }
+        if session.kind == .binary { session.binaryComparisonModel.cancel() }
         sessions.removeAll { $0.id == session.id }
         if selectedID == session.id { selectedID = sessions.last?.id }
         if sessions.isEmpty { newText() }
         schedulePersistence()
     }
-    func openPanel(kind: ComparisonKind? = nil) {
+    func openPanel(kind: ComparisonKind? = nil, pluginID: String? = nil) {
         let panel = NSOpenPanel()
         panel.title = L("打开要比较的文件或文件夹", "Open Files or Folders to Compare")
         panel.prompt = L("打开", "Open")
         panel.canChooseFiles = kind != .folder
-        panel.canChooseDirectories = kind == nil || kind == .folder
+        let archivePlugin = PluginManager.shared.plugin(id: pluginID)?.package.manifest.inputKind == .archiveCatalog
+        panel.canChooseDirectories = archivePlugin || pluginID == nil && (kind == nil || kind == .folder)
         panel.allowsMultipleSelection = true
         if kind == .image { panel.allowedContentTypes = [.image] }
-        if panel.runModal() == .OK { accept(panel.urls) }
+        if let pluginID, let plugin = PluginManager.shared.plugin(id: pluginID), !archivePlugin {
+            panel.allowedContentTypes = plugin.package.manifest.fileExtensions.compactMap { UTType(filenameExtension: $0) }
+        }
+        if panel.runModal() == .OK { accept(panel.urls, pluginID: pluginID, kind: kind) }
     }
-    func accept(_ urls: [URL]) {
+    func accept(_ urls: [URL], pluginID: String? = nil, kind: ComparisonKind? = nil) {
+        // Finder can deliver URLs while a creation or pairing sheet is active.
+        // Preserve its inputs and defer the independent open request until dismissal.
+        if newComparison != nil || pairing {
+            deferredOpenRequests.append((urls, pluginID, kind)); return
+        }
+        let packages = urls.filter { kind != .binary && $0.pathExtension.lowercased() == "crossdiffplugin" }
+        if !packages.isEmpty {
+            guard packages.count == 1, urls.count == 1 else {
+                presentMessage { L("请一次安装一个插件，完成后再打开比较文件。", "Install one plugin at a time, then open comparison files.") }; return
+            }
+            PluginManager.shared.inspect(packages[0]); return
+        }
+        pairingPluginID = pluginID
+        pairingKind = kind
         var unique: [OpenCandidate] = []
         do {
             for url in urls {
                 guard !unique.contains(where: { $0.url.standardizedFileURL == url.standardizedFileURL }) else { continue }
-                unique.append(try candidate(url))
+                unique.append(try candidate(url, pluginID: pluginID, kind: kind))
             }
         } catch { presentError(error); return }
         guard !unique.isEmpty else { return }
-        if unique.count == 2 && unique[0].kind == unique[1].kind {
+        if unique.count == 2 && unique[0].isCompatible(with: unique[1]) {
             openPairs([.init(left: unique[0], right: unique[1])])
         } else {
             candidates = unique; pairing = true
         }
     }
-    private func candidate(_ url: URL) throws -> OpenCandidate {
+    private func candidate(_ url: URL, pluginID: String? = nil, kind: ComparisonKind? = nil) throws -> OpenCandidate {
         let resource = try url.resourceValues(forKeys: [.isDirectoryKey, .contentTypeKey])
-        let kind: ComparisonKind
-        if resource.isDirectory == true { kind = .folder }
-        else if resource.contentType?.conforms(to: .image) == true { kind = .image }
-        else if ["pdf", "doc", "docx", "xlsx", "xls", "pptx"].contains(url.pathExtension.lowercased()) {
+        if kind == .binary {
+            // Validate without decoding or retaining the contents. An explicit
+            // byte comparison also accepts image, document and plugin packages.
+            _ = try BinaryFileSource(url: url)
+            return .init(url: url, kind: .binary)
+        }
+        if let pluginID {
+            guard let plugin = PluginManager.shared.plugin(id: pluginID), plugin.enabled else {
+                throw PluginAppError(zh: "所选文件与插件不兼容，或插件已停用。", en: "The selected file is incompatible with this plugin, or the plugin is disabled.")
+            }
+            let acceptsFolder = plugin.package.manifest.inputKind == .archiveCatalog
+            guard resource.isDirectory == true ? acceptsFolder : plugin.package.manifest.fileExtensions.contains(url.pathExtension.lowercased()) else {
+                throw PluginAppError(zh: "所选文件与插件不兼容。", en: "The selected file is incompatible with this plugin.")
+            }
+            return .init(url: url, kind: .plugin, pluginID: pluginID, acceptsFolders: acceptsFolder)
+        }
+        // Existing native folder/image opening keeps its default route. A plugin
+        // may still handle these extensions when explicitly chosen in Compare.
+        if resource.isDirectory == true { return .init(url: url, kind: .folder) }
+        if resource.contentType?.conforms(to: .image) == true { return .init(url: url, kind: .image) }
+        if let plugin = PluginManager.shared.matching(url) {
+            return .init(url: url, kind: .plugin, pluginID: plugin.id, acceptsFolders: plugin.package.manifest.inputKind == .archiveCatalog)
+        }
+        // Preserve PDF sessions even while their bundled plugin is disabled.
+        if url.pathExtension.lowercased() == "pdf" { return .init(url: url, kind: .plugin, pluginID: "org.crossdiff.pdf") }
+        if ArchiveComparisonModel.fileExtensions.contains(url.pathExtension.lowercased()) {
+            return .init(url: url, kind: .plugin, pluginID: ArchiveComparisonModel.pluginID, acceptsFolders: true)
+        }
+        let inferredKind: ComparisonKind
+        if ["doc", "docx", "xlsx", "xls", "pptx"].contains(url.pathExtension.lowercased()) {
             throw UnsupportedDocumentError(fileName: url.lastPathComponent)
-        } else { kind = .text }
-        return .init(url: url, kind: kind)
+        } else { inferredKind = try BinaryFileDetection.isLikelyBinary(url: url) ? .binary : .text }
+        return .init(url: url, kind: inferredKind)
     }
     func addCandidates() {
-        let panel = NSOpenPanel(); panel.canChooseDirectories = true; panel.canChooseFiles = true; panel.allowsMultipleSelection = true
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = pairingKind != .binary && (pairingPluginID == nil || PluginManager.shared.plugin(id: pairingPluginID)?.package.manifest.inputKind == .archiveCatalog)
+        panel.canChooseFiles = true; panel.allowsMultipleSelection = true
         panel.title = L("添加要比较的文件或文件夹", "Add Files or Folders to Compare")
         panel.prompt = L("添加", "Add")
         guard panel.runModal() == .OK else { return }
         for url in panel.urls where !candidates.contains(where: { $0.url == url }) {
-            do { candidates.append(try candidate(url)) } catch { presentError(error) }
+            do { candidates.append(try candidate(url, pluginID: pairingPluginID, kind: pairingKind)) } catch { presentError(error) }
         }
     }
     func openPairs(_ pairs: [PendingPair]) {
+        guard pairs.allSatisfy({ $0.left.isCompatible(with: $0.right) }) else { return }
         pairing = false; opening = true; openingBatches += 1
         let version = openGeneration
         Task {
             var errors: [(title: String, error: Error)] = []
             for pair in pairs {
                 guard version == openGeneration else { return }
+                let comparisonKind: ComparisonKind = pair.left.kind == .binary || pair.right.kind == .binary ? .binary :
+                    (pair.left.kind == .plugin || pair.right.kind == .plugin ? .plugin : pair.left.kind)
+                let comparisonPluginID = pair.left.pluginID ?? pair.right.pluginID
                 do {
                     let record = try await Task.detached(priority: .userInitiated) {
-                        if pair.left.kind == .text {
+                        if comparisonKind == .text {
                             let l = try TextFileIO.read(pair.left.url), r = try TextFileIO.read(pair.right.url)
                             return StoredComparison(kind: "text", left: .init(text: l.text, path: pair.left.url.path, encoding: l.encoding, signature: l.signature, savedText: l.text), right: .init(text: r.text, path: pair.right.url.path, encoding: r.encoding, signature: r.signature, savedText: r.text))
                         }
-                        return StoredComparison(kind: pair.left.kind.rawValue, left: .init(path: pair.left.url.path), right: .init(path: pair.right.url.path))
+                        return StoredComparison(kind: comparisonKind.rawValue, left: .init(path: pair.left.url.path), right: .init(path: pair.right.url.path))
                     }.value
                     guard version == openGeneration else { return }
-                    let session = ComparisonSession(kind: pair.left.kind, left: record.left, right: record.right)
+                    let session = ComparisonSession(kind: comparisonKind, left: record.left, right: record.right, pluginID: comparisonPluginID)
                     attach(session); selectedID = session.id
                 } catch { errors.append(("\(pair.left.name) ↔ \(pair.right.name)", error)) }
             }
@@ -597,7 +688,7 @@ final class WorkspaceStore: ObservableObject {
         }
     }
     func save(_ session: ComparisonSession, side: Side, saveAs: Bool = false) {
-        guard sessions.contains(where: { $0.id == session.id }) else { return }
+        guard session.kind == .text, sessions.contains(where: { $0.id == session.id }) else { return }
         let revision = side == .left ? session.leftRevision : session.rightRevision
         var value = session.value(side)
         var destination = value.path.map { URL(fileURLWithPath: $0) }
