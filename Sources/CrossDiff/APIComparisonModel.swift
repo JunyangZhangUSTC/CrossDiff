@@ -42,8 +42,11 @@ final class APIComparisonModel: ObservableObject {
     var rightExchange: APIExchange? { selected(in: rightDocument, id: state.rightEntryID) }
     var diagnostics: [PluginLocalizedText] {
         var seen = Set<String>()
-        let values = (leftDocument?.diagnostics ?? []) + (rightDocument?.diagnostics ?? [])
-            + (leftExchange?.diagnostics ?? []) + (rightExchange?.diagnostics ?? []) + (result?.diagnostics ?? [])
+        var values: [PluginLocalizedText] = leftDocument?.diagnostics ?? []
+        values.append(contentsOf: rightDocument?.diagnostics ?? [])
+        values.append(contentsOf: leftExchange?.diagnostics ?? [])
+        values.append(contentsOf: rightExchange?.diagnostics ?? [])
+        values.append(contentsOf: result?.diagnostics ?? [])
         return values.filter { seen.insert($0.en + "\n" + $0.zhHans).inserted }
     }
 

@@ -38,7 +38,7 @@
 
 `bash scripts/build-app.sh` 已生成 `dist/CrossDiff.app`（Full）；`--edition base --output dist/editions/base/CrossDiff.app` 已生成单独 Base。两者均为 0.11.0 / build 20，`codesign --verify --deep --strict` 通过。Full/Base 的内嵌目录与独立 Audio 包已逐字节核对发行清单。Full 实际含 Archive、PDF、Photography、API、Audio 五个官方插件；Base 仅内嵌 Archive，但保留同样的音频 renderer 和 helper。`python3 scripts/package-audio-plugin.py` 生成 `dist/Plugins/Audio.crossdiffplugin`。
 
-`python3 scripts/audit-publication.py --app dist/CrossDiff.app` 通过，扫描 378 个候选文件与 28 个应用文件，无配置规则命中；`git diff --check` 与本地文档链接检查通过。生产程序不捆绑研究用 Python、JVM 或 FFmpeg。研究原型和实际识别边界见 [M0 记录](audio-matching-m0.md)。此次没有发布或推送 GitHub。
+`python3 scripts/audit-publication.py --app dist/CrossDiff.app` 通过，扫描 378 个候选文件与 28 个应用文件，无配置规则命中；`git diff --check` 与本地文档链接检查通过。生产程序不捆绑研究用 Python、JVM 或 FFmpeg。研究原型和实际识别边界见 [M0 记录](audio-matching-m0.md)。本节记录本机验收；后续提交和远端发布检查以 [GitHub Actions](https://github.com/JunyangZhangUSTC/CrossDiff/actions) 的对应运行结果为准。
 
 发布扫描为启发式检查，不能保证不存在任何敏感信息；上游源码合法版权注释中的公开邮箱按精确文件/邮箱白名单保留，其他秘密与个人路径规则继续扫描。
 
@@ -49,3 +49,9 @@
 - 全长波形最多 8192 个包络 bin；深度放大不等于逐采样显示，尚未实现多尺度可见区域重新解码。
 - 真实听感、输出设备切换、设备延迟、VoiceOver、拖拽手势的完整人工体验、两小时压力、广泛压缩格式组合、Intel 和 macOS 14 真机尚未验收。
 - 匹配评分不是概率，指纹边界不是精确剪辑点；未匹配不能确定为删除。自动结果不写入源音频。
+
+## 文档与发布准备
+
+中英文 README 各新增音频和 API 的真实原生窗口截图，两种外观共八张。示例使用项目内合成音频和 HTTP 记录，音频实际执行分析与重排匹配，不播放声音；API 不发送请求。249 个本地文档链接及图片引用检查通过，截图重现脚本已加入开发指南。发行清单和发布保护的 7／19 项检查通过，同一提交的 Base／Full、独立包、源码与校验和已在本机完整打包（12 个附件）。
+
+首次远端检查使用 macOS 15.7.9 / Swift 6.1.2，发现 API 提示列表的数组拼接表达式超出类型推断时间预算；改为明确类型的逐项追加，保持顺序和去重规则。远端检查、Release 构建与公开发布是独立状态，不能以本机成功替代。
