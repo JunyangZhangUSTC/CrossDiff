@@ -23,7 +23,13 @@ jobs:
           git show --format= --check HEAD
           python3 scripts/audit-publication.py --history
       - name: Core behavior checks
+        id: core
         run: bash scripts/check.sh
+      - name: Diagnose a failed core check
+        if: failure() && steps.core.outcome == 'failure'
+        run: |
+          source scripts/project-env.sh
+          xcrun lldb --no-lldbinit --batch -o run -k 'thread backtrace all' -- .build/debug/CrossDiffChecks
       - name: Compile native workflow checks
         run: bash scripts/tests/check-workflow.sh --build-only
       - name: Build and verify local app
