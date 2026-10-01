@@ -1,10 +1,10 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac; the 0.9.0 source preview adds a Photography plugin. There is no sign-in. For build instructions, see the [development guide](development.md); for planned formats such as Word and spreadsheets, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac; the 0.10.0 source preview includes Photography and API Compare plugins. There is no sign-in. For build instructions, see the [development guide](development.md); for planned formats such as Word and spreadsheets, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
-Click **New… / 新建…** (`⌘N`) in the toolbar or File menu. Choose a comparison type, then prepare the left and right inputs on the next page and start the comparison. Text accepts temporary pasted content or a file on each side. Folder, image and binary comparisons accept the corresponding sources; archive, PDF and photography comparisons appear when the corresponding installed plugins are enabled. **More Comparisons / 更多对比项** opens plugin management. The **Compare** menu goes directly to the input page for a chosen type.
+Click **New… / 新建…** (`⌘N`) in the toolbar or File menu. Choose a comparison type, then prepare the left and right inputs on the next page and start the comparison. Text accepts temporary pasted content or a file on each side. Folder, image and binary comparisons accept the corresponding sources; archive, PDF, photography and API comparisons appear when the corresponding installed plugins are enabled. **More Comparisons / 更多对比项** opens plugin management. The **Compare** menu goes directly to the input page for a chosen type.
 
 **File → Open…** (`⌘O`) still selects multiple files or folders and detects their types. Two compatible items open as a comparison. When you select more items, assign explicit left/right pairs before opening each comparison in its own tab. Finder opening and dropping items into the comparison window retain this automatic routing. You can also paste directly into an existing text comparison.
 
@@ -117,6 +117,31 @@ Analysis uses **floating-point sRGB SDR values in 0–1**, with OpenCV 4.12.0 pr
 
 Each photograph is limited to **256 MiB and 64 megapixels**. Display previews have a **2048 px** longest edge. Statistics use the color-managed source region, with bounded resampling above a **4096 px** longest edge and an explicit sample indicator/dimensions. Only the first frame is analyzed. Waveforms, vectorscopes, noise/sharpness scores, professional HDR analysis, reverse highlighting from chart selections, report export and photo editing are not included.
 
+<a id="api"></a>
+## API 对比 / API Compare
+
+**0.10.0 源码预览，尚未发布。** 从此源码构建的 Full 预装 API 0.1.0，Base 可安装独立包；0.8.0/0.9.0 宿主不支持新的 HTTP 输入契约。
+
+1. 选择 **新建… → API 对比**，两侧各粘贴一份 HTTP 请求/响应、常见浏览器复制的 cURL 命令，或 HAR 1.2；也可选择 `.http`、`.curl`、`.har` 等本地文件。
+2. HAR 包含多次调用时，在左右上方分别选择要比较的记录。请求与响应属于同一次调用，不是互相比较。
+3. 按“请求”“响应”筛选，查找字段或值；JSON 用路径和类型展示，数组顺序保留，字段缺失和 `null` 不相同。头名称不区分大小写，同名头与参数保留重复顺序；JSON 数字保留原始精度及写法。
+4. 可明确设置忽略头（如 `Date`）和 Body JSON Pointer（如 `/metadata/requestId`），规则作用于左右请求与响应，路径包含子字段。默认无忽略；底栏可查看被忽略字段。
+5. 原文查看需显式点击显示；“重新读取”加载最新文件。记录选择、规则和粘贴内容随本机会话恢复。
+
+只在本地解析，**不会运行 cURL、发送请求、展开变量或读取命令引用的 `@file`**。cURL 支持常见导出语法的子集，最多 20,000 个词法单元；多地址展开和无法可靠解析的选项会提示。XML 和其他文本 body 按原文比较；未记录或不能解码的 body 显示未知，不当作空白或相同。HAR 不是网络抓包；不提供 PCAP、抓包、接口测试、OpenAPI 契约差异或日志专用分析。
+
+每侧输入最多 **4 MiB UTF-8／500 次 HAR 调用**，每个 body 最多 **1 MiB**；JSON 最多 64 层／20,000 节点，每次调用最多 5,000 字段。结果最多 5,000 行并有总输出大小限制；截断明确显示部分结果。原文视图最多预览 65,536 字符，单元格最多预览 4,096 字符；比较仍使用上限内的完整导入值。
+
+默认遮罩常见凭据字段的展示值，真实值照常参与比较；这不是完整脱敏。粘贴记录可能含令牌、Cookie 或正文秘密，并按既有机制**明文保存在本机会话**；可通过“会话”菜单清除记录。源文件不被修改。
+
+**Unpublished 0.10.0 source preview.** Full bundles API 0.1.0; a matching Base host can install the standalone package. Earlier hosts do not support the HTTP input contract.
+
+Choose **New… → API Compare** and paste or open two HTTP/cURL/HAR sources. Each side represents an HTTP call, with its request and/or response. Select HAR records independently, filter request/response sections, search fields, and inspect JSON paths and types. Missing differs from null; array order and duplicate headers/parameters are retained. JSON numbers retain their exact spelling and precision. Explicit ignored header names and JSON Pointer subtrees remain inspectable, and selections/rules are restored with the session.
+
+Everything is parsed locally and read-only: cURL is never executed, requests are never sent, variables are never expanded, and referenced files are never opened. Unsupported cURL options and multiple-URL expansion are rejected; parsing is limited to 20,000 tokens. XML and other text bodies use literal text comparison. Missing or unsupported bodies remain unknown. This does not include PCAP, live capture, API testing, OpenAPI contracts, or specialized log analysis.
+
+Limits: 4 MiB UTF-8 and 500 HAR calls per input; 1 MiB per body; JSON depth 64/20,000 nodes; 5,000 fields per call and up to 5,000 result rows, also bounded by total output size. Partial results are marked. Source and cell previews are limited to 65,536 and 4,096 characters respectively without changing the underlying comparison. Common credential fields are masked for display by default, not sanitized in storage. Pasted records are restored from plaintext local sessions; use the Session menu to clear them. See the [implementation scope](architecture/api-comparison.md).
+
 ## Language and appearance
 
 **CrossDiff → 设置/Setting…** (`⌘,`) opens a separate settings window. In **语言/Language**, choose **English** or **简体中文**. App-owned menus, controls, and messages update immediately without restarting or resetting edits. These two entry labels always remain bilingual so that you can find the language setting again.
@@ -157,9 +182,9 @@ Choose each side through New… → PDF Documents, or open two PDFs through File
 
 Manage extensions under CrossDiff → Plugins…: choose or drop a `.crossdiffplugin` file, or enter an HTTPS URL and click Download & Inspect. Review the name, identifier, version, unverified publisher and runtime permissions before installation. Downloads from arbitrary URLs require review before installation. Changed packages must use a new version number.
 
-官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；0.8.0 完整版额外预装 PDF，0.9.0 源码完整版再加入摄影。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
+官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；0.8.0 完整版额外预装 PDF，0.10.0 源码完整版再加入摄影与 API。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
 
-The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full 0.8.0 adds PDF, and Full 0.9.0 source builds add Photography. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
+The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full 0.8.0 adds PDF, and Full 0.10.0 source builds add Photography and API Compare. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
 
 停用或卸载后，会话保留并提示需要对应插件。外部插件更新后可回退至上一版本。内置 PDF 的更新随应用分发，不能由外部同名标识覆盖。
 

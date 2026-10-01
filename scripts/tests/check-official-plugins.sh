@@ -10,6 +10,7 @@ export SWIFTPM_MODULECACHE_OVERRIDE="$CLANG_MODULE_CACHE_PATH"
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" -emit-module -emit-library -module-name CrossDiffCore \
   "$project_root/Sources/CrossDiffCore/Localization.swift" \
   "$project_root/Sources/CrossDiffCore/PluginProtocol.swift" \
+  "$project_root/Sources/CrossDiffCore/APIComparisonResult.swift" \
   "$project_root/Sources/CrossDiffCore/PluginPackage.swift" \
   "$project_root/Sources/CrossDiffCore/PluginStore.swift" \
   -emit-module-path "$check_build/CrossDiffCore.swiftmodule" -o "$check_build/libCrossDiffCore.dylib"

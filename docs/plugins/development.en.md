@@ -1,6 +1,6 @@
 # Plugin development · Experimental v1
 
-Status: 2026-10-02, for the unpublished CrossDiff 0.9.0 source preview (Photography 0.1.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
+Status: 2026-10-02, for the unpublished CrossDiff 0.10.0 source preview (Photography/API 0.1.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
 
 The contract is implemented in [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift), [PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift), [PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) and [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift). Future capabilities discussed in the [architecture design](../architecture/compare-everything.md) are not automatically available in this preview.
 
@@ -13,6 +13,7 @@ Plugins supply comparison algorithms. The host reads inputs, runs tasks and disp
 | `text` | Decoded text `{text: "…"}` | `table`: a read-only results table |
 | `pdf` | Page text, dimensions and preview fingerprints | `documentPages`: native PDF pages and text differences; `table` is also accepted |
 | `archiveCatalog` | Virtual paths, kinds, sizes, full content digests and verification states from an archive or local folder | `archiveTree`: a read-only directory tree and content groups across paths |
+| `httpExchange` | Bounded HTTP/cURL/HAR records normalized to typed sections and fields | `apiExchange`: paired request/response field differences |
 | `photoAnalysis` | Bounded, normalized Apple/OpenCV RGB/HSL distributions, neutral share and analysis metadata | `photography`: paired photos, regions, histograms, recorded curves and capture information |
 
 The bundled [PDF plugin](../../Plugins/PDF/) contains the JavaScript algorithm that aligns and classifies pages. PDFKit extracts and presents them in the host. The independently installable [JSON example](../../Plugins/Examples/JSON/) compares top-level JSON values through the same contract.
@@ -58,6 +59,15 @@ python3 scripts/package-photography-plugin.py --output dist/Plugins/Photography.
 ```
 
 The [Photography algorithm](../../Plugins/Official/Photography/) derives bilingual comparisons from host-provided statistics. OpenCV is a fixed capability of the matching Base/Full host, not native code installed from the plugin package. Full bundles `org.crossdiff.photography`; Base can install it separately. Other plugin IDs can use the same contract without an official-ID execution branch. The 0.8.0 host does not understand this input kind; use a matching 0.9.0 host during development. Catalog URLs for an unpublished version are not yet downloadable assets.
+
+Package the official API algorithm with:
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-api-plugin.py --output dist/plugins/CrossDiff-Plugin-API-0.1.0.crossdiffplugin
+```
+
+Full bundles `org.crossdiff.api`; Base can install it independently. It requires the 0.10.0 HTTP host capability; protocol v1 alone does not make older hosts understand new input kinds. Local API imports are parsed, never executed or fetched. See the [API sources](../../Plugins/Official/API/) and [scope](../architecture/api-comparison.md).
 
 ## 3. A package is one JSON file
 
@@ -266,6 +276,28 @@ Return schema `crossdiff.photography/1` with this payload:
 
 Each source is limited to 256 MiB/64 megapixels, display previews to a 2048 px longest edge, and ROI statistics to 4096 px. RAW support depends on the OS, camera and encoding; embedded previews never substitute for full decoding. XMP is limited to 8 MiB and sidecars require explicit selection rather than automatic adjacent-file access. See the [photography design](../architecture/photography-comparison.md).
 
+### `crossdiff.api-exchange/1`
+
+Declare `inputKind: "httpExchange"`, `resultView: "apiExchange"` and `supportedModes: ["pairwise"]`. The host parses one selected record per side, including when the source contains multiple HAR entries. `content` has `sections` and bilingual `diagnostics`. Allowed section IDs: `request.summary`, `request.query`, `request.headers`, `request.body`, `response.summary`, `response.headers`, `response.body`.
+
+```json
+{
+  "sections": [{"id": "response.body", "label": {"zhHans": "响应正文", "en": "Response body"},
+    "fields": [
+      {"key": "$state", "label": "Body availability", "type": "bodyState", "value": "json", "sensitive": false},
+      {"key": "", "label": "$", "type": "object", "value": "", "sensitive": false},
+      {"key": "/count", "label": "/count", "type": "number", "value": "9007199254740993", "sensitive": false}
+    ]}],
+  "diagnostics": []
+}
+```
+
+Fields have unique keys within their section. Header/query keys are `/escaped-name/occurrence` with zero-based occurrence; header names are ASCII-lowercased, query names retain spelling and encoding. Optional `name` retains the original name. Body JSON paths use RFC 6901, including the empty root path. Container fields have empty values and `object`/`array` types, not child counts. JSON numbers are strings in this contract to avoid wire-number rounding. Other leaf types are `string`, `bool` and `null`. `$state` is a `bodyState` marker (`json`, `text`, `empty`, `missing`, `unsupported`); `$text` carries a `text` body. An absent body is not equal to an empty body.
+
+Options `ignoreHeaders` and `ignoreJSONPointers` are string arrays (at most 128 each), default empty. Header matching is case-insensitive; JSON pointers match a node and its descendants in request and response bodies. Ignore markers neither remove rows nor hide unknown body availability. Each selected record has at most 5,000 fields; values are at most 1 MiB, keys/labels at most 16 KiB. Source parsing has additional bounds in the [usage guide](../usage.md#api).
+
+Payload is `{rows: [...], partial: false}`. Each row has `id` (unique, ≤32 bytes), `section`, `path`, `label`, optional `left`/`right` and corresponding `leftType`/`rightType`, `state`, and `sensitive`. Missing sides use null, not empty strings. States: `same`, `changed`, `added`, `removed`, `ignored`, `unknown`. Maximum 5,000 rows; `partial` must match the envelope status. The official algorithm additionally bounds serialized output. Missing/unsupported bodies propagate unknown to body fields and cannot yield false equality. Sensitive flags affect native display only; algorithms compare original values. Read [APIComparisonResult.swift](../../Sources/CrossDiffCore/APIComparisonResult.swift) for validation.
+
 ## 6. Runtime boundaries
 
 ### Restricted JavaScript
@@ -304,6 +336,9 @@ bash scripts/tests/check-plugin-runtime.sh
 bash scripts/tests/check-pdf.sh
 bash scripts/tests/check-archive-plugin.sh
 bash scripts/tests/check-plugin-workflow.sh
+bash scripts/tests/check-api-import.sh
+bash scripts/tests/check-api-plugin.sh
+bash scripts/tests/check-api-workflow.sh
 bash scripts/tests/check-photography-plugin.sh
 bash scripts/tests/check-photo-engine.sh
 bash scripts/tests/check-photo-metadata.sh

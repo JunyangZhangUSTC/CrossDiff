@@ -110,6 +110,9 @@ All commands below run from the repository root. Native window checks must run *
 | Recorded photograph curves | `bash scripts/tests/check-photo-metadata.sh` | Embedded and explicitly selected XMP, namespace handling, absent/malformed curves and source preservation |
 | Photography plugin | `bash scripts/tests/check-photography-plugin.sh` | Real restricted algorithm, histogram/result contract validation, regions and legacy-session compatibility |
 | Native photography workflows | `bash scripts/tests/check-photo-workflow.sh` | Real plugin, paired regions, session persistence, cancellation/stale outputs, XMP, local installation and bilingual light/dark/narrow windows |
+| API import | `bash scripts/tests/check-api-import.sh` | HTTP/cURL/HAR, duplicate fields, lossless JSON numbers, unavailable bodies, bounded local reads and safe command parsing |
+| API plugin | `bash scripts/tests/check-api-plugin.sh` | Real packaged algorithm, typed rows, explicit rules, incomplete results and independent package installation |
+| Native API workflows | `bash scripts/tests/check-api-workflow.sh` | Paste/file creation, HAR selections, rules and session restoration, local plugin, read-only sources and bilingual light/dark/narrow windows |
 | PDF domain | `bash scripts/tests/check-pdf.sh` | Page alignment, scanning limits, extraction, malformed inputs and source preservation |
 | Native plugin workflows | `bash scripts/tests/check-plugin-workflow.sh` | Install, disable, recovery, real external algorithm, PDF/page/table views and themes |
 | All behavioral suites | `bash scripts/check-all.sh` | Core, image, plugin packages/runtime/download/manager/official catalog, PDF, binary, archives and photography; release/inventory safeguards; serialized native text, image, plugin, official-plugin, binary, archive and photography workflows |

@@ -19,6 +19,7 @@ struct NewComparisonType: Identifiable, Equatable {
             if pluginID == ArchiveComparisonModel.pluginID { return L("压缩包", "Archives") }
             if pluginID == "org.crossdiff.pdf" { return L("PDF 文档", "PDF Documents") }
             if pluginID == "org.crossdiff.photography" { return L("摄影", "Photography") }
+            if pluginID == "org.crossdiff.api" { return L("API 对比", "API Compare") }
             return manifest?.name.localized ?? L("插件比较", "Plugin Comparison")
         }
     }
@@ -32,14 +33,18 @@ struct NewComparisonType: Identifiable, Equatable {
             if acceptsFolders { return L("压缩包之间，或与本地文件夹比较", "Compare archives with archives or folders") }
             if pluginID == "org.crossdiff.pdf" { return L("页面对照与可提取文字差异", "Compare pages and extractable text") }
             if manifest?.inputKind == .photoAnalysis { return L("影调、配色与局部区域分析", "Analyze tone, color and selected regions") }
+            if isAPI { return L("HTTP 请求与响应的结构化差异", "Structured HTTP request and response differences") }
             return manifest?.summary.localized ?? ""
         }
     }
     @MainActor var symbol: String {
         if manifest?.inputKind == .photoAnalysis { return "camera.aperture" }
+        if isAPI { return "arrow.left.arrow.right.square" }
         if kind == .plugin { return acceptsFolders ? "archivebox" : pluginID == "org.crossdiff.pdf" ? "doc.richtext" : "puzzlepiece.extension" }
         return kind.symbol
     }
+    @MainActor var isAPI: Bool { manifest?.inputKind == .httpExchange }
+    @MainActor var acceptsTextInput: Bool { kind == .text || isAPI }
     @MainActor var acceptsFolders: Bool { kind == .folder || manifest?.inputKind == .archiveCatalog }
 
     @MainActor func validate(_ url: URL) throws {
@@ -111,14 +116,19 @@ final class NewComparisonModel: ObservableObject, Identifiable {
     var canCreate: Bool {
         guard !busy, let type = selectedType, types.contains(type) else { return false }
         return [left, right].allSatisfy {
-            switch $0 { case .empty: return false; case .text: return type.kind == .text; case .file: return true }
+            switch $0 {
+            case .empty: return false
+            case .text(let text):
+                return type.acceptsTextInput && (!type.isAPI || (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && text.utf8.count <= 4 * 1024 * 1024))
+            case .file: return true
+            }
         }
     }
     func select(_ type: NewComparisonType) {
         guard !busy, types.contains(type) else { return }
         if previousTypeID != type.id {
-            left = type.kind == .text ? .text("") : .empty
-            right = type.kind == .text ? .text("") : .empty
+            left = type.acceptsTextInput ? .text("") : .empty
+            right = type.acceptsTextInput ? .text("") : .empty
         }
         previousTypeID = type.id; selectedType = type; failure = nil
     }
@@ -128,8 +138,13 @@ final class NewComparisonModel: ObservableObject, Identifiable {
         guard !busy, let type = selectedType else { return }
         do {
             if case .file(let url) = input { try type.validate(url) }
-            if case .text = input, type.kind != .text { return }
-            let normalized: NewComparisonInput = input == .empty && type.kind == .text ? .text("") : input
+            if case .text(let text) = input {
+                guard type.acceptsTextInput else { return }
+                if type.isAPI, text.utf8.count > 4 * 1024 * 1024 {
+                    throw PluginAppError(zh: "每侧 API 输入最多 4 MiB。", en: "API input is limited to 4 MiB per side.")
+                }
+            }
+            let normalized: NewComparisonInput = input == .empty && type.acceptsTextInput ? .text("") : input
             if side == .left { left = normalized } else { right = normalized }
             failure = nil
         } catch { failure = error }
@@ -188,7 +203,7 @@ final class NewComparisonModel: ObservableObject, Identifiable {
     private nonisolated static func load(_ input: NewComparisonInput, isText: Bool) throws -> StoredTextSide {
         try Task.checkCancellation()
         switch input {
-        case .text(let text): return .init(text: text)
+        case .text(let text): return .init(text: text, savedText: isText ? "" : text)
         case .file(let url):
             if isText {
                 let file = try TextFileIO.read(url)

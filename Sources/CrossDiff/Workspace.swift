@@ -130,6 +130,16 @@ final class ComparisonSession: ObservableObject, Identifiable {
         }
         return model
     }()
+    private var storedAPIState: APIWorkspaceState?
+    lazy var apiComparisonModel: APIComparisonModel = {
+        let model = APIComparisonModel(state: storedAPIState ?? .init())
+        model.onStateChanged = { [weak self, weak model] in
+            guard let self, let model else { return }
+            self.storedAPIState = model.state
+            self.changed?()
+        }
+        return model
+    }()
     private struct ClearedText {
         let left: String
         let right: String
@@ -138,9 +148,10 @@ final class ComparisonSession: ObservableObject, Identifiable {
     @Published private var clearedText: ClearedText?
     private var changingClearAction = false
 
-    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil) {
+    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil) {
         self.id = id; self.kind = kind; self.left = left; self.right = right; self.pluginID = pluginID
         storedPhotoState = photoState?.isValid == true ? photoState : nil
+        storedAPIState = apiState?.isValid == true ? apiState : nil
         if kind == .text { compare() }
     }
     deinit {
@@ -152,11 +163,12 @@ final class ComparisonSession: ObservableObject, Identifiable {
     var title: String {
         let l = left.path.map { URL(fileURLWithPath: $0).lastPathComponent }
         let r = right.path.map { URL(fileURLWithPath: $0).lastPathComponent }
-        let unnamed = kind == .text ? L("临时文本", "Temporary Text") : L("待选择", "Not Selected")
+        if pluginID == "org.crossdiff.api", l == nil, r == nil { return L("API 对比", "API Compare") }
+        let unnamed = pluginID == "org.crossdiff.api" ? L("粘贴内容", "Pasted Input") : kind == .text ? L("临时文本", "Temporary Text") : L("待选择", "Not Selected")
         return l == nil && r == nil ? L("临时文本", "Untitled Comparison") : "\(l ?? unnamed) ↔ \(r ?? unnamed)"
     }
     var dirty: Bool { !left.text.utf16.elementsEqual(left.savedText.utf16) || !right.text.utf16.elementsEqual(right.savedText.utf16) }
-    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState) }
+    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState) }
     var canClearText: Bool { kind == .text && (!left.text.isEmpty || !right.text.isEmpty) }
     var canRestoreClearedText: Bool { clearedText != nil && left.text.isEmpty && right.text.isEmpty }
     func value(_ side: Side) -> StoredTextSide { side == .left ? left : right }
@@ -505,7 +517,7 @@ final class WorkspaceStore: ObservableObject {
         do {
             for record in try SessionFile.load(from: sessionURL) {
                 guard let kind = ComparisonKind(rawValue: record.kind) else { continue }
-                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState))
+                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState))
             }
         } catch {
             recoveryFailed = true

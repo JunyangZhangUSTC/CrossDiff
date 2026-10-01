@@ -1,6 +1,6 @@
 # 插件开发 · 实验 v1
 
-状态：2026-10-02，面向尚未发布的 CrossDiff 0.9.0 源码预览（Photography 0.1.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
+状态：2026-10-02，面向尚未发布的 CrossDiff 0.10.0 源码预览（Photography/API 0.1.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
 
 实现依据为 [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift)、[PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift)、[PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) 与 [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift)。早期[框架设计](../architecture/compare-everything.md)描述的远期能力不代表本版本已经支持。
 
@@ -13,6 +13,7 @@
 | `text` | 已解码文字 `{text: "…"}` | `table`：只读结果表格 |
 | `pdf` | 页面文字、尺寸与预览指纹 | `documentPages`：原生 PDF 页面与文字差异；也可返回 `table` |
 | `archiveCatalog` | 压缩包或本地文件夹的虚拟路径、类型、大小、完整内容摘要与验证状态 | `archiveTree`：只读目录树与跨路径同内容组 |
+| `httpExchange` | 有界 HTTP／cURL／HAR 导入，规范化为带类型的分区与字段 | `apiExchange`：请求／响应字段双栏差异 |
 | `photoAnalysis` | Apple／OpenCV 管线生成的有界归一化 RGB／HSL 分布、中性色比例及分析说明 | `photography`：双图、选区、直方图、记录曲线与拍摄信息 |
 
 内置 [PDF 插件](../../Plugins/PDF/)的 JavaScript 决定页面对应与分类；PDFKit 在宿主侧提取并显示页面。独立 [JSON 示例插件](../../Plugins/Examples/JSON/)自行比较 JSON 顶层键值，使用相同安装和执行协议。
@@ -58,6 +59,15 @@ python3 scripts/package-photography-plugin.py --output dist/Plugins/Photography.
 ```
 
 [Photography 源码](../../Plugins/Official/Photography/)根据宿主的统计结果计算双语差异说明。OpenCV 不是装在插件包内的原生代码，而是同版本 Base／Full 宿主提供的固定分析能力；Full 预装 `org.crossdiff.photography`，Base 可安装独立包。该契约可由其他 ID 的插件使用，不依赖官方 ID 的特殊执行路径。0.8.0 宿主不认识此输入类型；开发时应配套 0.9.0 宿主和插件，尚未发布的目录 URL 不代表下载已可用。
+
+官方 API 插件的打包入口：
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-api-plugin.py --output dist/plugins/CrossDiff-Plugin-API-0.1.0.crossdiffplugin
+```
+
+Full 预装 `org.crossdiff.api`，Base 可独立安装；需要 0.10.0 的 HTTP 宿主能力。协议版本仍为 v1，但旧宿主不认识新输入类型。宿主只解析本地数据，不执行命令或请求。参见 [API 源码](../../Plugins/Official/API/)和[范围设计](../architecture/api-comparison.md)。
 
 ## 3. 包是一个 JSON 文件
 
@@ -266,6 +276,16 @@ JSON 示例按解析后的值比较，忽略对象键顺序与空白；重复键
 
 每张源图最多 256 MiB／6400 万像素，预览长边 2048，ROI 统计长边 4096；RAW 支持取决于系统、机型和编码，不使用内嵌预览冒充完整解码。XMP 上限 8 MiB，需用户显式选择旁路文件，不自动读取同目录的其他文件。[摄影设计与语义](../architecture/photography-comparison.md)
 
+### `crossdiff.api-exchange/1`
+
+声明 `inputKind: "httpExchange"`、`resultView: "apiExchange"`、`supportedModes: ["pairwise"]`。每侧输入是用户选定的一次调用记录；HAR 含多条记录时由宿主提供选择界面。`content` 包含 `sections` 和双语 `diagnostics`。分区 ID 限定为 `request.summary`、`request.query`、`request.headers`、`request.body`、`response.summary`、`response.headers`、`response.body`。
+
+每个分区有 `id`、双语 `label` 和 `fields`。每个字段有 `key`、`label`、`type`、`value`（字符串）、`sensitive`，可带原始名称 `name`。分区内 key 不重复。头／参数 key 为 `/转义名称/从0开始的同名序号`；头名称只做 ASCII 小写，查询参数保留原始编码。JSON 正文采用 RFC 6901 路径，根节点为 `""`，容器类型 `object`／`array` 值为空，不把孩子数量编码进父节点。叶子类型为 `string`、`number`、`bool`、`null`；数字以无损词法字符串传输，避免 Double 舍入。正文 `$state` 字段类型 `bodyState`，值为 `json`／`text`／`empty`／`missing`／`unsupported`，普通文本正文在 `$text` 字段中。
+
+选项 `ignoreHeaders`、`ignoreJSONPointers` 为字符串数组，各最多 128 项，默认空。头规则不区分大小写，JSON Pointer 匹配节点及后代，作用于请求与响应；不能用规则把未记录正文伪装成一致。每侧记录最多 5,000 字段，单值最多 1 MiB，key／label 最多 16 KiB。完整输入限制见[使用指南](../usage.md#api)。
+
+结果 payload 为 `{rows: [...], partial: false}`。每行包含唯一 `id`（最多32字节）、`section`、`path`、`label`、`left`／`right` 及对应 `leftType`／`rightType`、`state`、`sensitive`。某侧缺失用 null，不能用空字符串代替。state 为 `same`／`changed`／`added`／`removed`／`ignored`／`unknown`。最多 5,000 行，partial 要和外层 status 对应；官方算法还限制序列化结果大小。未记录／不支持正文使相关正文行保持 unknown；敏感标记只影响展示，真实值仍参与比较。[输出校验实现](../../Sources/CrossDiffCore/APIComparisonResult.swift)
+
 ## 6. 运行边界
 
 ### 受限 JavaScript
@@ -304,6 +324,9 @@ bash scripts/tests/check-plugin-runtime.sh
 bash scripts/tests/check-pdf.sh
 bash scripts/tests/check-archive-plugin.sh
 bash scripts/tests/check-plugin-workflow.sh
+bash scripts/tests/check-api-import.sh
+bash scripts/tests/check-api-plugin.sh
+bash scripts/tests/check-api-workflow.sh
 bash scripts/tests/check-photography-plugin.sh
 bash scripts/tests/check-photo-engine.sh
 bash scripts/tests/check-photo-metadata.sh

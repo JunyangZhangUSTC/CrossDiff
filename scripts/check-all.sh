@@ -17,6 +17,8 @@ bash scripts/tests/check-official-plugins.sh
 bash scripts/tests/check-pdf.sh
 bash scripts/tests/check-image-comparison.sh
 bash scripts/tests/check-photography-plugin.sh
+bash scripts/tests/check-api-import.sh
+bash scripts/tests/check-api-plugin.sh
 bash scripts/tests/check-photo-metadata.sh
 bash scripts/tests/check-photo-engine.sh
 bash scripts/tests/check-editor.sh
@@ -31,3 +33,4 @@ bash scripts/tests/check-official-plugin-ui.sh
 bash scripts/tests/check-binary-workflow.sh
 bash scripts/tests/check-archive-workflow.sh
 bash scripts/tests/check-photo-workflow.sh
+bash scripts/tests/check-api-workflow.sh

@@ -171,7 +171,9 @@ struct NewComparisonView: View {
                     .lineLimit(3)
                     .accessibilityIdentifier("new-comparison.error")
             } else {
-                Label(type.kind == .text
+                Label(type.isAPI
+                    ? L("粘贴 HTTP、cURL 或 HAR，也可选择文件。仅在本机解析。", "Paste HTTP, cURL or HAR, or choose files. Parsed locally on your Mac.")
+                    : type.kind == .text
                     ? L("可直接粘贴文字，也可留空后在比较页编辑。", "Paste text here, or start empty and edit in the comparison.")
                     : L("也可以将项目分别拖入两侧。比较不会修改原文件。", "You can also drop an item on each side. Comparing leaves originals unchanged."),
                       systemImage: type.kind == .text ? "text.cursor" : "doc.badge.arrow.up")
@@ -230,7 +232,7 @@ private struct NewComparisonSourceCard: View {
                 Text(title).font(.system(size: 12, weight: .semibold))
                 Spacer()
                 if case .text = input {
-                    Text(L("临时文本", "Temporary Text"))
+                    Text(type.isAPI ? L("粘贴内容", "Pasted Input") : L("临时文本", "Temporary Text"))
                         .font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
                 }
             }.padding(14)
@@ -256,7 +258,7 @@ private struct NewComparisonSourceCard: View {
         VStack(spacing: 0) {
             ZStack(alignment: .topLeading) {
                 if case .text(let text) = input, text.isEmpty {
-                    Text(L("在这里粘贴文字…", "Paste text here…"))
+                    Text(type.isAPI ? L("粘贴 HTTP、cURL 或 HAR…", "Paste HTTP, cURL or HAR…") : L("在这里粘贴文字…", "Paste text here…"))
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(Color(nsColor: theme.secondaryText).opacity(0.8))
                         .padding(.horizontal, 7).padding(.top, 8)
@@ -333,7 +335,7 @@ private struct NewComparisonSourceCard: View {
                 Button(L("重新选择…", "Choose Another…")) { model.chooseFile(side: side) }
                     .foregroundStyle(Color(nsColor: theme.accent))
                     .accessibilityIdentifier(prefix + ".choose")
-                Button { model.setInput(type.kind == .text ? .text("") : .empty, side: side) } label: {
+                Button { model.setInput(type.acceptsTextInput ? .text("") : .empty, side: side) } label: {
                     Image(systemName: "xmark.circle")
                 }
                 .foregroundStyle(Color(nsColor: theme.secondaryText))

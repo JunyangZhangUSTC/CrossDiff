@@ -102,11 +102,13 @@ public struct StoredComparison: Codable, Sendable, Identifiable {
     public var kind: String
     public var pluginID: String?
     public var photoState: PhotoWorkspaceState?
+    public var apiState: APIWorkspaceState?
     public var left: StoredTextSide
     public var right: StoredTextSide
-    public init(id: UUID = UUID(), kind: String, left: StoredTextSide, right: StoredTextSide, pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil) {
+    public init(id: UUID = UUID(), kind: String, left: StoredTextSide, right: StoredTextSide, pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil) {
         self.id = id; self.kind = kind; self.left = left; self.right = right; self.pluginID = pluginID
         self.photoState = photoState
+        self.apiState = apiState
     }
 }
 

@@ -34,9 +34,9 @@ struct PluginExecution: Sendable {
     let executableURL: URL?
     let approvedDigest: String?
 
-    func compare(_ inputs: [PluginInput]) async throws -> PluginComparisonResult {
+    func compare(_ inputs: [PluginInput], options: [String: PluginJSONValue] = [:]) async throws -> PluginComparisonResult {
         let request = PluginComparisonRequest(protocolVersion: 1, runID: UUID().uuidString,
-            mode: .pairwise, inputs: inputs, options: [:])
+            mode: .pairwise, inputs: inputs, options: options)
         return try await PluginRunner.run(package: package, request: request, helperURL: helperURL,
             nativeExecutableURL: executableURL, approvedNativeDigest: approvedDigest)
     }

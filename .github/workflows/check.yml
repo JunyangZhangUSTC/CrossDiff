@@ -55,6 +55,12 @@ jobs:
           bash scripts/tests/check-archive-plugin.sh
           bash scripts/tests/check-archive-workflow.sh --build-only
 
+      - name: API comparison checks
+        run: |
+          bash scripts/tests/check-api-import.sh
+          bash scripts/tests/check-api-plugin.sh
+          bash scripts/tests/check-api-workflow.sh --build-only
+
       - name: Binary comparison checks
         run: |
           bash scripts/tests/check-binary-core.sh

@@ -15,6 +15,7 @@ swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" \
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" -emit-module -emit-library -module-name CrossDiffCore \
   "$project_root/Sources/CrossDiffCore/Localization.swift" \
   "$project_root/Sources/CrossDiffCore/PluginProtocol.swift" \
+  "$project_root/Sources/CrossDiffCore/APIComparisonResult.swift" \
   "$project_root/Sources/CrossDiffCore/PluginPackage.swift" \
   -emit-module-path "$check_build/CrossDiffCore.swiftmodule" -o "$check_build/libCrossDiffCore.dylib"
 swiftc -swift-version 5 -parse-as-library -module-cache-path "$check_build/module-cache" \

@@ -109,13 +109,14 @@ extension PluginManifest {
         guard (resultView == "table" && (inputKind == .text || inputKind == .pdf))
                 || (resultView == "documentPages" && inputKind == .pdf)
                 || (resultView == "archiveTree" && inputKind == .archiveCatalog)
-                || (resultView == "photography" && inputKind == .photoAnalysis) else {
+                || (resultView == "photography" && inputKind == .photoAnalysis)
+                || (resultView == "apiExchange" && inputKind == .httpExchange) else {
             throw PluginValidationError.invalidField("resultView")
         }
         guard !supportedModes.isEmpty, Set(supportedModes).count == supportedModes.count else {
             throw PluginValidationError.invalidField("supportedModes")
         }
-        guard (inputKind != .archiveCatalog && inputKind != .photoAnalysis) || supportedModes == [.pairwise] else {
+        guard (inputKind != .archiveCatalog && inputKind != .photoAnalysis && inputKind != .httpExchange) || supportedModes == [.pairwise] else {
             throw PluginValidationError.unsupportedMode
         }
         guard minHostProtocol >= 1, maxHostProtocol >= minHostProtocol,

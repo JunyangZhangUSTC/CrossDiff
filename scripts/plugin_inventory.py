@@ -24,6 +24,8 @@ PLUGINS = (
      "bundled": "dev.crossdiff.pdf.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Official/Photography", "id": "org.crossdiff.photography", "label": "Photography", "official": True,
      "bundled": "dev.crossdiff.photography.crossdiffplugin", "editions": ("full",)},
+    {"source": "Plugins/Official/API", "id": "org.crossdiff.api", "label": "API", "official": True,
+     "bundled": "dev.crossdiff.api.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Examples/JSON", "id": "example.crossdiff.json-keys", "label": "JSON", "official": False,
      "bundled": None, "editions": ()},
 )

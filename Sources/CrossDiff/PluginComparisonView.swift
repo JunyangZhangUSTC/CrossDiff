@@ -76,15 +76,14 @@ struct PluginComparisonView: View {
     @ObservedObject private var settings = AppSettings.shared
     var body: some View {
         Group {
-            if let id = session.pluginID, let plugin = manager.plugin(id: id), plugin.enabled,
-               let left = session.left.path, let right = session.right.path {
-                PluginResultView(session: session, plugin: plugin, left: URL(fileURLWithPath: left), right: URL(fileURLWithPath: right))
+            if let id = session.pluginID, let plugin = manager.plugin(id: id), plugin.enabled {
+                PluginResultView(session: session, plugin: plugin)
                     .id("\(session.id)-\(manager.revision)")
             } else {
                 ContentUnavailableView {
                     Label(L("此比较需要插件", "This Comparison Needs a Plugin"), systemImage: "puzzlepiece.extension")
                 } description: {
-                    Text(L("文件路径和会话已保留。安装或启用对应插件后即可继续。", "Your file paths and session are retained. Install or enable the corresponding plugin to continue."))
+                    Text(L("输入和会话已保留。安装或启用对应插件后即可继续。", "Your inputs and session are retained. Install or enable the corresponding plugin to continue."))
                     if let id = session.pluginID { Text(id).font(.caption.monospaced()) }
                 } actions: {
                     Button(L("管理插件…", "Manage Plugins…")) { NativeMenuController.shared.showPlugins(nil) }
@@ -97,29 +96,23 @@ struct PluginComparisonView: View {
 private struct PluginResultView: View {
     let session: ComparisonSession
     let plugin: AvailablePlugin
-    let left: URL
-    let right: URL
     @State private var execution: PluginExecution?
     @State private var failure: String?
+    private var executionID: String {
+        plugin.package.manifest.version + plugin.package.sha256 + PluginManager.shared.revision.uuidString
+    }
 
     var body: some View {
         Group {
             if let execution {
-                if plugin.package.manifest.resultView == "archiveTree" {
-                    ArchiveComparisonView(left: left, right: right, model: session.archiveComparisonModel,
-                        execute: { try await execution.compare($0) },
-                        executionID: plugin.package.manifest.version + plugin.package.sha256 + PluginManager.shared.revision.uuidString)
-                } else if plugin.package.manifest.resultView == "photography" {
-                    PhotoComparisonView(left: left, right: right, model: session.photoComparisonModel,
-                        execute: { try await execution.compare($0) },
-                        executionID: plugin.package.manifest.version + plugin.package.sha256 + PluginManager.shared.revision.uuidString)
-                } else if plugin.package.manifest.resultView == "documentPages" {
-                    PDFComparisonView(left: left, right: right, model: session.pdfComparisonModel,
-                        pluginName: plugin.package.manifest.name.localized, execute: { try await execution.compare($0) },
-                        executionID: plugin.package.manifest.version + plugin.package.sha256 + PluginManager.shared.revision.uuidString)
+                if plugin.package.manifest.resultView == "apiExchange" {
+                    APIComparisonView(left: session.left, right: session.right, model: session.apiComparisonModel,
+                        execute: { try await execution.compare($0, options: $1) }, executionID: executionID)
+                } else if let leftPath = session.left.path, let rightPath = session.right.path {
+                    fileResult(left: URL(fileURLWithPath: leftPath), right: URL(fileURLWithPath: rightPath), execution: execution)
                 } else {
-                    PluginTableView(left: left, right: right, name: plugin.package.manifest.name.localized,
-                        execution: execution, model: session.pluginTableModel)
+                    ContentUnavailableView(L("需要选择文件", "Files Required"), systemImage: "doc.badge.plus",
+                        description: Text(L("请新建比较并选择左右两侧文件。", "Create a comparison and choose a file for each side.")))
                 }
             } else if let failure {
                 ContentUnavailableView(L("无法运行插件", "Unable to Run Plugin"), systemImage: "exclamationmark.triangle", description: Text(failure))
@@ -128,6 +121,22 @@ private struct PluginResultView: View {
         .onAppear {
             do { execution = try PluginManager.shared.execution(for: plugin.id) }
             catch { failure = localizedErrorDescription(error) }
+        }
+    }
+
+    @ViewBuilder private func fileResult(left: URL, right: URL, execution: PluginExecution) -> some View {
+        if plugin.package.manifest.resultView == "archiveTree" {
+            ArchiveComparisonView(left: left, right: right, model: session.archiveComparisonModel,
+                execute: { try await execution.compare($0) }, executionID: executionID)
+        } else if plugin.package.manifest.resultView == "photography" {
+            PhotoComparisonView(left: left, right: right, model: session.photoComparisonModel,
+                execute: { try await execution.compare($0) }, executionID: executionID)
+        } else if plugin.package.manifest.resultView == "documentPages" {
+            PDFComparisonView(left: left, right: right, model: session.pdfComparisonModel,
+                pluginName: plugin.package.manifest.name.localized, execute: { try await execution.compare($0) }, executionID: executionID)
+        } else {
+            PluginTableView(left: left, right: right, name: plugin.package.manifest.name.localized,
+                execution: execution, model: session.pluginTableModel)
         }
     }
 }

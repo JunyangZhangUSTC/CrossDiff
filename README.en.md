@@ -53,7 +53,8 @@ From a quick text paste to code directories, archives, images, and research PDFs
 | **Images** | Side-by-side, overlay, wipe, and pixel-difference views. Scale, rotate, flip, drag to align, resize from corners, or compare only the overlapping area. |
 | **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |
 | **PDF documents** | Page matching, inserted/deleted-page navigation, native page previews, and extracted-text differences. Included in Full; available as an official plugin for Base. |
-| **Photography · 0.9.0 source preview** | Read-only paired photographs, RGB/HSL histograms, named region pairs, capture metadata, and recorded processing curves. Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
+| **API Compare · 0.10.0 source preview** | Paste HTTP or cURL, or import HAR. Compare request/response headers, parameters and JSON fields with explicit ignore rules, locally and read-only. [API guide](docs/usage.md#api) |
+| **Photography · 0.10.0 source preview** | Read-only paired photographs, RGB/HSL histograms, named region pairs, capture metadata, and recorded processing curves. Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
 
 <details>
 <summary><b>The details make a difference</b></summary>
@@ -76,9 +77,9 @@ From a quick text paste to code directories, archives, images, and research PDFs
 
 ## Choose your edition
 
-**Published download: 0.8.0 · Source preview: 0.9.0 · macOS 14+ · Apple silicon (arm64)**
+**Published download: 0.8.0 · Source preview: 0.10.0 · macOS 14+ · Apple silicon (arm64)**
 
-The Photography plugin is available in the 0.9.0 source preview and has not been published to GitHub Releases. Build this checkout to try it; the download above remains the published 0.8.0 release.
+Photography and API plugins are available in the 0.10.0 source preview and have not been published to GitHub Releases. Build this checkout to try it; the download above remains the published 0.8.0 release.
 
 Base is the everyday starting point. Choose Full if you want PDF preinstalled. Both are free, open source, and account-free.
 
@@ -95,7 +96,7 @@ Base and Full differ only in their preinstalled plugins. You can add more plugin
 
 **[Download from GitHub Releases →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
 
-Choose the files you need under a release's **Assets**. Each release also includes source, build information, and `SHA256SUMS`. The JSON plugin is distributed separately as a developer example and is not preinstalled in Full. Full 0.8.0 does not include Photography. Full builds from the 0.9.0 source preview additionally bundle Photography 0.1.0; Base can install the Photography package built from the same checkout. Release downloads will become available when that version is published. Office, audio, and video remain planned.
+Choose the files you need under a release's **Assets**. Each release also includes source, build information, and `SHA256SUMS`. The JSON plugin is distributed separately as a developer example and is not preinstalled in Full. Full 0.8.0 does not include Photography. Full builds from the 0.10.0 source preview additionally bundle Photography 0.1.0 and API 0.1.0; Base can install their standalone packages built from the same checkout. Release downloads will become available when that version is published. Office, audio, and video remain planned.
 
 </details>
 
@@ -111,7 +112,7 @@ Choose **New… → More Comparisons**, or **CrossDiff → Plugins…**.
 
 Browse the official list offline. **The app connects only when you choose to download a plugin; your comparisons stay local.** No registration or GitHub login is required.
 
-Base features can also be plugins: Archive ships as an official plugin with Base. Extension interfaces pair different algorithms with native directory trees, document pages, tables, and photography analysis views, keeping a consistent Mac experience. Build something new with the [English plugin guide](docs/plugins/development.en.md), [中文规范](docs/plugins/development.md), and [JSON example](Plugins/Examples/JSON/compare.js).
+Base features can also be plugins: Archive ships as an official plugin with Base. Extension interfaces pair different algorithms with native directory trees, document pages, tables, photography analysis, and HTTP field views, keeping a consistent Mac experience. Build something new with the [English plugin guide](docs/plugins/development.en.md), [中文规范](docs/plugins/development.md), and [JSON example](Plugins/Examples/JSON/compare.js).
 
 ## Get started
 
@@ -189,8 +190,8 @@ Our direction is **“Compare everything. Make every comparison count.”** Star
 
 | Available today | Next to explore |
 | :--- | :--- |
-| Text, folders, images, Hex, archives, PDF; Photography in the 0.9.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
-| A native workspace, plugin management, Base and Full editions | Office, APIs/logs/packets, databases, advanced photography analysis, audio, video, model structures, and tensor plugins |
+| Text, folders, images, Hex, archives, PDF; Photography and API in the 0.10.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
+| A native workspace, plugin management, Base and Full editions | Office, network packets, databases, advanced photography analysis, audio, video, model structures, and tensor plugins |
 | English and Simplified Chinese, light and dark themes, local session restoration | Plugin bundles for photographers, media professionals, and developers |
 
 The right column is **planned work**, not implemented functionality or content already included in Full. Current views and plugins provide two-way comparisons. PDF does not yet include OCR; archives do not yet support RAR, 7z, or encryption; folder operations do not provide full synchronization. Basic image previews are limited to 1600 px on the longest edge, and text files to 20 MB. Photography uses a separate color-managed, bounded analysis pipeline: up to 256 MiB and 64 megapixels per photo. RAW support depends on macOS, camera, and encoding mode; rendered images cannot recover the creator’s editing settings. See the [roadmap](docs/roadmap.md) and [implementation limits](docs/development.md#current-implementation-limits).
