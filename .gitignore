@@ -1,0 +1,41 @@
+# Project-local builds, test data, caches and app bundles
+.build/
+.build-*/
+.swiftpm/
+dist/
+
+# Local AI development tools and instructions (not application source)
+/.agents/
+/.codex/
+/.claude/
+/.cursor/
+/.continue/
+/.aider*
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+
+# macOS and personal editor state
+.DS_Store
+.AppleDouble/
+.LSOverride
+.idea/
+.vscode/
+xcuserdata/
+*.xcuserstate
+*.swp
+*.swo
+*~
+
+# Local environment and signing secrets (sanitized examples stay trackable)
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.p12
+*.pfx
+*.p8
+*.key
+*.pem
+*.mobileprovision

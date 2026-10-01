@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="520" viewBox="0 0 1600 520" role="img" aria-label="CrossDiff">
+<rect x="0.0" y="0.0" width="1600.0" height="520.0" rx="28.0" fill="#F4F7FB" opacity="1.0"/>
+<rect x="1101.0" y="53.0" width="336.0" height="414.0" rx="150.0" fill="#E8EEF6" opacity="1.0"/>
+<text x="100.0" y="139.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#536A84">原生 macOS · 免费开源</text>
+<text x="94.0" y="256.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="108.0" font-weight="700" letter-spacing="-0.5" fill="#233952">CrossDiff</text>
+<text x="100.0" y="322.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="34.0" font-weight="400" letter-spacing="-0.5" fill="#536A84">看清每一处变化。</text>
+<text x="100.0" y="410.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="23.0" font-weight="400" letter-spacing="-0.5" fill="#657C96">文本  /  文件夹  /  图片</text>
+<rect x="1079.21875" y="72.65625" width="381.5625" height="381.5625" rx="87.65625" fill="#14263E" opacity="0.08"/>
+<rect x="1077.5" y="67.5" width="385.0" height="385.0" rx="87.65625" fill="#DCE3EC" opacity="1.0"/>
+<rect x="1078.7890625" y="68.7890625" width="382.421875" height="381.5625" rx="86.3671875" fill="#F4F7FB" opacity="1.0"/>
+<rect x="1080.078125" y="69.6484375" width="379.84375" height="378.125" rx="85.078125" fill="#F8FAFC" opacity="1.0"/>
+<rect x="1145.390625" y="144.84375" width="108.28125" height="240.625" rx="17.1875" fill="#14263E" opacity="0.075"/>
+<rect x="1145.390625" y="134.53125" width="108.28125" height="240.625" rx="17.1875" fill="#273D58" opacity="1.0"/>
+<rect x="1146.25" y="135.390625" width="106.5625" height="238.90625" rx="16.328125" fill="#304A68" opacity="1.0"/>
+<rect x="1164.296875" y="166.7578125" width="70.46875" height="12.03125" rx="6.015625" fill="#E1EAF4" opacity="1.0"/>
+<rect x="1164.296875" y="191.25" width="46.40625" height="10.3125" rx="5.15625" fill="#8FA6C0" opacity="1.0"/>
+<rect x="1164.296875" y="332.6171875" width="57.578125" height="10.3125" rx="5.15625" fill="#8FA6C0" opacity="1.0"/>
+<rect x="1286.328125" y="144.84375" width="108.28125" height="240.625" rx="17.1875" fill="#14263E" opacity="0.075"/>
+<rect x="1286.328125" y="134.53125" width="108.28125" height="240.625" rx="17.1875" fill="#273D58" opacity="1.0"/>
+<rect x="1287.1875" y="135.390625" width="106.5625" height="238.90625" rx="16.328125" fill="#304A68" opacity="1.0"/>
+<rect x="1305.234375" y="166.7578125" width="70.46875" height="12.03125" rx="6.015625" fill="#E1EAF4" opacity="1.0"/>
+<rect x="1305.234375" y="191.25" width="46.40625" height="10.3125" rx="5.15625" fill="#8FA6C0" opacity="1.0"/>
+<rect x="1305.234375" y="332.6171875" width="57.578125" height="10.3125" rx="5.15625" fill="#8FA6C0" opacity="1.0"/>
+<rect x="1135.078125" y="228.6328125" width="128.90625" height="69.609375" rx="14.609375" fill="#F2A2A8" opacity="1.0"/>
+<rect x="1276.015625" y="228.6328125" width="128.90625" height="69.609375" rx="14.609375" fill="#8FD4BE" opacity="1.0"/>
+<rect x="1172.890625" y="257.421875" width="53.28125" height="12.03125" rx="6.015625" fill="#713846" opacity="1.0"/>
+<rect x="1313.828125" y="257.421875" width="53.28125" height="12.03125" rx="6.015625" fill="#215B50" opacity="1.0"/>
+<rect x="1334.453125" y="236.796875" width="12.03125" height="53.28125" rx="6.015625" fill="#215B50" opacity="1.0"/>
+</svg>

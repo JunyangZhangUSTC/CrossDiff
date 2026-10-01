@@ -1,0 +1,29 @@
+name: CrossDiff checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check patch formatting and public source
+        run: |
+          source scripts/project-env.sh
+          git diff --check
+          git show --format= --check HEAD
+          python3 scripts/audit-publication.py --history
+      - name: Core behavior checks
+        run: bash scripts/check.sh
+      - name: Compile native workflow checks
+        run: bash scripts/tests/check-workflow.sh --build-only
+      - name: Build and verify local app
+        run: |
+          bash scripts/build-app.sh
+          codesign --verify --deep --strict dist/CrossDiff.app
+      - name: Audit application bundle
+        run: |
+          source scripts/project-env.sh
+          python3 scripts/audit-publication.py --history --app dist/CrossDiff.app
