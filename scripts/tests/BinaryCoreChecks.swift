@@ -77,7 +77,9 @@ import CrossDiffCore
             return UInt8(truncatingIfNeeded: seed)
         }
         let long = Data((0..<(2 * 1024 * 1024 + 33)).map { _ in randomByte() })
-        for offset in [0, 16, 1024 * 1024 - 8, 1024 * 1024, 1024 * 1024 + 8, long.count - 8] {
+        let blockBoundary = 1024 * 1024
+        let insertionOffsets: [Int] = [0, 16, blockBoundary - 8, blockBoundary, blockBoundary + 8, long.count - 8]
+        for offset in insertionOffsets {
             var added = long
             added.insert(contentsOf: [0xff, 0x09, 0x80], at: offset)
             let alignment = try compare(long, added)

@@ -252,21 +252,28 @@ enum ImageTransformChecks {
 
     private static func checkCornerTransitions(_ model: ImageComparisonModel) async throws {
         model.mode = .sideBySide
-        for (side, corner) in [(ImageComparisonSide.left, ImageTransformCorner.topLeft), (.left, .topRight), (.right, .topLeft)] {
-            model.reset(side: .left); model.reset(side: .right)
-            try await settled(model)
-            let size = sourceSize(model, side: side)
-            let anchor = ImageTransformGeometry.corners(sourceSize: size, transform: model.transform(for: side))[corner.opposite.rawValue]
-            let delta = outwardDelta(corner)
-            let outside = NSPoint(x: delta.x < 0 ? -8 : 8, y: delta.y < 0 ? -8 : 8)
-            try await dragCorner(model, side: side, corner: corner, delta: delta, hitOffset: outside)
-            let after = model.transform(for: side)
-            check(after.scaleX > 1 && near(after.scaleX, after.scaleY), "targeted \(side).\(corner) performs its proportional resize")
-            check(close(anchor, ImageTransformGeometry.corners(sourceSize: size, transform: after)[corner.opposite.rawValue]),
-                  "targeted \(side).\(corner) fixes its opposite corner")
-            let other: ImageComparisonSide = side == .left ? .right : .left
-            check(model.transform(for: other).isIdentity, "targeted \(side).\(corner) leaves the other image unchanged")
-            log("Targeted state: left=\(model.leftTransform), right=\(model.rightTransform), interacting=\(model.isInteracting)")
+        let transitions: [(ImageComparisonSide, ImageTransformCorner)] = [
+            (.left, .topLeft), (.left, .topRight), (.right, .topLeft), (.right, .topRight)
+        ]
+        let repetitions = Int(ProcessInfo.processInfo.environment["CROSSDIFF_CORNER_REPETITIONS"] ?? "1") ?? 1
+        for iteration in 0..<max(1, repetitions) {
+            log("Corner transition iteration \(iteration + 1)")
+            for (side, corner) in transitions {
+                model.reset(side: .left); model.reset(side: .right)
+                try await settled(model)
+                let size = sourceSize(model, side: side)
+                let anchor = ImageTransformGeometry.corners(sourceSize: size, transform: model.transform(for: side))[corner.opposite.rawValue]
+                let delta = outwardDelta(corner)
+                let outside = NSPoint(x: delta.x < 0 ? -8 : 8, y: delta.y < 0 ? -8 : 8)
+                try await dragCorner(model, side: side, corner: corner, delta: delta, hitOffset: outside)
+                let after = model.transform(for: side)
+                check(after.scaleX > 1 && near(after.scaleX, after.scaleY), "targeted \(side).\(corner) performs its proportional resize")
+                check(close(anchor, ImageTransformGeometry.corners(sourceSize: size, transform: after)[corner.opposite.rawValue]),
+                      "targeted \(side).\(corner) fixes its opposite corner")
+                let other: ImageComparisonSide = side == .left ? .right : .left
+                check(model.transform(for: other).isIdentity, "targeted \(side).\(corner) leaves the other image unchanged")
+                log("Targeted state: left=\(model.leftTransform), right=\(model.rightTransform), interacting=\(model.isInteracting)")
+            }
         }
     }
 
