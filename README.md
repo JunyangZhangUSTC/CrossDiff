@@ -1,10 +1,6 @@
 <div align="center">
 
-<table>
-<tr><td>
 <img src="Resources/Brand/hero-zh-CN.png" alt="CrossDiff — 对比一切。原生 macOS、本地隐私、无需注册、免费开源。" width="100%">
-</td></tr>
-</table>
 
 **对比一切，把每一处变化看清。**
 

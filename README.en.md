@@ -1,10 +1,6 @@
 <div align="center">
 
-<table>
-<tr><td>
 <img src="Resources/Brand/hero.png" alt="CrossDiff — Compare everything. Native to macOS, local and private, no sign-up, free and open source." width="100%">
-</td></tr>
-</table>
 
 **Compare everything. See every change.**
 
