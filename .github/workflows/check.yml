@@ -1,5 +1,9 @@
 name: CrossDiff checks
-on: [push, pull_request]
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -22,6 +26,10 @@ jobs:
           git diff --check
           git show --format= --check HEAD
           python3 scripts/audit-publication.py --history
+      - name: Check release publishing safeguards
+        run: |
+          source scripts/project-env.sh
+          python3 -m unittest discover -s scripts/tests -p 'test_github_release.py'
       - name: Core behavior checks
         id: core
         run: bash scripts/check.sh

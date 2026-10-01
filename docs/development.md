@@ -50,6 +50,7 @@ All commands below run from the repository root. Native window checks must run *
 | Deletion preview | `bash scripts/tests/check-deletion-preview.sh` | Source isolation, strikethrough, copy behavior and light/dark layouts |
 | Integrated workflows | `bash scripts/tests/check-workflow.sh` | Merge, search/replace, save/restore, menu shortcuts, toolbar actions, settings and languages |
 | All behavioral suites | `bash scripts/check-all.sh` | Core plus serialized editor, alignment, geometry, preview and workflow checks |
+| Release publishing | `source scripts/project-env.sh` then `python3 -m unittest discover -s scripts/tests -p 'test_github_release.py'` | Offline checks for version matching, draft retries, upload protection and download verification |
 
 `check-all.sh` does not invoke the separate `render-native-ui.sh` capture entry point or build the release app. Run those when appropriate. The rendering check writes images to `.build-ui-checks/renders/`. Set `CROSSDIFF_INPUT_STYLE=white-attributed`, `prefilled`, or `ime-commit` to exercise imported text colors, restored content, or input-method commits; the default uses ordinary input.
 
@@ -72,7 +73,9 @@ See [Preparing a release](releasing.md) for clean-commit packaging, publication 
 
 ## Continuous integration
 
-[.github/workflows/check.yml](../.github/workflows/check.yml) configures a macOS runner to check patch formatting, audit repository history, run core checks, compile the integrated native checks, and build, verify, and audit the app. Compilation on CI does not replace native window interaction and pixel checks. Report a remote CI result only after that workflow has actually run.
+[.github/workflows/check.yml](../.github/workflows/check.yml) configures a macOS runner to check patch formatting, audit repository history, run core and release-publishing checks, compile the integrated native checks, and build, verify, and audit the app. Compilation on CI does not replace native window interaction and pixel checks. Report a remote CI result only after that workflow has actually run.
+
+[.github/workflows/release.yml](../.github/workflows/release.yml) builds version tags and prepares verified draft pre-releases. See the [release guide](releasing.md) for tagging, reviewing, and publishing a preview.
 
 Record release-specific results and unverified items under [docs/validation/](validation/README.md). Historical logs describe their original test run, not a guarantee for every subsequent commit.
 

@@ -14,7 +14,7 @@ Native controls. Thoughtful details. Everything stays local.
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[Explore](#made-for-everyday-comparisons) · [Get started](#get-started) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#growing-in-the-open) · [Contribute](CONTRIBUTING.md)
+[Download](https://github.com/JunyangZhangUSTC/CrossDiff/releases) · [Explore](#made-for-everyday-comparisons) · [Get started](#get-started) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#growing-in-the-open) · [Contribute](CONTRIBUTING.md)
 
 </div>
 
@@ -59,6 +59,10 @@ The **Show Deletions** view adds removed text to the right-hand review as red st
 **Current preview: 0.4.0.** Requires **macOS 14+**. A prebuilt app does not require a Swift toolchain.
 
 This preview has been verified on **Apple silicon (arm64)**. Intel builds have not yet been validated.
+
+**[Download a preview → GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
+
+Under a published release’s **Assets**, choose `CrossDiff-<version>-macOS-arm64.zip`, extract it, and open the app. Each release also includes matching source, build information, and `SHA256SUMS`. The release workflow first creates a draft for maintainer review; if no release is public yet, use the source-build instructions below.
 
 **Build from source:** use a toolchain that supports **Swift 6.0 package manifests**, then run the following from a checkout. The project uses Swift 5 language mode and builds for your Mac's architecture.
 

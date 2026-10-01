@@ -14,7 +14,7 @@
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[功能特色](#让日常比较更顺手) · [快速开始](#快速开始) · [隐私](#文件留在你的-mac-上) · [路线图](#持续开发公开演进) · [参与贡献](CONTRIBUTING.md)
+[下载预览版](https://github.com/JunyangZhangUSTC/CrossDiff/releases) · [功能特色](#让日常比较更顺手) · [快速开始](#快速开始) · [隐私](#文件留在你的-mac-上) · [路线图](#持续开发公开演进) · [参与贡献](CONTRIBUTING.md)
 
 </div>
 
@@ -59,6 +59,10 @@
 **当前预览版：0.4.0。** 需要 **macOS 14 或更高版本**。使用已构建的应用无需安装 Swift 开发工具。
 
 本预览版已在 **Apple 芯片（arm64）** 上验证，Intel 构建尚未实测。
+
+**[下载预览版 → GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
+
+在已公开版本的 **Assets** 中选择 `CrossDiff-<版本>-macOS-arm64.zip`，解压后打开应用。同一版本附有对应源码、构建信息和 `SHA256SUMS` 校验和。发布流程先生成供维护者审核的草稿；如果页面还没有公开版本，请使用下面的源码构建方式。
 
 **从源码构建：** 安装支持 **Swift 6.0 package manifest** 的开发工具，下载或克隆仓库后，在项目根目录运行以下命令。项目使用 Swift 5 语言模式，构建对应本机架构。
 

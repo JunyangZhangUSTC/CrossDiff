@@ -1,0 +1,125 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing version tag, for example v0.4.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build and verify Apple silicon app
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    outputs:
+      tag: ${{ steps.metadata.outputs.tag }}
+      commit: ${{ steps.metadata.outputs.commit }}
+      directory: ${{ steps.metadata.outputs.directory }}
+      artifact: ${{ steps.metadata.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate tag, version, and source commit
+        id: metadata
+        run: |
+          source scripts/project-env.sh
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+            echo 'Release tags must use vMAJOR.MINOR.PATCH.' >&2
+            exit 1
+          }
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+          [[ "$RELEASE_TAG" == "v$version" ]]
+          commit="$(git rev-parse HEAD)"
+          [[ "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" == "$commit" ]]
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            [[ "$(git rev-parse "$GITHUB_SHA^{commit}")" == "$commit" ]]
+          fi
+          git merge-base --is-ancestor "$commit" refs/remotes/origin/main
+          [[ -s "docs/releases/$version.md" ]]
+          [[ "$(uname -m)" == arm64 ]]
+          directory="dist/releases/$version-$(git rev-parse --short=12 HEAD)"
+          printf 'tag=%s\ncommit=%s\ndirectory=%s\n' "$RELEASE_TAG" "$commit" "$directory" >> "$GITHUB_OUTPUT"
+          printf 'artifact=release-%s-%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+          sw_vers
+          swift --version
+          git show --format= --check HEAD
+
+      - name: Check release publishing safeguards
+        run: |
+          source scripts/project-env.sh
+          python3 -m unittest discover -s scripts/tests -p 'test_github_release.py'
+
+      - name: Check core behavior
+        run: bash scripts/check.sh
+
+      - name: Compile native workflow checks
+        run: bash scripts/tests/check-workflow.sh --build-only
+
+      - name: Build, audit, and package the exact commit
+        run: |
+          bash scripts/package-release.sh
+          source scripts/project-env.sh
+          [[ "$(/usr/bin/lipo -archs dist/CrossDiff.app/Contents/MacOS/CrossDiff)" == arm64 ]]
+
+      - name: Keep verified release files
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: ${{ steps.metadata.outputs.artifact }}
+          path: |
+            ${{ steps.metadata.outputs.directory }}/CrossDiff-*-macOS-arm64.zip
+            ${{ steps.metadata.outputs.directory }}/CrossDiff-*-source.tar.gz
+            ${{ steps.metadata.outputs.directory }}/BUILD-INFO.txt
+            ${{ steps.metadata.outputs.directory }}/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  draft:
+    name: Create verified release draft
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.build.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download this run's verified artifacts
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: ${{ needs.build.outputs.artifact }}
+          path: ${{ needs.build.outputs.directory }}
+
+      - name: Create draft and verify uploaded files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+          RELEASE_DIRECTORY: ${{ needs.build.outputs.directory }}
+        run: |
+          source scripts/project-env.sh
+          python3 scripts/publish-github-release.py --tag "$RELEASE_TAG" --directory "$RELEASE_DIRECTORY"
