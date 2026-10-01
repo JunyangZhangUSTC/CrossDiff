@@ -9,3 +9,7 @@
 *.yaml text eol=lf
 *.png binary
 *.icns binary
+
+# Preserve hash-pinned upstream sources and extracted copyright notices verbatim.
+Sources/AudioMatchBridge/vendor/* -text -whitespace
+ThirdParty/AudioMatching/NOTICE-*.txt -text -whitespace
