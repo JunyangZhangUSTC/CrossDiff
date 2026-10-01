@@ -1,6 +1,10 @@
 <div align="center">
 
+<table>
+<tr><td>
 <img src="Resources/Brand/hero.png" alt="CrossDiff — Compare everything. Native to macOS, local and private, no sign-up, free and open source." width="100%">
+</td></tr>
+</table>
 
 **Compare everything. See every change.**
 
@@ -14,14 +18,22 @@ Local processing. Native interaction. No sign-up. Ready when you are. Extend it 
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[Download CrossDiff](https://github.com/JunyangZhangUSTC/CrossDiff/releases) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
+[Download Base](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
 
 </div>
 
+> 🌟 **Not sure which edition to choose? Download Base: [CrossDiff-0.8.0-base-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip).**
+>
+> For Apple silicon Macs running macOS 14+. Start with Base for everyday comparisons; add the PDF plugin in the app when needed.
+
+<table>
+<tr><td>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/text-en-dark.png">
   <img src="docs/assets/screenshots/text-en-light.png" alt="CrossDiff comparing code in a native window with aligned rows and precise red and green character highlights" width="100%">
 </picture>
+</td></tr>
+</table>
 
 <p align="center"><sub>A real app window with sample text. Screenshots follow your GitHub light or dark theme.</sub></p>
 
@@ -54,10 +66,14 @@ From a quick text paste to code directories, archives, images, and research PDFs
 - **Make byte changes readable.** Hex keeps independent source offsets, aligns insertion/deletion gaps, and supports 8 or 16 bytes per row. Inputs can be up to 8 GiB each; complex regions are explicitly marked as approximately aligned. [Hex guide](docs/usage.md#binary-hex)
 - **Skip the extraction folder.** Compare ZIP, TAR, TAR.GZ/TGZ, TAR.BZ2, and TAR.XZ. By Path reveals directory changes; Same Content finds matching files across paths. Read-only streaming never extracts files to disk. [Archive guide](docs/usage.md#archives)
 
+<table>
+<tr><td>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/deletions-en-dark.png">
   <img src="docs/assets/screenshots/deletions-en-light.png" alt="CrossDiff displaying removed text as red strikethroughs in the right-hand read-only review" width="100%">
 </picture>
+</td></tr>
+</table>
 
 </details>
 
@@ -65,7 +81,12 @@ From a quick text paste to code directories, archives, images, and research PDFs
 
 **Current developer preview: 0.8.0 · macOS 14+ · Apple silicon (arm64)**
 
-Every edition is free, open source, and account-free. Base and Full are the same app with different sets of preinstalled official plugins. Add or manage plugins at any time.
+Base is the everyday starting point. Choose Full if you want PDF preinstalled. Both are free, open source, and account-free.
+
+<details>
+<summary><b>Full edition, individual plugins, and other downloads</b></summary>
+
+Base and Full differ only in their preinstalled plugins. You can add more plugins later.
 
 | Download | Included | GitHub Release asset |
 | :--- | :--- | :--- |
@@ -77,7 +98,9 @@ Every edition is free, open source, and account-free. Base and Full are the same
 
 Choose the files you need under a release's **Assets**. Each release also includes source, build information, and `SHA256SUMS`. The JSON plugin is distributed separately as a developer example and is not preinstalled in Full. Planned Office, photography, audio, and video capabilities are not part of the current Full edition.
 
-Intel builds have not yet been verified. CrossDiff is an actively developed preview; if no public release is available yet, use the source-build instructions below.
+</details>
+
+Intel builds have not yet been verified. CrossDiff is an actively developed preview; you can also build it from source using the instructions below.
 
 ## Extend your comparison workspace
 
@@ -93,16 +116,20 @@ Base features can also be plugins: Archive ships as an official plugin with Base
 
 ## Get started
 
-Download your edition, extract it, and open **CrossDiff.app**. Prebuilt apps do not require a Swift toolchain.
+Download [Base](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
 
 1. Click **New…** (⌘N), then choose text, folders, archives, images, binary files, or an installed plugin.
 2. Prepare the left and right inputs and click **Compare**. For text, paste directly or select a file.
 3. Review the differences. With text, edit either side, merge individual blocks, and save explicitly when ready.
 
+<table>
+<tr><td>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/new-en-dark.png">
   <img src="docs/assets/screenshots/new-en-light.png" alt="CrossDiff New Comparison: choose text, folders, images, Hex, archives or PDF, then prepare the two inputs" width="100%">
 </picture>
+</td></tr>
+</table>
 
 **File → Open…** (⌘O) accepts multiple files or folders, with explicit pairs opening in separate tabs. Clear Both starts a fresh text comparison, with an immediate restore action. See the [user guide](docs/usage.md), or try the repository's [Swift examples](examples/).
 

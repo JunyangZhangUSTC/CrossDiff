@@ -1,6 +1,10 @@
 <div align="center">
 
+<table>
+<tr><td>
 <img src="Resources/Brand/hero-zh-CN.png" alt="CrossDiff — 对比一切。原生 macOS、本地隐私、无需注册、免费开源。" width="100%">
+</td></tr>
+</table>
 
 **对比一切，把每一处变化看清。**
 
@@ -14,14 +18,22 @@
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[下载 CrossDiff](https://github.com/JunyangZhangUSTC/CrossDiff/releases) · [功能特色](#一个工作台专注每一处变化) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上) · [路线图](#对比一切持续向前)
+[下载基础版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上) · [路线图](#对比一切持续向前)
 
 </div>
 
+> 🌟 **不想选版本？直接下载基础版：[CrossDiff-0.8.0-base-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip)。**
+>
+> 适用于 macOS 14+ 的 Apple 芯片 Mac。日常比较从基础版开始，需要 PDF 时再在应用内安装插件。
+
+<table>
+<tr><td>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/text-zh-CN-dark.png">
   <img src="docs/assets/screenshots/text-zh-CN-light.png" alt="CrossDiff 原生窗口：对齐的代码双栏、精确到字符的红绿差异高亮" width="100%">
 </picture>
+</td></tr>
+</table>
 
 <p align="center"><sub>真实应用窗口，使用示例文本；截图随 GitHub 的浅深色主题切换。</sub></p>
 
@@ -54,10 +66,14 @@
 - **让字节变化可读。** Hex 两侧保留独立源偏移，插删空位对齐，支持 8／16 字节列宽。每个文件最多 8 GiB，复杂区域明确标注粗略对齐。[Hex 指南](docs/usage.md#binary-hex)
 - **不用先解压一地文件。** 支持 ZIP、TAR、TAR.GZ／TGZ、TAR.BZ2、TAR.XZ；“按路径”看目录差异，“相同内容”找跨路径重复。全程只读，流式解码，不写出解压文件。[压缩包指南](docs/usage.md#archives)
 
+<table>
+<tr><td>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/deletions-zh-CN-dark.png">
   <img src="docs/assets/screenshots/deletions-zh-CN-light.png" alt="CrossDiff 的显示删除功能：右侧只读审阅中的红色删除线" width="100%">
 </picture>
+</td></tr>
+</table>
 
 </details>
 
@@ -65,7 +81,12 @@
 
 **当前开发预览：0.8.0 · macOS 14+ · Apple 芯片（arm64）**
 
-所有版本均免费、开源，无需账号。基础版与完整版使用同一个应用，区别在于预装的官方插件；之后随时可以安装或管理插件。
+基础版适合日常使用；想预装 PDF，就选完整版。两者均免费、开源，无需账号。
+
+<details>
+<summary><b>查看完整版、独立插件和其他下载文件</b></summary>
+
+基础版与完整版的区别在于预装插件；之后也可以按需安装。
 
 | 下载 | 包含内容 | GitHub Release 文件 |
 | :--- | :--- | :--- |
@@ -77,7 +98,9 @@
 
 在版本的 **Assets** 中选择所需文件。每次发布同时提供源码、构建信息和 `SHA256SUMS` 校验和。JSON 插件单独作为开发示例提供，不属于完整版预装插件。尚未发布的 Office、摄影、音视频等能力不包含在当前完整版中。
 
-Intel 构建尚未实测。当前为持续开发中的预览版本；若暂时没有公开 Release，也可按下方说明从源码构建。
+</details>
+
+Intel 构建尚未实测。当前为持续开发中的预览版本，也可按下方说明从源码构建。
 
 ## 用插件拓展你的比较工作台
 
@@ -93,16 +116,20 @@ Intel 构建尚未实测。当前为持续开发中的预览版本；若暂时�
 
 ## 快速开始
 
-下载所需版本，解压并打开 **CrossDiff.app**。使用预构建应用无需安装 Swift 开发工具。
+下载[基础版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
 
 1. 点击 **新建…**（⌘N），选择文本、文件夹、压缩包、图片、二进制或已安装的插件比较。
 2. 分别准备左右内容，点击 **开始比较**。文本可直接粘贴，也可选择文件。
 3. 查看差异；文本可编辑任意一侧、逐块合并，并在准备好后手动保存。
 
+<table>
+<tr><td>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/new-zh-CN-dark.png">
   <img src="docs/assets/screenshots/new-zh-CN-light.png" alt="CrossDiff 新建比较：先选择文本、文件夹、图片、Hex、压缩包或 PDF，再准备左右输入" width="100%">
 </picture>
+</td></tr>
+</table>
 
 **文件 → 打开…**（⌘O）支持一次选入多个文件或文件夹，明确配对后各自打开标签页。“清空两侧”方便开始下一次文本比较，并提供即时恢复。完整说明见[使用指南](docs/usage.md)，也可用仓库内的 [Swift 示例](examples/) 体验。
 
