@@ -59,6 +59,14 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
     }
     private var canEditComparison: Bool { comparisonActive && session?.kind == .text }
     private var activeUndoManager: UndoManager? { NSApp.keyWindow?.firstResponder?.undoManager }
+    private var activeAudioHistory: AudioComparisonModel? {
+        guard comparisonActive, NSApp.keyWindow === comparisonWindow,
+              !(NSApp.keyWindow?.firstResponder is NSTextView),
+              let session, session.kind == .plugin, let id = session.pluginID,
+              PluginManager.shared.plugin(id: id)?.enabled == true,
+              PluginManager.shared.plugin(id: id)?.package.manifest.inputKind == .audioAnalysis else { return nil }
+        return session.audioComparisonModel
+    }
 
     private func item(_ title: String, _ action: Selector, key: String = "", modifiers: NSEvent.ModifierFlags = [.command], native: Bool = false) -> NSMenuItem {
         let result = NSMenuItem(title: title, action: action,
@@ -196,6 +204,10 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         switch menuItem.action {
         case #selector(undo(_:)), #selector(redo(_:)):
             let isUndo = menuItem.action == #selector(undo(_:))
+            if let audio = activeAudioHistory {
+                menuItem.title = isUndo ? L("撤销音频调整", "Undo Audio Adjustment") : L("重做音频调整", "Redo Audio Adjustment")
+                return isUndo ? audio.canUndo : audio.canRedo
+            }
             let manager = activeUndoManager
             let name = localizedActionName(isUndo ? manager?.undoActionName ?? "" : manager?.redoActionName ?? "")
             let verb = isUndo ? L("撤销", "Undo") : L("重做", "Redo")
@@ -262,8 +274,14 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
     }
     @objc func save(_ sender: Any?) { if canEditComparison, let session { WorkspaceStore.shared.save(session, side: session.focusSide) } }
     @objc func saveAs(_ sender: Any?) { if canEditComparison, let session { WorkspaceStore.shared.save(session, side: session.focusSide, saveAs: true) } }
-    @objc func undo(_ sender: Any?) { if activeUndoManager?.canUndo == true { activeUndoManager?.undo() } }
-    @objc func redo(_ sender: Any?) { if activeUndoManager?.canRedo == true { activeUndoManager?.redo() } }
+    @objc func undo(_ sender: Any?) {
+        if let audio = activeAudioHistory { audio.undo() }
+        else if activeUndoManager?.canUndo == true { activeUndoManager?.undo() }
+    }
+    @objc func redo(_ sender: Any?) {
+        if let audio = activeAudioHistory { audio.redo() }
+        else if activeUndoManager?.canRedo == true { activeUndoManager?.redo() }
+    }
     @objc func find(_ sender: Any?) { beginFind(replacing: false) }
     @objc func findAndReplace(_ sender: Any?) { beginFind(replacing: true) }
     private func beginFind(replacing: Bool) {

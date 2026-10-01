@@ -1,0 +1,13 @@
+{
+  "id": "org.crossdiff.audio",
+  "version": "0.1.0",
+  "name": { "zhHans": "音频对比", "en": "Audio Compare" },
+  "summary": { "zhHans": "本地只读音频工作台：波形、STFT 时频图、区域对照与变速变调试听，整理同源片段的对应证据。", "en": "Local read-only audio comparison: waveforms, STFT spectrograms, region pairs and rate/pitch audition, with evidence for matching source segments." },
+  "runtime": "restrictedJavaScript",
+  "inputKind": "audioAnalysis",
+  "fileExtensions": ["wav", "wave", "aif", "aiff", "aifc", "flac", "mp3", "m4a", "aac", "caf"],
+  "resultView": "audioTimeline",
+  "supportedModes": ["pairwise"],
+  "minHostProtocol": 1,
+  "maxHostProtocol": 1
+}

@@ -33,6 +33,15 @@ PATTERNS = {
 EMAIL = re.compile(rb"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 PLACEHOLDERS = {b"user", b"username", b"yourname", b"you", b"example", b"test", b"name"}
 PUBLIC_EMAILS = {b"zhangjunyang@mail.ustc.edu.cn"}
+# Reviewed public identities in the pinned upstream copyright notices. Keep
+# exceptions file-specific: other emails and all secret/path rules still apply.
+UPSTREAM_NOTICE_EMAILS = {
+    "Sources/AudioMatchBridge/vendor/lmdb.h": {b"martin@bzero.se"},
+    "Sources/AudioMatchBridge/vendor/mdb.c": {b"martin@bzero.se"},
+    "Sources/AudioMatchBridge/vendor/pffft.c": {b"pommier@modartt.com"},
+    "Sources/AudioMatchBridge/vendor/pffft.h": {b"pommier@modartt.com"},
+    "scripts/audit-publication.py": {b"martin@bzero.se", b"pommier@modartt.com"},
+}
 
 
 def git(root: Path, *args: str) -> bytes:
@@ -71,7 +80,7 @@ def inspect(data: bytes, path: str, origin: str = "", check_email: bool = True) 
         for match in EMAIL.finditer(data):
             email = match.group().lower()
             domain = email.split(b"@", 1)[1]
-            if email in PUBLIC_EMAILS or domain in {b"example.com", b"example.org", b"example.net", b"localhost.test"}:
+            if email in PUBLIC_EMAILS or email in UPSTREAM_NOTICE_EMAILS.get(path, set()) or domain in {b"example.com", b"example.org", b"example.net", b"localhost.test"}:
                 continue
             findings.add((path, data.count(b"\n", 0, match.start()) + 1, "email to review", origin))
     return sorted(findings)

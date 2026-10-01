@@ -20,6 +20,7 @@ struct NewComparisonType: Identifiable, Equatable {
             if pluginID == "org.crossdiff.pdf" { return L("PDF 文档", "PDF Documents") }
             if pluginID == "org.crossdiff.photography" { return L("摄影", "Photography") }
             if pluginID == "org.crossdiff.api" { return L("API 对比", "API Compare") }
+            if pluginID == "org.crossdiff.audio" { return L("音频", "Audio") }
             return manifest?.name.localized ?? L("插件比较", "Plugin Comparison")
         }
     }
@@ -34,12 +35,14 @@ struct NewComparisonType: Identifiable, Equatable {
             if pluginID == "org.crossdiff.pdf" { return L("页面对照与可提取文字差异", "Compare pages and extractable text") }
             if manifest?.inputKind == .photoAnalysis { return L("影调、配色与局部区域分析", "Analyze tone, color and selected regions") }
             if isAPI { return L("HTTP 请求与响应的结构化差异", "Structured HTTP request and response differences") }
+            if manifest?.inputKind == .audioAnalysis { return L("波形、时频图与片段对应", "Waveforms, spectrograms and matching passages") }
             return manifest?.summary.localized ?? ""
         }
     }
     @MainActor var symbol: String {
         if manifest?.inputKind == .photoAnalysis { return "camera.aperture" }
         if isAPI { return "arrow.left.arrow.right.square" }
+        if manifest?.inputKind == .audioAnalysis { return "waveform" }
         if kind == .plugin { return acceptsFolders ? "archivebox" : pluginID == "org.crossdiff.pdf" ? "doc.richtext" : "puzzlepiece.extension" }
         return kind.symbol
     }

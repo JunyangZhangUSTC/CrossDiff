@@ -8,6 +8,7 @@ mkdir -p "$check_build/module-cache" "$check_build/fixtures"
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" -emit-module -emit-library -module-name CrossDiffCore \
   "$project_root/Sources/CrossDiffCore/Localization.swift" \
   "$project_root/Sources/CrossDiffCore/PluginProtocol.swift" \
+  "$project_root/Sources/CrossDiffCore/AudioComparison.swift" \
   "$project_root/Sources/CrossDiffCore/APIComparisonResult.swift" \
   "$project_root/Sources/CrossDiffCore/PluginPackage.swift" \
   "$project_root/Sources/CrossDiffCore/PluginStore.swift" \

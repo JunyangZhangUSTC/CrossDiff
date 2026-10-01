@@ -19,6 +19,12 @@ bash scripts/tests/check-image-comparison.sh
 bash scripts/tests/check-photography-plugin.sh
 bash scripts/tests/check-api-import.sh
 bash scripts/tests/check-api-plugin.sh
+bash scripts/tests/check-audio-plugin.sh
+bash scripts/tests/check-audio-engine.sh
+bash scripts/tests/check-audio-playback.sh
+bash scripts/tests/check-audio-cache.sh
+bash scripts/audio-research/build-matcher.sh
+python3 scripts/audio-research/check-matcher.py
 bash scripts/tests/check-photo-metadata.sh
 bash scripts/tests/check-photo-engine.sh
 bash scripts/tests/check-editor.sh
@@ -34,3 +40,4 @@ bash scripts/tests/check-binary-workflow.sh
 bash scripts/tests/check-archive-workflow.sh
 bash scripts/tests/check-photo-workflow.sh
 bash scripts/tests/check-api-workflow.sh
+bash scripts/tests/check-audio-workflow.sh

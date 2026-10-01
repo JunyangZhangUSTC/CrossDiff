@@ -35,6 +35,7 @@ swift build --disable-sandbox --cache-path .build/cache --config-path .build/con
 swift build --disable-sandbox --cache-path .build/cache --config-path .build/config --security-path .build/security -c release --product CrossDiffPluginHost \
   -Xswiftc -file-prefix-map -Xswiftc "$PWD=." \
   -Xswiftc -debug-prefix-map -Xswiftc "$PWD=."
+swift build --disable-sandbox --cache-path .build/cache --config-path .build/config --security-path .build/security -c release --product CrossDiffAudioMatcher
 binary_directory=$(swift build --disable-sandbox --cache-path .build/cache --config-path .build/config --security-path .build/security -c release --show-bin-path)
 mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Helpers" "$bundle/Contents/Resources/Plugins"
 # Replace the executable inode so a currently running preview keeps its mapped binary.
@@ -46,10 +47,16 @@ cp "$binary_directory/CrossDiffPluginHost" "$bundle/Contents/Helpers/.CrossDiffP
 xcrun strip -S "$bundle/Contents/Helpers/.CrossDiffPluginHost.new"
 codesign --force --sign - "$bundle/Contents/Helpers/.CrossDiffPluginHost.new"
 mv -f "$bundle/Contents/Helpers/.CrossDiffPluginHost.new" "$bundle/Contents/Helpers/CrossDiffPluginHost"
+cp "$binary_directory/CrossDiffAudioMatcher" "$bundle/Contents/Helpers/.CrossDiffAudioMatcher.new"
+xcrun strip -S "$bundle/Contents/Helpers/.CrossDiffAudioMatcher.new"
+codesign --force --sign - "$bundle/Contents/Helpers/.CrossDiffAudioMatcher.new"
+mv -f "$bundle/Contents/Helpers/.CrossDiffAudioMatcher.new" "$bundle/Contents/Helpers/CrossDiffAudioMatcher"
 cp Resources/Info.plist "$bundle/Contents/Info.plist"
 cp LICENSE NOTICE "$bundle/Contents/Resources/"
 mkdir -p "$bundle/Contents/Resources/ThirdParty/OpenCV"
 cp ThirdParty/OpenCV/* "$bundle/Contents/Resources/ThirdParty/OpenCV/"
+mkdir -p "$bundle/Contents/Resources/ThirdParty/AudioMatching"
+cp ThirdParty/AudioMatching/* "$bundle/Contents/Resources/ThirdParty/AudioMatching/"
 # Remove the development-only notice left in bundles produced by older builds.
 rm -f "$bundle/Contents/Resources/THIRD_PARTY_NOTICES.md"
 swift scripts/make-icon.swift "$PWD/.build/CrossDiff.iconset"

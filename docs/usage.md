@@ -1,10 +1,10 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac; the 0.10.0 source preview includes Photography and API Compare plugins. There is no sign-in. For build instructions, see the [development guide](development.md); for planned formats such as Word and spreadsheets, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac; the 0.11.0 source preview includes Photography, API Compare and Audio plugins. There is no sign-in. For build instructions, see the [development guide](development.md); for planned formats such as Word and spreadsheets, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
-Click **New… / 新建…** (`⌘N`) in the toolbar or File menu. Choose a comparison type, then prepare the left and right inputs on the next page and start the comparison. Text accepts temporary pasted content or a file on each side. Folder, image and binary comparisons accept the corresponding sources; archive, PDF, photography and API comparisons appear when the corresponding installed plugins are enabled. **More Comparisons / 更多对比项** opens plugin management. The **Compare** menu goes directly to the input page for a chosen type.
+Click **New… / 新建…** (`⌘N`) in the toolbar or File menu. Choose a comparison type, then prepare the left and right inputs on the next page and start the comparison. Text accepts temporary pasted content or a file on each side. Folder, image and binary comparisons accept the corresponding sources; archive, PDF, photography, API and audio comparisons appear when the corresponding installed plugins are enabled. **More Comparisons / 更多对比项** opens plugin management. The **Compare** menu goes directly to the input page for a chosen type.
 
 **File → Open…** (`⌘O`) still selects multiple files or folders and detects their types. Two compatible items open as a comparison. When you select more items, assign explicit left/right pairs before opening each comparison in its own tab. Finder opening and dropping items into the comparison window retain this automatic routing. You can also paste directly into an existing text comparison.
 
@@ -90,9 +90,9 @@ Comparison uses an 8-bit sRGB preview with a maximum 1600-pixel longest edge. Im
 <a id="photography"></a>
 ## Photography / 摄影对比
 
-**0.9.0 源码开发预览，尚未发布。** 当前公开下载仍为 0.8.0，不含摄影插件。源码默认完整版预装 Photography 0.1.0；从同一源码构建的基础版可安装独立摄影包。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
+**始于 0.9.0 源码预览。** 当前公开下载仍为 0.8.0，不含摄影插件；当前 0.11.0 源码预览尚未发布，默认完整版预装 Photography 0.1.0；从同一源码构建的基础版可安装独立摄影包。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
 
-**Available in the unpublished 0.9.0 source preview.** The public 0.8.0 download does not include Photography. The default Full source build bundles Photography 0.1.0; a Base build from the same source can install its standalone package. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
+**Introduced in the 0.9.0 source preview.** The public 0.8.0 download does not include Photography. The current, unpublished 0.11.0 Full source build bundles Photography 0.1.0; a Base build from the same source can install its standalone package. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
 
 默认以双图为主，显示同刻度的 RGB 与 **HSL 明度 L** 直方图，以及低明度、高明度、高饱和区域占比的简短对比。**专业图表**展开 HSL、处理曲线、拍摄与分析信息。HSL L 不是物理亮度或曝光值，图表描述所选画面的分布，不给作品评分，也不反推调色滑块。快门、光圈、ISO、焦距等仅显示实际文件记录，缺失不猜测。
 
@@ -120,7 +120,7 @@ Each photograph is limited to **256 MiB and 64 megapixels**. Display previews ha
 <a id="api"></a>
 ## API 对比 / API Compare
 
-**0.10.0 源码预览，尚未发布。** 从此源码构建的 Full 预装 API 0.1.0，Base 可安装独立包；0.8.0/0.9.0 宿主不支持新的 HTTP 输入契约。
+**始于 0.10.0 源码预览。** 当前 0.11.0 源码预览尚未发布，Full 预装 API 0.1.0，Base 可安装独立包；0.8.0/0.9.0 宿主不支持新的 HTTP 输入契约。
 
 1. 选择 **新建… → API 对比**，两侧各粘贴一份 HTTP 请求/响应、常见浏览器复制的 cURL 命令，或 HAR 1.2；也可选择 `.http`、`.curl`、`.har` 等本地文件。
 2. HAR 包含多次调用时，在左右上方分别选择要比较的记录。请求与响应属于同一次调用，不是互相比较。
@@ -134,7 +134,7 @@ Each photograph is limited to **256 MiB and 64 megapixels**. Display previews ha
 
 默认遮罩常见凭据字段的展示值，真实值照常参与比较；这不是完整脱敏。粘贴记录可能含令牌、Cookie 或正文秘密，并按既有机制**明文保存在本机会话**；可通过“会话”菜单清除记录。源文件不被修改。
 
-**Unpublished 0.10.0 source preview.** Full bundles API 0.1.0; a matching Base host can install the standalone package. Earlier hosts do not support the HTTP input contract.
+**Introduced in the 0.10.0 source preview.** The current, unpublished 0.11.0 Full source build bundles API 0.1.0; a matching Base host can install the standalone package. Earlier hosts do not support the HTTP input contract.
 
 Choose **New… → API Compare** and paste or open two HTTP/cURL/HAR sources. Each side represents an HTTP call, with its request and/or response. Select HAR records independently, filter request/response sections, search fields, and inspect JSON paths and types. Missing differs from null; array order and duplicate headers/parameters are retained. JSON numbers retain their exact spelling and precision. Explicit ignored header names and JSON Pointer subtrees remain inspectable, and selections/rules are restored with the session.
 
@@ -182,9 +182,9 @@ Choose each side through New… → PDF Documents, or open two PDFs through File
 
 Manage extensions under CrossDiff → Plugins…: choose or drop a `.crossdiffplugin` file, or enter an HTTPS URL and click Download & Inspect. Review the name, identifier, version, unverified publisher and runtime permissions before installation. Downloads from arbitrary URLs require review before installation. Changed packages must use a new version number.
 
-官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；0.8.0 完整版额外预装 PDF，0.10.0 源码完整版再加入摄影与 API。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
+官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；0.8.0 完整版额外预装 PDF，0.11.0 源码完整版再加入摄影、API 与音频。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
 
-The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full 0.8.0 adds PDF, and Full 0.10.0 source builds add Photography and API Compare. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
+The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full 0.8.0 adds PDF, and Full 0.11.0 source builds add Photography, API Compare and Audio. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
 
 停用或卸载后，会话保留并提示需要对应插件。外部插件更新后可回退至上一版本。内置 PDF 的更新随应用分发，不能由外部同名标识覆盖。
 
@@ -226,3 +226,21 @@ Use **Compare → Binary Comparison…** to compare any two regular files as byt
 Each side shows its real source address, hexadecimal bytes and ASCII. Non-printable bytes appear as `·`. Red marks removals, green additions; `—` is an alignment gap, not a zero byte. Addresses can differ after insertion/deletion alignment. Navigate with the footer arrows or `⌥⌘↓` / `⌥⌘↑`. Jump to a left or right source address using decimal or `0x` hexadecimal notation. Choose 8 or 16 columns; narrow windows use a compact layout. Click/drag bytes and use `⌘C` or the context menu to copy hex. Selection is limited to the loaded page and is cleared when it leaves that page.
 
 Each input is limited to **8 GiB**. The bounded algorithm may use explicitly indicated approximate alignment for complex regions; it does not claim a globally shortest edit path. All source bytes remain covered, and unconfirmed regions are never marked equal. Refresh after external file changes. Sessions store paths, not bytes. Binary editing, merging and patch export are not included.
+<a id="audio"></a>
+
+## 音频对比 / Audio Compare（0.11.0 源码预览）
+
+在“新建… → 音频”选择两个本地音频。Full 已内嵌 Audio 0.1.0；同版本 Base 可拖入独立 `.crossdiffplugin` 安装。此源码预览尚未发布到 GitHub，不会要求安装 Python、Java 或 FFmpeg。
+
+- **看波形与时频图：** 默认上下 A/B 时间线，各声道保持原始幅度，深色包络表示 RMS。拖动选择片段，起止秒数也可输入；放大选区只改变视图。切换“时频图”查看真正的 Hann 窗 STFT。参数面板提供 FFT 长度、步长、线性/对数频率轴、共用 dB 范围和平均频谱。
+- **手动对比：** 试听支持单声道和立体声。A 保持原始声音，B 可以独立调整试听速度（0.25–4×，保持音高）和音高（±24 半音）。设置后点击试听；“匹配时长”按双方选区时长设置 B 速度。A/B 切换以当前区域相对位置定位，并非已证明自动同步。支持暂停、停止与循环选区；不会自动播放。
+- **保存区域：** 最多 32 组命名区域，同时保存双方选区和 B 试听参数，随本机会话恢复。联动选区采用相同源时间，超出另一侧时保留其原选择；不代表自动识别。工具栏小箭头撤销/重做区域及参数修改。
+- **自动查找：** 点击“查找对应片段”，使用随宿主构建的固定版本 Olaf 本地指纹引擎。候选保留剪辑重排与一段被重复引用的关系；点击一条可定位双方选区。边界表示指纹证据范围，尚非逐采样剪辑点。当前自动能力针对固定速度的同源录音，不承诺识别独立变速、变调、连续速度曲线或叠加混音；这些情况下可以手动配对和试听。
+- **理解结果：** 没找到对应不等于确定删除。静音、短片段和重复节奏可能无法判断；覆盖时长按每侧区间并集计算。原始文件、选区设置、试听变换与自动证据分别保存/处理，插件不能将未匹配伪装成确定差异。
+- **清理临时文件：** 参数面板中的“清理音频临时文件”可移除意外退出后遗留的音频分析缓存，保留仍在运行的任务。正常结束时自动清理；此操作不会删除源音频或已保存的区域。
+
+限制：每侧分析最多 2 GiB、2 小时、8 声道；试听仅支持单声道／立体声，3–8 声道仍可查看波形、频谱与比较结果。导入格式取决于 macOS 解码器，支持选择 WAV/AIFF/FLAC/MP3/M4A/AAC/CAF 等扩展名并不保证所有编码变体。波形为最多 8192 桶/声道的概览包络，放大不会凭空增加采样级细节。谱图使用 48 kHz 分析副本，每次处理选区前最多 30 秒；FFT/hop 配置触及预算会进一步缩短并标记实际范围。双方频率轴相同，超过源 Nyquist 的区域显示无数据；原始高于 24 kHz 的频带不在此图谱内。图谱取逐声道线性功率平均；指纹使用原文件能量最高的一个声道，以避免反相降混抵消。源文件变化需要重新读取。
+
+**English:** Choose **New… → Audio** and select two local files. Full bundles Audio 0.1.0; a matching Base host can install its standalone package. Inspect per-channel waveforms or calibrated STFT spectrograms, select and save up to 32 region pairs, and audition A/B or loop a region. Audition supports mono/stereo. B has independent rate and pitch controls; these never rewrite the source. Find Matches uses a bundled Olaf helper for fixed-speed excerpts of the same recording, including reordered and repeated candidates. Automatic recognition of independent tempo or pitch changes is not supported in this preview. Unmatched regions are not proof of deletion. Analysis accepts up to 2 GiB, two hours and eight channels per side; three-to-eight-channel files remain available for waveforms, spectra and comparison, without audition. Codec support is probed by macOS. Waveforms are bounded overview envelopes. Spectra analyze at most the first 30 seconds of the selected region at 48 kHz, with smaller explicit ranges for dense settings. All comparison remains local.
+
+**Clear Audio Temporary Files** in the parameter panel removes abandoned analysis caches while preserving active jobs. Normal completions clean up automatically. Original audio and saved regions are unaffected.

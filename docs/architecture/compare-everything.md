@@ -8,6 +8,8 @@
 
 产品决定见 [产品方向](../product-vision.md)；领域用语见 [术语表](../../GLOSSARY.md)；技术依据见 [插件机制研究](../research/plugin-frameworks.md)、[来源与二进制研究](../research/sources-and-binary-diff.md)、[领域与迁移研究](../research/comparison-domains.md)。其中的库、运行时与专业视图路径须经过原型验证，不能仅凭接口图确定可行性。
 
+2026-10-02 的[音频对比设计提案](audio-comparison.md)进一步研究同源录音的剪辑、重排、变速和变调比较，以及音频时间线、图块和原生计算服务的扩展需求；该能力尚未实现，不属于当前 v1 插件协议的现有承诺。
+
 ## 1. 一条可组合的比较链
 
 ```mermaid

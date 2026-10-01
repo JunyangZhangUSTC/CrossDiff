@@ -96,6 +96,23 @@ jobs:
           bash scripts/tests/check-binary-detection.sh
           bash scripts/tests/check-binary-workflow.sh --build-only
 
+      - name: API comparison checks
+        run: |
+          bash scripts/tests/check-api-import.sh
+          bash scripts/tests/check-api-plugin.sh
+          bash scripts/tests/check-api-workflow.sh --build-only
+
+      - name: Audio comparison checks
+        run: |
+          source scripts/project-env.sh
+          bash scripts/tests/check-audio-plugin.sh
+          bash scripts/tests/check-audio-engine.sh
+          bash scripts/tests/check-audio-playback.sh
+          bash scripts/tests/check-audio-cache.sh
+          bash scripts/audio-research/build-matcher.sh
+          python3 scripts/audio-research/check-matcher.py
+          bash scripts/tests/check-audio-workflow.sh --build-only
+
       - name: Compile native plugin workflow checks
         run: bash scripts/tests/check-plugin-workflow.sh --build-only
 

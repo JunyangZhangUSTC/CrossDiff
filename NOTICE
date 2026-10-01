@@ -15,3 +15,9 @@ covered by this license.
 CrossDiff includes statically linked OpenCV core and imgproc modules.
 Their licenses and retained third-party notices are in ThirdParty/OpenCV
 (Contents/Resources/ThirdParty/OpenCV in the application bundle).
+
+The native audio matching helper includes Olaf and its C dependencies.
+Their licenses, pinned source records and modifications are retained in
+ThirdParty/AudioMatching (Contents/Resources/ThirdParty/AudioMatching in
+the application bundle). The corresponding C source is in
+Sources/AudioMatchBridge.

@@ -4,6 +4,7 @@ These records describe checks performed for specific development previews, inclu
 
 | Preview | Record |
 | --- | --- |
+| 0.11.0 | [Audio workbench and native workflow](audio-0.11.0.md) · [Matching engine experiments](audio-matching-m0.md) |
 | 0.10.0 | [API imports, structured comparison and native workflow](validation-0.10.0.md) |
 | 0.9.0 | [Photography, RAW and regional analysis](validation-0.9.0.md) |
 | 0.8.0 | [Editions, official plugin installation and publication](validation-0.8.0.md) |

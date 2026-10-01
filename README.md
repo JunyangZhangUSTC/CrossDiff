@@ -43,6 +43,34 @@
 | **免费开源，没有付费墙**<br>AGPL v3 开源，源码可审查、构建和修改。无订阅、试用倒计时或付费解锁。 | **无需注册，开箱即用**<br>没有账号、登录或激活步骤。打开应用、选好左右内容，就能开始比较。 |
 | **细致比较，修改可控**<br>字符级差异、行对齐、逐块合并、独立撤销与手动保存。只做比较，不会覆盖原文件。 | **优雅界面，按需扩展**<br>浅深色主题、中英文切换、多标签与同步滚动。安装插件，继续拓展比较能力。 |
 
+以下展示 **0.11.0 源码预览**的能力。公开下载仍为 **0.8.0**；新增摄影、API 与音频插件尚未公开发布。
+
+## 看见声音里的变化
+
+用波形与 STFT 时频图观察声音，框选并保存区域，切换 A/B 试听。自动查找同源录音的固定速度片段，定位截取、剪辑重排与重复候选；变速／变调可手动试听，自动识别仍在研究。[音频指南](docs/usage.md#audio)
+
+<table>
+<tr><td>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/audio-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/audio-zh-CN-light.png" alt="CrossDiff 音频对比原生窗口：双时间线、声道波形、片段对应和区域试听" width="100%">
+</picture>
+</td></tr>
+</table>
+
+## 把 API 差异看到字段里
+
+导入 HTTP、cURL 或 HAR，查看头、参数与 JSON 字段的值和类型差异。明确忽略时间戳等波动字段，聚焦需要排查的变化；只在本机解析，不发送请求。[API 指南](docs/usage.md#api)
+
+<table>
+<tr><td>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/api-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/api-zh-CN-light.png" alt="CrossDiff API 对比原生窗口：响应头和 JSON 字段差异、类型与忽略规则" width="100%">
+</picture>
+</td></tr>
+</table>
+
 ## 多种对象，同样顺手
 
 | 比较对象 | 当前能力 |
@@ -53,8 +81,9 @@
 | **图片** | 并排、叠加、滑动与像素差异；独立缩放、旋转、翻转、拖动对齐与四角调整，支持只比较重叠区域。 |
 | **二进制 / Hex** | 原生双栏十六进制与 ASCII，真实地址、插删对齐、差异导航、地址跳转和选中复制。按需读取，只读比较。 |
 | **PDF 文档** | 页面匹配、插删页导航、原生页面对照与可提取文字差异。完整版预装，基础版可安装官方 PDF 插件。 |
-| **API 对比 · 0.10.0 源码预览** | 粘贴 HTTP、cURL 或导入 HAR，按请求／响应查看头、参数和 JSON 字段差异；明确忽略波动字段，本地只读。[API 指南](docs/usage.md#api) |
-| **摄影 · 0.10.0 源码预览** | 只读双图、RGB／HSL 直方图、局部框选与命名区域、拍摄信息、有记录的处理曲线；Apple 原生 RAW 解码与 OpenCV 专业统计。[摄影指南](docs/usage.md#photography) |
+| **API** | 结构化比较本地保存的请求与响应，排查字段变化。 |
+| **音频** | 用时间线对照录音与剪辑版本，深入比较局部声音。 |
+| **摄影** | 只读双图、RGB／HSL 直方图、局部框选与命名区域、拍摄信息、有记录的处理曲线；Apple 原生 RAW 解码与 OpenCV 专业统计。[摄影指南](docs/usage.md#photography) |
 
 <details>
 <summary><b>细节也值得认真对比</b></summary>
@@ -77,9 +106,9 @@
 
 ## 选择适合你的版本
 
-**已发布下载：0.8.0 · 源码开发预览：0.10.0 · macOS 14+ · Apple 芯片（arm64）**
+**已发布下载：0.8.0 · 源码开发预览：0.11.0 · macOS 14+ · Apple 芯片（arm64）**
 
-摄影与 API 插件已加入 0.10.0 源码预览，尚未发布到 GitHub Release。要体验摄影和 API 对比，请从本仓库构建；上方下载链接仍是已发布的 0.8.0。
+**0.8.0 Full = Base + PDF。0.11.0 源码 Full 再加入摄影、API 与音频。** 0.11.0 尚未公开发布，可从源码构建体验。
 
 基础版适合日常使用；想预装 PDF，就选完整版。两者均免费、开源，无需账号。
 
@@ -91,12 +120,12 @@
 | 下载 | 包含内容 | GitHub Release 文件 |
 | :--- | :--- | :--- |
 | **基础版 Base** | 文本、文件夹、图片、Hex，以及内置压缩包插件。轻装开始，按需添加插件。 | `CrossDiff-<版本>-base-macOS-arm64.zip` |
-| **完整版 Full** | 基础版的全部能力，加上当前已发布的全部官方插件；本版额外预装 PDF。 | `CrossDiff-<版本>-full-macOS-arm64.zip` |
-| **独立插件** | 基础版可单独安装或更新 PDF；另提供压缩包插件包。当前内置插件随应用升级。 | `CrossDiff-Plugin-PDF-<插件版本>.crossdiffplugin`<br>`CrossDiff-Plugin-Archive-<插件版本>.crossdiffplugin` |
+| **完整版 Full** | 基础版加对应版本的全部官方插件，具体内容见上方版本说明。 | `CrossDiff-<版本>-full-macOS-arm64.zip` |
+| **独立插件** | 按宿主版本安装兼容插件；已内置的插件随应用升级。 | `CrossDiff-Plugin-<名称>-<插件版本>.crossdiffplugin` |
 
 **[前往 GitHub Releases 下载 →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
 
-在版本的 **Assets** 中选择所需文件。每次发布同时提供源码、构建信息和 `SHA256SUMS` 校验和。JSON 插件单独作为开发示例提供，不属于完整版预装插件。0.8.0 的完整版不包含摄影插件。0.10.0 源码构建的完整版额外预装 Photography 0.1.0 与 API 0.1.0，基础版可安装从同一源码打包的独立插件；发布后再从对应 Release 下载。Office、音视频等仍属后续能力。
+在版本的 **Assets** 中选择文件；每次发布另附对应源码、构建信息和 `SHA256SUMS`。插件需要兼容宿主，Release 草稿不提供公开下载；JSON 仅作为独立开发示例，不预装进 Full。
 
 </details>
 
@@ -112,7 +141,7 @@ Intel 构建尚未实测。当前为持续开发中的预览版本，也可按�
 
 官方插件列表可以离线查看。**仅在你主动下载插件时联网；文件比较继续留在本机。** 不需要注册或登录 GitHub。
 
-基础能力也可以用插件实现：压缩包就是随基础版交付的官方插件。扩展接口允许不同算法配合原生目录树、文档页面、表格、摄影分析与 HTTP 字段视图，保持一致的 Mac 体验。希望开发新能力？查看[中文插件规范](docs/plugins/development.md)、[English guide](docs/plugins/development.en.md) 和 [JSON 示例](Plugins/Examples/JSON/compare.js)。
+压缩包等基础能力也由内置插件提供，不同领域沿用一致的原生工作台。希望开发新的比较方式？查看[中文插件规范](docs/plugins/development.md)、[English guide](docs/plugins/development.en.md) 和 [JSON 示例](Plugins/Examples/JSON/compare.js)。
 
 ## 快速开始
 
@@ -121,15 +150,6 @@ Intel 构建尚未实测。当前为持续开发中的预览版本，也可按�
 1. 点击 **新建…**（⌘N），选择文本、文件夹、压缩包、图片、二进制或已安装的插件比较。
 2. 分别准备左右内容，点击 **开始比较**。文本可直接粘贴，也可选择文件。
 3. 查看差异；文本可编辑任意一侧、逐块合并，并在准备好后手动保存。
-
-<table>
-<tr><td>
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/new-zh-CN-dark.png">
-  <img src="docs/assets/screenshots/new-zh-CN-light.png" alt="CrossDiff 新建比较：先选择文本、文件夹、图片、Hex、压缩包或 PDF，再准备左右输入" width="100%">
-</picture>
-</td></tr>
-</table>
 
 **文件 → 打开…**（⌘O）支持一次选入多个文件或文件夹，明确配对后各自打开标签页。“清空两侧”方便开始下一次文本比较，并提供即时恢复。完整说明见[使用指南](docs/usage.md)，也可用仓库内的 [Swift 示例](examples/) 体验。
 
@@ -190,11 +210,11 @@ bash scripts/open-dev-app.command
 
 | 已经可以使用 | 接下来探索 |
 | :--- | :--- |
-| 文本、文件夹、图片、Hex、压缩包、PDF；0.10.0 源码含摄影与 API 插件 | 远程文件夹来源、文本三方合并、多对象比较 |
-| 原生工作台、插件安装管理、基础版与完整版 | Office、网络包、数据库、摄影高级分析、音频、视频、模型结构与张量插件 |
+| 文本、文件夹、图片、Hex、压缩包、PDF；0.11.0 源码含摄影、API 与音频插件 | 远程文件夹来源、文本三方合并、多对象比较 |
+| 原生工作台、插件安装管理、基础版与完整版 | Office、网络包、数据库、摄影高级分析、视频、模型结构与张量插件；音频自动变速／变调识别 |
 | 中英文界面、浅深色主题、本机会话恢复 | 面向摄影师、媒体工作者与开发者的插件组合 |
 
-右侧为**未来规划**，不代表已实现或当前完整版已包含。现有界面和插件提供两方比较；PDF 尚无 OCR，压缩包尚不支持 RAR／7z／加密包，文件夹尚不支持完整同步。基础图片预览最长边为 1600 像素，文本文件上限为 20 MB。摄影插件使用独立颜色管理与有界统计管线：每张照片最多 256 MiB／6400 万像素，RAW 支持依赖 macOS、机型与编码模式，不能从成片恢复原作者的调色设置。详见[路线图](docs/roadmap.md)与[实现边界](docs/development.md#current-implementation-limits)。
+右侧为**未来规划**。当前提供两方比较；PDF 尚无 OCR，压缩包尚不支持 RAR／7z／加密包，文件夹尚不支持完整同步。文件上限、RAW 兼容性和各类分析边界见[路线图](docs/roadmap.md)与[实现说明](docs/development.md#current-implementation-limits)。
 
 欢迎通过 [Issues](https://github.com/JunyangZhangUSTC/CrossDiff/issues) 反馈问题和建议，一起把比较体验打磨得更好。[贡献指南](CONTRIBUTING.md) · [开发指南](docs/development.md) · [产品方向](docs/product-vision.md) · [更新记录](CHANGELOG.md)
 

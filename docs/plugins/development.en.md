@@ -1,6 +1,6 @@
 # Plugin development · Experimental v1
 
-Status: 2026-10-02, for the unpublished CrossDiff 0.10.0 source preview (Photography/API 0.1.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
+Status: 2026-10-02, for the unpublished CrossDiff 0.11.0 source preview (Photography/API/Audio 0.1.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
 
 The contract is implemented in [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift), [PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift), [PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) and [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift). Future capabilities discussed in the [architecture design](../architecture/compare-everything.md) are not automatically available in this preview.
 
@@ -15,6 +15,7 @@ Plugins supply comparison algorithms. The host reads inputs, runs tasks and disp
 | `archiveCatalog` | Virtual paths, kinds, sizes, full content digests and verification states from an archive or local folder | `archiveTree`: a read-only directory tree and content groups across paths |
 | `httpExchange` | Bounded HTTP/cURL/HAR records normalized to typed sections and fields | `apiExchange`: paired request/response field differences |
 | `photoAnalysis` | Bounded, normalized Apple/OpenCV RGB/HSL distributions, neutral share and analysis metadata | `photography`: paired photos, regions, histograms, recorded curves and capture information |
+| `audioAnalysis` | Bounded source metadata and host matching evidence; no PCM, waveform or spectral grids | `audioTimeline`: paired timelines, channel waveforms, spectrograms, regions and A/B audition |
 
 The bundled [PDF plugin](../../Plugins/PDF/) contains the JavaScript algorithm that aligns and classifies pages. PDFKit extracts and presents them in the host. The independently installable [JSON example](../../Plugins/Examples/JSON/) compares top-level JSON values through the same contract.
 
@@ -58,7 +59,7 @@ source scripts/project-env.sh
 python3 scripts/package-photography-plugin.py --output dist/Plugins/Photography.crossdiffplugin
 ```
 
-The [Photography algorithm](../../Plugins/Official/Photography/) derives bilingual comparisons from host-provided statistics. OpenCV is a fixed capability of the matching Base/Full host, not native code installed from the plugin package. Full bundles `org.crossdiff.photography`; Base can install it separately. Other plugin IDs can use the same contract without an official-ID execution branch. The 0.8.0 host does not understand this input kind; use a matching 0.9.0 host during development. Catalog URLs for an unpublished version are not yet downloadable assets.
+The [Photography algorithm](../../Plugins/Official/Photography/) derives bilingual comparisons from host-provided statistics. OpenCV is a fixed capability of the matching Base/Full host, not native code installed from the plugin package. Full bundles `org.crossdiff.photography`; Base can install it separately. Other plugin IDs can use the same contract without an official-ID execution branch. The 0.8.0 host does not understand this input kind; use the current 0.11.0 host during development. Photography support began in 0.9.0. Catalog URLs for an unpublished version are not yet downloadable assets.
 
 Package the official API algorithm with:
 
@@ -67,7 +68,16 @@ source scripts/project-env.sh
 python3 scripts/package-api-plugin.py --output dist/plugins/CrossDiff-Plugin-API-0.1.0.crossdiffplugin
 ```
 
-Full bundles `org.crossdiff.api`; Base can install it independently. It requires the 0.10.0 HTTP host capability; protocol v1 alone does not make older hosts understand new input kinds. Local API imports are parsed, never executed or fetched. See the [API sources](../../Plugins/Official/API/) and [scope](../architecture/api-comparison.md).
+Full bundles `org.crossdiff.api`; Base can install it independently. It requires the HTTP host capability introduced in 0.10.0; protocol v1 alone does not make older hosts understand new input kinds. Local API imports are parsed, never executed or fetched. See the [API sources](../../Plugins/Official/API/) and [scope](../architecture/api-comparison.md).
+
+Package Audio through the same restricted installation flow:
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-audio-plugin.py --output dist/Plugins/Audio.crossdiffplugin
+```
+
+Full bundles `org.crossdiff.audio`; a matching Base host can install the standalone package. Audio analysis and the Olaf fingerprint helper are 0.11.0 host capabilities. The plugin summarizes host metadata and evidence; it contains no native libraries and cannot replace the host DSP or fingerprint implementation. See the [Audio sources](../../Plugins/Official/Audio/) and the audio contract below.
 
 ## 3. A package is one JSON file
 
@@ -306,7 +316,7 @@ Each task runs in a separate JavaScriptCore helper process. Only JSON text enter
 
 Default wall time is 15 seconds; host configuration cannot exceed 60 seconds. Helper CPU time is capped at no more than 30 seconds. The stdin envelope limit is 32 MiB, output 8 MiB, and default parent stderr limit 16 KiB. Where system policy allows reading process statistics, the host checks a 512 MiB RSS budget. This is polling and may be denied by the system; it is **not a hard memory-isolation guarantee**. Cancellation or exceeded limits terminate the helper and discard output.
 
-This is a **restricted JavaScript runtime, not an operating-system sandbox**. A separate process and absent I/O APIs do not defend against every JavaScriptCore vulnerability. Host-side PDFKit, archive and Apple/OpenCV image parsing are outside that helper. There is no silent fallback to full-trust execution.
+This is a **restricted JavaScript runtime, not an operating-system sandbox**. A separate process and absent I/O APIs do not defend against every JavaScriptCore vulnerability. Host-side PDFKit, archive and Apple/OpenCV image parsing, Apple AVFoundation/Accelerate audio analysis and the separate Olaf helper are outside that JavaScript worker. The JavaScript time budget does not cover these native stages. There is no silent fallback to full-trust execution.
 
 ### Full-trust native executables
 
@@ -343,8 +353,28 @@ bash scripts/tests/check-photography-plugin.sh
 bash scripts/tests/check-photo-engine.sh
 bash scripts/tests/check-photo-metadata.sh
 bash scripts/tests/check-photo-workflow.sh
+bash scripts/tests/check-audio-plugin.sh
+bash scripts/tests/check-audio-engine.sh
+bash scripts/tests/check-audio-cache.sh
+bash scripts/audio-research/build-matcher.sh
+python3 scripts/audio-research/check-matcher.py
+bash scripts/tests/check-audio-workflow.sh
 ```
 
 Core checks exercise package/store public boundaries, persistence failure and native digest trust. Runtime checks execute the real helper and native fixtures. PDF checks exercise the algorithm, mappings and unchanged sources. Archive plugin checks run the packaged algorithm through the real child process and exercise entry limits, linear groups and malformed inputs. Workflow checks use real windows. Use synthetic data and isolated directories; native checks run serially. A build-only run or timeout does not establish GUI correctness.
 
 Build with `bash scripts/build-app.sh` and verify with `codesign --verify --deep --strict dist/CrossDiff.app`. The deployment target is macOS 14 and the project uses Swift 5 language mode. Local builds are ad-hoc signed, not notarized releases. Intel and individual native architectures require separate validation. Before distributing plugins, review the licenses and origins of code, dependencies and resources, and disclose actual capabilities and limitations.
+
+## Audio contract (added in 0.11.0)
+
+See [`Plugins/Official/Audio`](../../Plugins/Official/Audio/). The manifest uses `audioAnalysis`, `audioTimeline` and pairwise mode; results use `crossdiff.audio/1`. Earlier experimental v1 hosts do not understand this domain. A host with the 0.11.0 audio capabilities is required.
+
+Inputs contain `AudioSourceMetadata`: source identity/name, duration, sample rate, channel count, decimal-string frame count and format. Options generated by `AudioComparisonRequestOptions` contain analysis state, host-supplied correspondences and diagnostics. Correspondences retain both source-time regions, their duration ratio, method, optional pitch estimate/raw evidence score and state. Scores are not calibrated probabilities.
+
+`AudioRegion` is a half-open interval `[start, end)` in source seconds, never frame indices in a resampled analysis copy. At most 512 correspondences are allowed, with unique IDs. Reordered, repeated and one-to-many mappings are valid; the complete result need not be monotonic. `rateRatio = right region duration / left region duration` describes that mapping, not the user's B audition rate or proof of general tempo estimation. `pitchSemitones` must be null when no pitch estimate exists. Coverage is the independent interval union on each side, excluding `rejected` entries, so repeated matches do not double-count duration.
+
+`analysisState` is `idle`, `running`, `complete`, `partial`, `failed` or `cancelled`. Only `complete` produces envelope `status: completed`; all other states use `partial`. This describes analysis progress, not content equality or a guarantee of finding every correspondence. Host diagnostics must remain as the prefix of result diagnostics; a plugin may append explanations but cannot remove sampling, budget or unknown-state warnings.
+
+The restricted script reports metadata differences and independent union coverage. The host validates source bounds, finite values, budgets, schema/run identity and coverage, and requires the original evidence, state and host diagnostics to be retained. PCM, waveforms and spectral grids stay outside JSON. Apple analysis and the separate Olaf C helper are trusted host components; this does not grant arbitrary native/file access to third-party scripts or establish an OS sandbox.
+
+The contract is implemented in [`AudioComparison.swift`](../../Sources/CrossDiffCore/AudioComparison.swift). Run `check-audio-plugin.sh`, `check-audio-engine.sh`, `check-audio-cache.sh` and `check-audio-workflow.sh` under `scripts/tests/`. Package with `python3 scripts/package-audio-plugin.py`. Both editions contain the required host services and renderer.

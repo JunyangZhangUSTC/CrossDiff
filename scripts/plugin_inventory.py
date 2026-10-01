@@ -15,7 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "JunyangZhangUSTC/CrossDiff"
 APP_LICENSE_FILES = ("LICENSE", "NOTICE", "ThirdParty/OpenCV/LICENSE",
                      "ThirdParty/OpenCV/COPYRIGHT", "ThirdParty/OpenCV/NOTICE.md",
-                     "ThirdParty/OpenCV/NOTICE-SOURCE.txt", "ThirdParty/OpenCV/SoftFloat-COPYING.txt")
+                     "ThirdParty/OpenCV/NOTICE-SOURCE.txt", "ThirdParty/OpenCV/SoftFloat-COPYING.txt",
+                     "ThirdParty/AudioMatching/LICENSE-Olaf.txt", "ThirdParty/AudioMatching/LICENSE-LMDB.txt",
+                     "ThirdParty/AudioMatching/NOTICE-pffft.c.txt", "ThirdParty/AudioMatching/NOTICE-hash-table.c.txt",
+                     "ThirdParty/AudioMatching/NOTICE-midl.c.txt", "ThirdParty/AudioMatching/NOTICE-mdb.c.txt",
+                     "ThirdParty/AudioMatching/NOTICE-queue.c.txt", "ThirdParty/AudioMatching/source-lock.json",
+                     "ThirdParty/AudioMatching/README.md")
 # Explicit inventory: adding an example never silently adds it to a production edition.
 PLUGINS = (
     {"source": "Plugins/Official/Archive", "id": "org.crossdiff.archive", "label": "Archive", "official": True,
@@ -26,6 +31,8 @@ PLUGINS = (
      "bundled": "dev.crossdiff.photography.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Official/API", "id": "org.crossdiff.api", "label": "API", "official": True,
      "bundled": "dev.crossdiff.api.crossdiffplugin", "editions": ("full",)},
+    {"source": "Plugins/Official/Audio", "id": "org.crossdiff.audio", "label": "Audio", "official": True,
+     "bundled": "dev.crossdiff.audio.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Examples/JSON", "id": "example.crossdiff.json-keys", "label": "JSON", "official": False,
      "bundled": None, "editions": ()},
 )

@@ -1,0 +1,9 @@
+# Audio matching dependencies
+
+The production helper embeds selected C sources from [Olaf](https://github.com/JorenSix/Olaf), commit `a98d8c03cfd447011d402718ca2d10b2bb467eb0`. `source-lock.json` records the archive digest, upstream source hashes, and integration patches. Sources live in `Sources/AudioMatchBridge/vendor`; CrossDiff's separate `main.c` adapts private PCM, windowing and bounded results without replacing Olaf's fingerprint algorithm. The only vendor change caps LMDB's virtual map at 512 MiB instead of the upstream 1 TiB; exhaustion fails the isolated helper, never returns a successful partial index.
+
+Olaf is AGPL-3.0-or-later. PFFFT/FFTPACK, LMDB, hash-table and queue source headers carry their own notices, preserved here and in source. LMDB's full OpenLDAP license is included separately. Keep these notices when distributing the helper. The complete corresponding source is distributed with the CrossDiff repository.
+
+The helper reads 16 kHz mono Float32 PCM produced by Apple APIs, creates a private temporary LMDB index, and emits bounded time correspondence JSON. Inputs are limited to two hours each, query windows to 12 seconds, output to 512 candidates, the process CPU budget to 90 seconds and host wall-clock budget to 120 seconds. A macOS watchdog checks resident memory against 768 MiB every 100 ms; this is a sampled bound, not a zero-overshoot allocation cap. Sources shorter than two seconds report partial analysis. It does not include FFmpeg, a Python interpreter, a JVM, live recording or network services. No prebuilt third-party executable is shipped. Build with the application Swift package or `bash scripts/audio-research/build-matcher.sh`.
+
+Automatic matching currently targets fixed-speed excerpts of the same recording. Pitch-shift/independent tempo robustness is not promised. Panako and audfprint experiments, if present, are development-only and are not dependencies of the released application.

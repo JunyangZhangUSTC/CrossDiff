@@ -1,6 +1,6 @@
 # 插件开发 · 实验 v1
 
-状态：2026-10-02，面向尚未发布的 CrossDiff 0.10.0 源码预览（Photography/API 0.1.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
+状态：2026-10-02，面向尚未发布的 CrossDiff 0.11.0 源码预览（Photography/API/Audio 0.1.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
 
 实现依据为 [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift)、[PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift)、[PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) 与 [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift)。早期[框架设计](../architecture/compare-everything.md)描述的远期能力不代表本版本已经支持。
 
@@ -15,6 +15,7 @@
 | `archiveCatalog` | 压缩包或本地文件夹的虚拟路径、类型、大小、完整内容摘要与验证状态 | `archiveTree`：只读目录树与跨路径同内容组 |
 | `httpExchange` | 有界 HTTP／cURL／HAR 导入，规范化为带类型的分区与字段 | `apiExchange`：请求／响应字段双栏差异 |
 | `photoAnalysis` | Apple／OpenCV 管线生成的有界归一化 RGB／HSL 分布、中性色比例及分析说明 | `photography`：双图、选区、直方图、记录曲线与拍摄信息 |
+| `audioAnalysis` | 有界源元数据与宿主匹配证据；不含 PCM、波形或谱图网格 | `audioTimeline`：双时间线、声道波形、时频图、选区与 A/B 试听 |
 
 内置 [PDF 插件](../../Plugins/PDF/)的 JavaScript 决定页面对应与分类；PDFKit 在宿主侧提取并显示页面。独立 [JSON 示例插件](../../Plugins/Examples/JSON/)自行比较 JSON 顶层键值，使用相同安装和执行协议。
 
@@ -58,7 +59,7 @@ source scripts/project-env.sh
 python3 scripts/package-photography-plugin.py --output dist/Plugins/Photography.crossdiffplugin
 ```
 
-[Photography 源码](../../Plugins/Official/Photography/)根据宿主的统计结果计算双语差异说明。OpenCV 不是装在插件包内的原生代码，而是同版本 Base／Full 宿主提供的固定分析能力；Full 预装 `org.crossdiff.photography`，Base 可安装独立包。该契约可由其他 ID 的插件使用，不依赖官方 ID 的特殊执行路径。0.8.0 宿主不认识此输入类型；开发时应配套 0.9.0 宿主和插件，尚未发布的目录 URL 不代表下载已可用。
+[Photography 源码](../../Plugins/Official/Photography/)根据宿主的统计结果计算双语差异说明。OpenCV 不是装在插件包内的原生代码，而是同版本 Base／Full 宿主提供的固定分析能力；Full 预装 `org.crossdiff.photography`，Base 可安装独立包。该契约可由其他 ID 的插件使用，不依赖官方 ID 的特殊执行路径。0.8.0 宿主不认识此输入类型；摄影能力始于 0.9.0，当前开发应配套 0.11.0 宿主和插件。尚未发布的目录 URL 不代表下载已可用。
 
 官方 API 插件的打包入口：
 
@@ -67,7 +68,16 @@ source scripts/project-env.sh
 python3 scripts/package-api-plugin.py --output dist/plugins/CrossDiff-Plugin-API-0.1.0.crossdiffplugin
 ```
 
-Full 预装 `org.crossdiff.api`，Base 可独立安装；需要 0.10.0 的 HTTP 宿主能力。协议版本仍为 v1，但旧宿主不认识新输入类型。宿主只解析本地数据，不执行命令或请求。参见 [API 源码](../../Plugins/Official/API/)和[范围设计](../architecture/api-comparison.md)。
+Full 预装 `org.crossdiff.api`，Base 可独立安装；需要始于 0.10.0 的 HTTP 宿主能力，当前 0.11.0 宿主已包含。协议版本仍为 v1，但旧宿主不认识新输入类型。宿主只解析本地数据，不执行命令或请求。参见 [API 源码](../../Plugins/Official/API/)和[范围设计](../architecture/api-comparison.md)。
+
+官方 Audio 包使用同一安装和受限执行流程：
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-audio-plugin.py --output dist/Plugins/Audio.crossdiffplugin
+```
+
+Full 预装 `org.crossdiff.audio`，同版本 Base 可安装独立包。音频分析与 Olaf 指纹 helper 属于 0.11.0 宿主能力，插件只整理宿主元数据和证据，不包含原生库，也不能替换宿主 DSP 或指纹实现。见[音频源码](../../Plugins/Official/Audio/)与本文下方的音频契约。
 
 ## 3. 包是一个 JSON 文件
 
@@ -294,7 +304,7 @@ JSON 示例按解析后的值比较，忽略对象键顺序与空白；重复键
 
 默认 wall-time 为 15 秒，宿主可配置但不超过 60 秒；helper CPU 上限不超过 30 秒。stdin envelope 最多 32 MiB，结果最多 8 MiB，宿主默认 stderr 上限为 16 KiB。宿主在系统允许读取子进程统计时检查 512 MiB RSS；该检查是轮询预算，可能被系统拒绝，**不是硬内存隔离保证**。取消或超限会终止 helper，并丢弃结果。
 
-这是**受限 JavaScript 运行时，不是操作系统沙箱**。进程隔离和没有 I/O API 不等于能够防御所有 JavaScriptCore 漏洞；宿主侧 PDFKit、归档和 Apple/OpenCV 图片解析也不在该 helper 内。不会静默改用完全信任运行方式。
+这是**受限 JavaScript 运行时，不是操作系统沙箱**。进程隔离和没有 I/O API 不等于能够防御所有 JavaScriptCore 漏洞；宿主侧 PDFKit、归档与 Apple/OpenCV 图片解析、Apple AVFoundation/Accelerate 音频分析及独立 Olaf helper 也不在该 JavaScript worker 内；上面的 JavaScript 时限不包含这些原生阶段。不会静默改用完全信任运行方式。
 
 ### 完全信任原生可执行文件
 
@@ -331,8 +341,28 @@ bash scripts/tests/check-photography-plugin.sh
 bash scripts/tests/check-photo-engine.sh
 bash scripts/tests/check-photo-metadata.sh
 bash scripts/tests/check-photo-workflow.sh
+bash scripts/tests/check-audio-plugin.sh
+bash scripts/tests/check-audio-engine.sh
+bash scripts/tests/check-audio-cache.sh
+bash scripts/audio-research/build-matcher.sh
+python3 scripts/audio-research/check-matcher.py
+bash scripts/tests/check-audio-workflow.sh
 ```
 
 核心检查覆盖包/存储公开边界、失败持久化和 native 摘要信任；运行时检查使用真实 helper 与原生 fixture；PDF 检查覆盖算法、映射和源文件保持；Archive 插件检查通过真实子进程执行打包产物，并验证最大条目数、线性分组及非法输入；workflow 检查覆盖实际窗口。运行这些脚本时使用虚构文件与隔离目录，原生检查必须串行。`--build-only` 或超时不代表通过界面验收。
 
 应用打包仍使用 `bash scripts/build-app.sh` 与 `codesign --verify --deep --strict dist/CrossDiff.app`。最低系统为 macOS 14；本项目使用 Swift 5 语言模式。当前本地构建使用 ad-hoc 签名，不是已公证发行包；Intel 与具体原生插件架构必须另行实测。分发插件前检查自身代码、依赖和资源的许可证与来源，并向用户披露实际能力及限制。
+
+## 音频契约（0.11.0 新增）
+
+官方示例为 [`Plugins/Official/Audio`](../../Plugins/Official/Audio/)。清单使用 `inputKind: audioAnalysis`、`resultView: audioTimeline`，只接受 `pairwise`，返回 `schema: crossdiff.audio/1`。旧宿主即使同为实验协议 v1，也不认识该领域；需要 0.11.0 或更新且提供音频视图的宿主。
+
+输入为 `AudioSourceMetadata.pluginContent`：源 id、名称、时长、采样率、声道数、无损十进制字符串 frameCount、格式。`options` 必须包含 `analysisState`、`correspondences`、`diagnostics`，由 `AudioComparisonRequestOptions` 生成。自动指纹证据由宿主获得，包含双方源秒区间、时长比、方法、可选音高/原始分数和状态；不得把分数当正确概率。
+
+`AudioRegion` 是源时间秒的半开区间 `[start, end)`，不能使用分析副本的帧号代替。最多 512 条对应，ID 唯一；允许乱序、重复以及一对多，不要求整个结果单调。`rateRatio = 右区间时长 / 左区间时长` 是这条映射的时间比例，不是用户 B 侧的试听速度，也不代表已估计任意变速。未估计音高时 `pitchSemitones` 必须为空。覆盖时长按每侧非 `rejected` 区间并集计算，不能把重复匹配重复计时。
+
+`analysisState` 为 `idle`、`running`、`complete`、`partial`、`failed` 或 `cancelled`；只有 `complete` 对应结果信封 `status: completed`，其余状态为 `partial`。这表示分析流程状态，不代表内容相同或已找全所有对应。宿主输入诊断必须保留为结果诊断的前缀，插件可在其后追加说明；不能删除采样、预算或未知状态警告。
+
+受限 JS 整理元数据差异与两侧非拒绝区间的覆盖并集。结果必须原样保留宿主对应数组、分析状态及诊断，宿主重新核对源范围、有限数、数量/字节预算、schema、任务 id 和覆盖。原始 PCM、波形和谱图不进入 JSON。宿主 Apple 分析与独立 Olaf C helper 属于受信的应用组件，不表示任意第三方插件获得了原生调用或通用文件句柄能力，也不等于操作系统沙箱。
+
+契约源代码见 [`AudioComparison.swift`](../../Sources/CrossDiffCore/AudioComparison.swift)。检查入口：`bash scripts/tests/check-audio-plugin.sh`、`bash scripts/tests/check-audio-engine.sh`、`bash scripts/tests/check-audio-cache.sh`、`bash scripts/tests/check-audio-workflow.sh`。独立包用 `python3 scripts/package-audio-plugin.py`；两种宿主均带音频服务与 renderer。

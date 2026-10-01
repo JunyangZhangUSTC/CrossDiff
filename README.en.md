@@ -43,6 +43,34 @@ From a quick text paste to code directories, archives, images, and research PDFs
 | **Free and open source**<br>AGPL v3 source you can inspect, build, and modify. No subscriptions, trial clocks, or feature paywalls. | **No sign-up. Ready to use.**<br>No account, login, or activation. Open the app, choose the two inputs, and start comparing. |
 | **Precise differences, deliberate edits**<br>Character highlights, aligned rows, block merging, independent undo, and explicit saving. Comparing never overwrites your source files. | **Considered design, room to grow**<br>Light and dark themes, English and Simplified Chinese, tabs, and synchronized scrolling. Add plugins when you need more. |
 
+The following features show the **0.11.0 source preview**. The public download remains **0.8.0**; the new Photography, API and Audio plugins are not yet publicly released.
+
+## See changes in sound
+
+Inspect waveforms and STFT spectrograms, select and save regions, and switch between A/B auditions. Find fixed-speed excerpts from the same recording, including reordered edits and repeated candidates. Rate and pitch can be adjusted manually for audition; automatic recognition of those changes remains research work. [Audio guide](docs/usage.md#audio)
+
+<table>
+<tr><td>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/audio-en-dark.png">
+  <img src="docs/assets/screenshots/audio-en-light.png" alt="CrossDiff's native Audio Compare window with paired timelines, channel waveforms, matching passages and region audition" width="100%">
+</picture>
+</td></tr>
+</table>
+
+## Compare APIs field by field
+
+Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type differences. Explicitly ignore changing fields such as timestamps to focus on what needs investigation. Parsing stays local; no requests are sent. [API guide](docs/usage.md#api)
+
+<table>
+<tr><td>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/api-en-dark.png">
+  <img src="docs/assets/screenshots/api-en-light.png" alt="CrossDiff's native API Compare window showing response headers, JSON field differences, types and ignore rules" width="100%">
+</picture>
+</td></tr>
+</table>
+
 ## Different inputs. A familiar workflow.
 
 | Compare | Available today |
@@ -53,8 +81,9 @@ From a quick text paste to code directories, archives, images, and research PDFs
 | **Images** | Side-by-side, overlay, wipe, and pixel-difference views. Scale, rotate, flip, drag to align, resize from corners, or compare only the overlapping area. |
 | **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |
 | **PDF documents** | Page matching, inserted/deleted-page navigation, native page previews, and extracted-text differences. Included in Full; available as an official plugin for Base. |
-| **API Compare · 0.10.0 source preview** | Paste HTTP or cURL, or import HAR. Compare request/response headers, parameters and JSON fields with explicit ignore rules, locally and read-only. [API guide](docs/usage.md#api) |
-| **Photography · 0.10.0 source preview** | Read-only paired photographs, RGB/HSL histograms, named region pairs, capture metadata, and recorded processing curves. Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
+| **API** | Compare locally saved requests and responses as structured fields to investigate changes. |
+| **Audio** | Compare recordings and edited versions on paired timelines, with a closer look at selected passages. |
+| **Photography** | Read-only paired photographs, RGB/HSL histograms, named region pairs, capture metadata, and recorded processing curves. Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
 
 <details>
 <summary><b>The details make a difference</b></summary>
@@ -77,9 +106,9 @@ From a quick text paste to code directories, archives, images, and research PDFs
 
 ## Choose your edition
 
-**Published download: 0.8.0 · Source preview: 0.10.0 · macOS 14+ · Apple silicon (arm64)**
+**Published download: 0.8.0 · Source preview: 0.11.0 · macOS 14+ · Apple silicon (arm64)**
 
-Photography and API plugins are available in the 0.10.0 source preview and have not been published to GitHub Releases. Build this checkout to try it; the download above remains the published 0.8.0 release.
+**Full 0.8.0 = Base + PDF. Full from the 0.11.0 source adds Photography, API and Audio.** Version 0.11.0 is not yet publicly released; build from source to try it.
 
 Base is the everyday starting point. Choose Full if you want PDF preinstalled. Both are free, open source, and account-free.
 
@@ -91,12 +120,12 @@ Base and Full differ only in their preinstalled plugins. You can add more plugin
 | Download | Included | GitHub Release asset |
 | :--- | :--- | :--- |
 | **Base** | Text, folders, images, Hex, and the bundled Archive plugin. Start small and add what you need. | `CrossDiff-<version>-base-macOS-arm64.zip` |
-| **Full** | Everything in Base, plus every currently released official plugin. This release additionally includes PDF. | `CrossDiff-<version>-full-macOS-arm64.zip` |
-| **Individual plugins** | Base can install or update PDF separately; an Archive package is also provided. Bundled plugins update with the app. | `CrossDiff-Plugin-PDF-<plugin-version>.crossdiffplugin`<br>`CrossDiff-Plugin-Archive-<plugin-version>.crossdiffplugin` |
+| **Full** | Base plus every official plugin for that version; see the version summary above. | `CrossDiff-<version>-full-macOS-arm64.zip` |
+| **Individual plugins** | Install packages compatible with your host version. Bundled plugins update with the app. | `CrossDiff-Plugin-<name>-<plugin-version>.crossdiffplugin` |
 
 **[Download from GitHub Releases →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
 
-Choose the files you need under a release's **Assets**. Each release also includes source, build information, and `SHA256SUMS`. The JSON plugin is distributed separately as a developer example and is not preinstalled in Full. Full 0.8.0 does not include Photography. Full builds from the 0.10.0 source preview additionally bundle Photography 0.1.0 and API 0.1.0; Base can install their standalone packages built from the same checkout. Release downloads will become available when that version is published. Office, audio, and video remain planned.
+Choose files under a release's **Assets**; matching source, build information, and `SHA256SUMS` are included. Plugins require a compatible host, and draft assets are not public downloads. JSON is a separate developer example, not a Full bundle component.
 
 </details>
 
@@ -112,7 +141,7 @@ Choose **New… → More Comparisons**, or **CrossDiff → Plugins…**.
 
 Browse the official list offline. **The app connects only when you choose to download a plugin; your comparisons stay local.** No registration or GitHub login is required.
 
-Base features can also be plugins: Archive ships as an official plugin with Base. Extension interfaces pair different algorithms with native directory trees, document pages, tables, photography analysis, and HTTP field views, keeping a consistent Mac experience. Build something new with the [English plugin guide](docs/plugins/development.en.md), [中文规范](docs/plugins/development.md), and [JSON example](Plugins/Examples/JSON/compare.js).
+Base features such as Archive also ship as plugins, keeping different domains in one native workspace. Build a new comparison with the [English plugin guide](docs/plugins/development.en.md), [中文规范](docs/plugins/development.md), and [JSON example](Plugins/Examples/JSON/compare.js).
 
 ## Get started
 
@@ -121,15 +150,6 @@ Download [Base](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/
 1. Click **New…** (⌘N), then choose text, folders, archives, images, binary files, or an installed plugin.
 2. Prepare the left and right inputs and click **Compare**. For text, paste directly or select a file.
 3. Review the differences. With text, edit either side, merge individual blocks, and save explicitly when ready.
-
-<table>
-<tr><td>
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/new-en-dark.png">
-  <img src="docs/assets/screenshots/new-en-light.png" alt="CrossDiff New Comparison: choose text, folders, images, Hex, archives or PDF, then prepare the two inputs" width="100%">
-</picture>
-</td></tr>
-</table>
 
 **File → Open…** (⌘O) accepts multiple files or folders, with explicit pairs opening in separate tabs. Clear Both starts a fresh text comparison, with an immediate restore action. See the [user guide](docs/usage.md), or try the repository's [Swift examples](examples/).
 
@@ -190,11 +210,11 @@ Our direction is **“Compare everything. Make every comparison count.”** Star
 
 | Available today | Next to explore |
 | :--- | :--- |
-| Text, folders, images, Hex, archives, PDF; Photography and API in the 0.10.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
-| A native workspace, plugin management, Base and Full editions | Office, network packets, databases, advanced photography analysis, audio, video, model structures, and tensor plugins |
+| Text, folders, images, Hex, archives, PDF; Photography, API, and Audio in the 0.11.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
+| A native workspace, plugin management, Base and Full editions | Office, network packets, databases, advanced photography analysis, video, model structures, and tensor plugins; automatic audio tempo/pitch recognition |
 | English and Simplified Chinese, light and dark themes, local session restoration | Plugin bundles for photographers, media professionals, and developers |
 
-The right column is **planned work**, not implemented functionality or content already included in Full. Current views and plugins provide two-way comparisons. PDF does not yet include OCR; archives do not yet support RAR, 7z, or encryption; folder operations do not provide full synchronization. Basic image previews are limited to 1600 px on the longest edge, and text files to 20 MB. Photography uses a separate color-managed, bounded analysis pipeline: up to 256 MiB and 64 megapixels per photo. RAW support depends on macOS, camera, and encoding mode; rendered images cannot recover the creator’s editing settings. See the [roadmap](docs/roadmap.md) and [implementation limits](docs/development.md#current-implementation-limits).
+The right column is **planned work**. Current views provide two-way comparison. PDF has no OCR yet; archives do not support RAR, 7z, or encryption; folders do not provide full synchronization. See the [roadmap](docs/roadmap.md) and [implementation limits](docs/development.md#current-implementation-limits) for file limits, RAW compatibility, and analysis boundaries.
 
 Share bugs and ideas in [Issues](https://github.com/JunyangZhangUSTC/CrossDiff/issues), and help make comparisons better. [Contributing](CONTRIBUTING.md) · [Development](docs/development.md) · [Product direction](docs/product-vision.md) · [Changelog](CHANGELOG.md)
 

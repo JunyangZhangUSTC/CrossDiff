@@ -64,7 +64,7 @@ for release_edition in full base; do
   bash scripts/build-app.sh --edition "$release_edition" --output "$release_app"
   cmp -s Resources/Info.plist "$release_app/Contents/Info.plist" || fail 'Built app metadata does not match the commit.'
   cmp -s "$release_stage/plugins.json" "$release_app/Contents/Resources/OfficialPlugins.json" || fail 'App and release catalogs differ.'
-  for release_notice in LICENSE NOTICE ThirdParty/OpenCV/*; do
+  for release_notice in LICENSE NOTICE ThirdParty/OpenCV/* ThirdParty/AudioMatching/*; do
     cmp -s "$release_notice" "$release_app/Contents/Resources/$release_notice" || fail "The app is missing the current $release_notice."
   done
   codesign --verify --deep --strict "$release_app"

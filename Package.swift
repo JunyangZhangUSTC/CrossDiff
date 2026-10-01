@@ -18,6 +18,7 @@ let package = Package(
     products: [
         .executable(name: "CrossDiff", targets: ["CrossDiff"]),
         .executable(name: "CrossDiffPluginHost", targets: ["CrossDiffPluginHost"]),
+        .executable(name: "CrossDiffAudioMatcher", targets: ["CrossDiffAudioMatcher"]),
         .executable(name: "CrossDiffChecks", targets: ["CrossDiffChecks"])
     ],
     targets: [
@@ -29,6 +30,10 @@ let package = Package(
                 .linkedLibrary("opencv_imgproc"), .linkedLibrary("opencv_core"), .linkedLibrary("c++"), .linkedLibrary("z")]),
         .executableTarget(name: "CrossDiff", dependencies: ["CrossDiffCore", "PhotoCVBridge"]),
         .executableTarget(name: "CrossDiffPluginHost", linkerSettings: [.linkedFramework("JavaScriptCore")]),
+        .executableTarget(name: "CrossDiffAudioMatcher", path: "Sources/AudioMatchBridge",
+            cSettings: [.headerSearchPath("vendor"), .unsafeFlags([
+                "-ffile-prefix-map=" + projectRoot + "=.", "-fdebug-prefix-map=" + projectRoot + "=."])],
+            linkerSettings: [.linkedLibrary("m")]),
         .executableTarget(name: "CrossDiffChecks", dependencies: ["CrossDiffCore"], path: "Checks"),
         .testTarget(name: "CrossDiffCoreTests", dependencies: ["CrossDiffCore"])
     ],

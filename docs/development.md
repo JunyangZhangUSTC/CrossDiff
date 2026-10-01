@@ -1,10 +1,10 @@
 # Development guide
 
-CrossDiff is a native macOS application built with SwiftUI and AppKit. Its comparison, search, file I/O, and persistence logic live in a separate Swift module with no AppKit or SwiftUI dependency. The macOS host statically links the `core` and `imgproc` modules of OpenCV 4.12.0 for photography analysis; `CrossDiffCore` remains independent of AppKit, SwiftUI and OpenCV.
+CrossDiff is a native macOS application built with SwiftUI and AppKit. Its comparison, search, file I/O, and persistence logic live in a separate Swift module with no AppKit or SwiftUI dependency. The macOS host statically links the `core` and `imgproc` modules of OpenCV 4.12.0 for photography analysis. Audio uses Apple AVFoundation and Accelerate, plus a bundled native Olaf matching helper. `CrossDiffCore` remains independent of AppKit, SwiftUI, OpenCV and these audio engines.
 
 For product behavior, see the [user guide](usage.md), [specification](specification.md), and [roadmap](roadmap.md). Contribution expectations are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-The next framework direction is documented separately in the [product vision](product-vision.md), [architecture proposal](architecture/compare-everything.md), and [draft plugin guide](plugins/development.md). The broader architecture remains a proposal. The implemented experimental contract includes a JavaScriptCore helper and native table, document-page, archive-tree and photography renderers. The unpublished 0.9.0 source preview adds Photography 0.1.0. Version 0.8.0 introduced Base and Full editions with a shared offline official-plugin catalog; see the [implemented API](plugins/development.en.md). Shared comparison terms are in the [glossary](../GLOSSARY.md), with accepted design decisions under [docs/adr](adr/0001-comparison-modes.md).
+The next framework direction is documented separately in the [product vision](product-vision.md), [architecture proposal](architecture/compare-everything.md), and [draft plugin guide](plugins/development.md). The broader architecture remains a proposal. The implemented experimental contract includes a JavaScriptCore helper and native table, document-page, archive-tree, photography, HTTP field and audio timeline renderers. Photography began in the 0.9.0 source preview, API Compare in 0.10.0, and Audio in 0.11.0. The current, unpublished 0.11.0 Full source build bundles all three at plugin version 0.1.0. Version 0.8.0 introduced Base and Full editions with a shared offline official-plugin catalog; see the [implemented API](plugins/development.en.md). Shared comparison terms are in the [glossary](../GLOSSARY.md), with accepted design decisions under [docs/adr](adr/0001-comparison-modes.md).
 
 ## Requirements
 
@@ -34,13 +34,13 @@ codesign --verify --deep --strict dist/CrossDiff.app
 bash scripts/open-dev-app.command
 ```
 
-The default build is **Full**: text, folders, images, Hex, the Archive plugin, PDF and Photography. The output is `dist/CrossDiff.app`. You can also double-click `scripts/open-dev-app.command` in Finder. This launcher keeps runtime data local to the project. Opening the `.app` directly through Finder uses the ordinary application data directory, separate from development sessions.
+The default build is **Full**: text, folders, images, Hex, the Archive plugin, PDF, Photography, API Compare and Audio. The output is `dist/CrossDiff.app`. You can also double-click `scripts/open-dev-app.command` in Finder. This launcher keeps runtime data local to the project. Opening the `.app` directly through Finder uses the ordinary application data directory, separate from development sessions.
 
 The build script replaces the executable atomically and applies an ad-hoc signature. Quit an older app normally before opening the new build; an already running process does not acquire newly built code. Do not force-terminate it and risk unsaved work. This is a local development package, not a Developer ID signed or notarized release.
 
 ### Build an edition
 
-Both editions compile the same host and renderers. **Base** bundles Archive; **Full** adds PDF and Photography. The independently packaged JSON example is not bundled in either edition.
+Both editions compile the same host and renderers. **Base** bundles Archive; **Full** adds PDF, Photography, API Compare and Audio. The independently packaged JSON example is not bundled in either edition.
 
 ```sh
 # Explicit Full build (the default).
@@ -81,6 +81,24 @@ The host supplies these modules in both Base and Full so a compatible Base build
 
 Use [`scripts/photo-build-flags.sh`](../scripts/photo-build-flags.sh) after the project environment when a check compiles app sources directly with `swiftc`. It prepares dependencies and the C++ bridge, then exposes the `crossdiff_photo_swift_flags` Bash array. The core-only checks do not need the native bridge. See the [photography design](architecture/photography-comparison.md) and [experimental plugin contract](plugins/development.en.md#crossdiffphotography1).
 
+### Audio dependencies and boundaries
+
+Apple AVFoundation decodes audio and provides resampling and non-destructive audition through `AVAudioEngine`/`AVAudioUnitTimePitch`. Audition supports mono and stereo; files with up to eight channels remain available for analysis and comparison. Accelerate vDSP provides the FFT for Hann-window STFT and average spectra. [`AudioAnalysisEngine.swift`](../Sources/CrossDiff/AudioAnalysisEngine.swift) retains source-time coordinates, channel information and explicit analysis budgets; [`AudioPlaybackController.swift`](../Sources/CrossDiff/AudioPlaybackController.swift) owns playback. Files are not rewritten, and analysis never starts playback automatically.
+
+[`Sources/AudioMatchBridge`](../Sources/AudioMatchBridge/) builds `CrossDiffAudioMatcher`, a separate native helper using pinned Olaf C sources and their PFFFT/LMDB dependencies. SwiftPM builds it with the app. For focused matcher checks:
+
+```sh
+bash scripts/audio-research/build-matcher.sh
+source scripts/project-env.sh
+python3 scripts/audio-research/check-matcher.py
+```
+
+The development helper is written to `.build/audio-research/bin/CrossDiffAudioMatcher`; `CROSSDIFF_AUDIO_HELPER` can select this project-local executable for checks. App packaging includes the signed helper in both Base and Full so Base can install the small restricted Audio package. [`ThirdParty/AudioMatching`](../ThirdParty/AudioMatching/) records the exact upstream commit, source hashes, integration patch and license notices. Production requires **no Python, Java/JVM, FFmpeg, network service or separately installed audio utility**. Python 3 is used by development packaging and synthetic-fixture checks, not by the running application.
+
+The host supplies bounded metadata and matching evidence to the restricted Audio JavaScript plugin; PCM, waveforms and spectral grids do not cross that JSON contract. Fixed-speed same-recording excerpts, including reordered and repeated candidates, are the current automatic scope. Independent tempo/pitch recognition remains future work; manual audition parameters are not estimates of how a recording was edited. See the [audio design](architecture/audio-comparison.md) and [audio usage](usage.md#audio).
+
+Matching creates private PCM/index jobs under the application's `AudioCache/`. [`AudioCacheStore.swift`](../Sources/CrossDiff/AudioCacheStore.swift) holds a file lock for each active job, removes normal completions and sweeps abandoned marked UUID directories on the next job or explicit cleanup. It skips active jobs and unrelated files, and does not follow directory symlinks. These are temporary decoded copies, not original sources or saved session state.
+
 ## Choose relevant checks
 
 All commands below run from the repository root. Native window checks must run **serially** because they share the AppKit desktop session.
@@ -113,9 +131,15 @@ All commands below run from the repository root. Native window checks must run *
 | API import | `bash scripts/tests/check-api-import.sh` | HTTP/cURL/HAR, duplicate fields, lossless JSON numbers, unavailable bodies, bounded local reads and safe command parsing |
 | API plugin | `bash scripts/tests/check-api-plugin.sh` | Real packaged algorithm, typed rows, explicit rules, incomplete results and independent package installation |
 | Native API workflows | `bash scripts/tests/check-api-workflow.sh` | Paste/file creation, HAR selections, rules and session restoration, local plugin, read-only sources and bilingual light/dark/narrow windows |
+| Audio analysis | `bash scripts/tests/check-audio-engine.sh` | Apple decoding/resampling, calibrated FFT, source-time spectral geometry, antiphase channels, selection budgets, cancellation and unchanged sources |
+| Audio audition (silent) | `bash scripts/tests/check-audio-playback.sh` | Offline Apple rendering through the production graph; rate/pitch duration and frequency, mono/stereo restrictions and safe re-preparation; no speaker output |
+| Audio plugin | `bash scripts/tests/check-audio-plugin.sh` | Real restricted helper, metadata/evidence validation, reordered and repeated mappings, union coverage, budgets and local state restoration |
+| Audio temporary files | `bash scripts/tests/check-audio-cache.sh` | Active leases across processes, crash cleanup, explicit removal, unrelated-file preservation and symlink boundaries |
+| Native audio matching | `bash scripts/audio-research/build-matcher.sh` then `python3 scripts/audio-research/check-matcher.py` | Bundled Olaf helper with synthetic excerpts, reorder/repeat, negative cases and bounded processing |
+| Native audio workflows | `bash scripts/tests/check-audio-workflow.sh` | Creation, Apple analysis, actual restricted plugin/helper, saved regions, undo/restore, disable/re-enable and bilingual light/dark/minimum-width windows; no audible playback |
 | PDF domain | `bash scripts/tests/check-pdf.sh` | Page alignment, scanning limits, extraction, malformed inputs and source preservation |
 | Native plugin workflows | `bash scripts/tests/check-plugin-workflow.sh` | Install, disable, recovery, real external algorithm, PDF/page/table views and themes |
-| All behavioral suites | `bash scripts/check-all.sh` | Core, image, plugin packages/runtime/download/manager/official catalog, PDF, binary, archives and photography; release/inventory safeguards; serialized native text, image, plugin, official-plugin, binary, archive and photography workflows |
+| All behavioral suites | `bash scripts/check-all.sh` | Core, image, plugin lifecycle/catalog, PDF, binary, archives, photography, API and audio engine/plugin/cache/matcher checks; release/inventory safeguards; serialized native workflows |
 | Edition packaging and plugin inventory | `source scripts/project-env.sh` then `python3 -m unittest discover -s scripts/tests -p 'test_plugin_inventory.py'` | Base/Full contents, matching standalone packages, catalog checksums and URLs, safe output locations, and invalid metadata rejection |
 | Release publishing | `source scripts/project-env.sh` then `python3 -m unittest discover -s scripts/tests -p 'test_github_release.py'` | Offline checks for version matching, draft retries, upload protection and download verification |
 
@@ -124,6 +148,8 @@ All commands below run from the repository root. Native window checks must run *
 Native checks need a usable AppKit session. A timeout or an unavailable window server is not a pass. Where supported, `--build-only` verifies that the check program compiles; it does not exercise a real window. Inspect light, dark, and minimum-width windows after UI changes, including their parent-view composition. An HTML mockup or isolated text view cannot establish that the actual app renders correctly.
 
 The checks isolate the real system input method and invoke native text input APIs to test marked text and commits. They do not use the general system clipboard for test data. Physical input-method candidate windows, Finder drag-and-drop, system file dialogs, VoiceOver, and extended everyday use still require manual verification.
+
+Audio workflow checks remain silent: they verify playback preparation and the absence of automatic playback, not audible quality or device behavior. Playback validation is separate from analysis: FFT calibration does not establish `AVAudioUnitTimePitch` output pitch or duration. Refer to the versioned validation record for offline-rendering results; real-device and listening checks remain manual.
 
 With a complete Xcode installation, the standard XCTest target can also run:
 
@@ -141,9 +167,9 @@ See [Preparing a release](releasing.md) for clean-commit Base/Full packaging, st
 
 ## Continuous integration
 
-[.github/workflows/check.yml](../.github/workflows/check.yml) configures a macOS runner to check patch formatting, audit repository history, run core, image-rendering, plugin/PDF, official-catalog, inventory, and release-publishing checks, run archive, binary and photography engine/metadata/plugin checks, compile the text, new-comparison, image, plugin, official-plugin, binary, archive and photography native workflow checks, and build, verify, and audit the app. Compilation on CI does not replace native window interaction and pixel checks. Report a remote CI result only after that workflow has actually run.
+[.github/workflows/check.yml](../.github/workflows/check.yml) configures a macOS runner to check patch formatting, audit repository history, run core, image-rendering, plugin/PDF, official-catalog, inventory, and release-publishing checks, run archive, binary, photography, API and audio engine/plugin/cache/matcher checks, compile the text, new-comparison, image, plugin, official-plugin, binary, archive, photography, API and audio native workflow checks, and build, verify, and audit the app. Compilation on CI does not replace native window interaction and pixel checks. Report a remote CI result only after that workflow has actually run.
 
-[.github/workflows/release.yml](../.github/workflows/release.yml) builds version tags, checks core, image, photography engine/metadata/plugin, plugins/PDF, official-catalog and edition/release safeguards, compiles native workflow checks, and prepares verified draft prereleases containing Base, Full, standalone plugins, the catalog, matching source and checksums. Published and immutable releases are not overwritten by retries. See the [release guide](releasing.md) for tagging, reviewing, and publishing a preview.
+[.github/workflows/release.yml](../.github/workflows/release.yml) builds version tags, checks core, image, photography engine/metadata/plugin, API import/plugin, audio engine/plugin/cache/matcher, plugins/PDF, official-catalog and edition/release safeguards, compiles native workflow checks, and prepares verified draft prereleases containing Base, Full, standalone plugins, the catalog, matching source and checksums. Published and immutable releases are not overwritten by retries. See the [release guide](releasing.md) for tagging, reviewing, and publishing a preview.
 
 Record release-specific results and unverified items under [docs/validation/](validation/README.md). Historical logs describe their original test run, not a guarantee for every subsequent commit.
 
@@ -155,8 +181,9 @@ CrossDiff/
 │   ├── CrossDiff/             # macOS UI, native editors, app state
 │   ├── CrossDiffCore/         # Comparison, I/O, persistence and plugin contracts
 │   ├── CrossDiffPluginHost/   # Restricted JavaScriptCore worker
-│   └── PhotoCVBridge/         # Thin C ABI to pinned OpenCV algorithms
-├── Plugins/                   # Official PDF/archive/photography and independent JSON example
+│   ├── PhotoCVBridge/         # Thin C ABI to pinned OpenCV algorithms
+│   └── AudioMatchBridge/      # Native helper with pinned Olaf C sources
+├── Plugins/                   # Official PDF/archive/photography/API/audio and independent JSON example
 ├── Checks/                    # Core behavior checks without XCTest
 ├── Tests/CrossDiffCoreTests/  # Standard XCTest target
 ├── ThirdParty/                # Dependency licenses, attribution and source provenance
@@ -189,6 +216,19 @@ These limits are deliberate product boundaries, not silent data conversions:
 - Sessions save on a serial background queue and flush the latest snapshot at termination. Manual file saves still run synchronously. Very large layouts and slow disks remain performance work.
 - PDF uses read-only snapshots: up to 48 MiB per file, the first 200 pages, bounded extracted text and 384 px page fingerprints. It is preview/text analysis, not exact full-resolution visual equality or OCR. Scanned pages need manual visual review.
 - Photography is a read-only plugin using the host’s Apple/OpenCV pipeline. Each source is limited to 256 MiB and 64 megapixels; the display preview has a 2048 px longest edge and source-region statistics resample above a 4096 px longest edge. Values are floating-point sRGB SDR clamped to 0–1. HSL L is lightness, not physical luminance or exposure. Fully transparent/non-finite samples are excluded; valid pixels have equal weight; saturation below 2% is neutral and excluded from hue bins. RAW availability depends on macOS, the camera and encoding mode. Unsupported RAW fails without embedded-preview substitution. XMP curves are actual recorded control points, never inferred editing settings. There is no photo editing, HDR analysis, waveform/vectorscope, noise/sharpness scoring or full-resolution inspector in this preview. See [photography usage](usage.md#photography).
-- Plugin v1 uses bounded single-file JSON packages and four native result views: `table`, `documentPages`, `archiveTree` and `photography`. The official catalog installs missing restricted plugins only; existing external-plugin updates retain review, and bundled plugins update with the app. Restricted JavaScript has no host I/O APIs; native full-trust code is not sandboxed and quarantined executables are refused. Custom native views, assets/dependency loading, remote sources, Word, spreadsheets, three-way merging, syntax highlighting, unified diff view, context folding, and report export are future work. See the [roadmap](roadmap.md).
+- Audio accepts at most 2 GiB, two hours and eight channels per source for analysis, subject to the actual macOS decoder. Audition supports only mono/stereo; three-to-eight-channel files can still display waveforms, spectra and comparison results. Waveforms are overview envelopes, bounded to 8192 bins per channel. Spectra use a 48 kHz analysis copy and at most the first 30 seconds of the selected source region; dense FFT/hop settings can shorten that range with an explicit partial indicator. Frequencies above a source's Nyquist limit are shown as unavailable; original content above 24 kHz is outside these spectra. STFT uses mean channel power; fingerprints use the highest-energy source channel to avoid antiphase downmix cancellation. Matching emits candidates for fixed-speed excerpts of the same recording, not proof of identity, deletion or exact edit boundaries. Independent tempo/pitch recognition, arbitrary mixtures, sample-accurate waveform inspection, loudness-standard analysis and audio export are not included. Saved state contains regions and audition settings, not an edited audio file. See [audio usage](usage.md#audio).
+- Plugin v1 uses bounded single-file JSON packages and six native result views: `table`, `documentPages`, `archiveTree`, `photography`, `apiExchange` and `audioTimeline`. The official catalog installs missing restricted plugins only; existing external-plugin updates retain review, and bundled plugins update with the app. Restricted JavaScript has no host I/O APIs; native full-trust code is not sandboxed and quarantined executables are refused. Custom native views, assets/dependency loading, remote sources, Word, spreadsheets, three-way merging, syntax highlighting, unified diff view, context folding, and report export are future work. See the [roadmap](roadmap.md).
 
 Normal app data lives in `~/Library/Application Support/CrossDiff/`: `sessions.json` for local restoration and `preferences.json` for language and appearance, `Plugins/` for external packages and version state, and `plugin-preferences.json` for bundled-plugin enablement. Files are owner-readable/writable, not encrypted by the application. See [SECURITY.md](../SECURITY.md) for the privacy boundary.
+
+## README screenshots
+
+The README shows a text workspace plus one Audio and one API comparison. Screenshots are real native windows with generated examples, in English and Simplified Chinese and both appearances. The hero stays unframed; screenshot tables supply a light border on GitHub.
+
+```sh
+bash scripts/render-readme.sh
+bash scripts/tests/render-audio-readme.sh
+bash scripts/tests/render-api-readme.sh
+```
+
+Run these native captures serially in a macOS application session. Each script loads the project environment and uses isolated data, fixtures and build output inside this checkout. Only the named PNG files are copied to `docs/assets/screenshots/`. Audio examples are synthesized locally and capture does not play sound; API examples do not send requests. Inspect the rendered windows before committing assets. These captures supplement the workflow checks; they do not replace behavioral validation.

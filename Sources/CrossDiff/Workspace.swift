@@ -140,6 +140,16 @@ final class ComparisonSession: ObservableObject, Identifiable {
         }
         return model
     }()
+    private var storedAudioState: AudioWorkspaceState?
+    lazy var audioComparisonModel: AudioComparisonModel = {
+        let model = AudioComparisonModel(state: storedAudioState ?? .init())
+        model.onStateChanged = { [weak self, weak model] in
+            guard let self, let model else { return }
+            self.storedAudioState = model.state
+            self.changed?()
+        }
+        return model
+    }()
     private struct ClearedText {
         let left: String
         let right: String
@@ -148,10 +158,11 @@ final class ComparisonSession: ObservableObject, Identifiable {
     @Published private var clearedText: ClearedText?
     private var changingClearAction = false
 
-    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil) {
+    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil, audioState: AudioWorkspaceState? = nil) {
         self.id = id; self.kind = kind; self.left = left; self.right = right; self.pluginID = pluginID
         storedPhotoState = photoState?.isValid == true ? photoState : nil
         storedAPIState = apiState?.isValid == true ? apiState : nil
+        storedAudioState = audioState?.isValid == true ? audioState : nil
         if kind == .text { compare() }
     }
     deinit {
@@ -168,7 +179,7 @@ final class ComparisonSession: ObservableObject, Identifiable {
         return l == nil && r == nil ? L("临时文本", "Untitled Comparison") : "\(l ?? unnamed) ↔ \(r ?? unnamed)"
     }
     var dirty: Bool { !left.text.utf16.elementsEqual(left.savedText.utf16) || !right.text.utf16.elementsEqual(right.savedText.utf16) }
-    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState) }
+    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState, audioState: storedAudioState) }
     var canClearText: Bool { kind == .text && (!left.text.isEmpty || !right.text.isEmpty) }
     var canRestoreClearedText: Bool { clearedText != nil && left.text.isEmpty && right.text.isEmpty }
     func value(_ side: Side) -> StoredTextSide { side == .left ? left : right }
@@ -517,7 +528,7 @@ final class WorkspaceStore: ObservableObject {
         do {
             for record in try SessionFile.load(from: sessionURL) {
                 guard let kind = ComparisonKind(rawValue: record.kind) else { continue }
-                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState))
+                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState, audioState: record.audioState))
             }
         } catch {
             recoveryFailed = true
@@ -560,6 +571,9 @@ final class WorkspaceStore: ObservableObject {
             guard alert.runModal() == .alertSecondButtonReturn else { return }
         }
         if session.kind == .binary { session.binaryComparisonModel.cancel() }
+        if session.kind == .plugin, PluginManager.shared.plugin(id: session.pluginID)?.package.manifest.inputKind == .audioAnalysis {
+            session.audioComparisonModel.cancel()
+        }
         sessions.removeAll { $0.id == session.id }
         if selectedID == session.id { selectedID = sessions.last?.id }
         if sessions.isEmpty { newText() }
