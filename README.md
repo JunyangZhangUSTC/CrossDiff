@@ -14,13 +14,13 @@
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[下载基础版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上) · [路线图](#对比一切持续向前)
+[下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上) · [路线图](#对比一切持续向前)
 
 </div>
 
-> 🌟 **不想选版本？直接下载基础版：[CrossDiff-0.8.0-base-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip)。**
+> 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.11.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip)。**
 >
-> 适用于 macOS 14+ 的 Apple 芯片 Mac。日常比较从基础版开始，需要 PDF 时再在应用内安装插件。
+> 适用于 macOS 14+ 的 Apple 芯片 Mac。已预装本版本全部官方插件，打开即可比较；只需基础功能时也可选择 Base。
 
 <table>
 <tr><td>
@@ -43,7 +43,7 @@
 | **免费开源，没有付费墙**<br>AGPL v3 开源，源码可审查、构建和修改。无订阅、试用倒计时或付费解锁。 | **无需注册，开箱即用**<br>没有账号、登录或激活步骤。打开应用、选好左右内容，就能开始比较。 |
 | **细致比较，修改可控**<br>字符级差异、行对齐、逐块合并、独立撤销与手动保存。只做比较，不会覆盖原文件。 | **优雅界面，按需扩展**<br>浅深色主题、中英文切换、多标签与同步滚动。安装插件，继续拓展比较能力。 |
 
-以下展示 **0.12.0 源码预览**的能力。公开下载仍为 **0.8.0**；新增摄影、API、音频与办公插件尚未公开发布。
+当前公开预览版为 **0.11.0**，已包含摄影、API 与音频插件。下方的办公文档比较为 **0.12.0 源码预览**新增能力，正在准备发布。
 
 ## 看见声音里的变化
 
@@ -107,21 +107,21 @@
 
 ## 选择适合你的版本
 
-**已发布下载：0.8.0 · 源码开发预览：0.12.0 · macOS 14+ · Apple 芯片（arm64）**
+**已发布下载：0.11.0 · 源码开发预览：0.12.0 · macOS 14+ · Apple 芯片（arm64）**
 
-**0.8.0 Full = Base + PDF。0.12.0 源码 Full 再加入摄影、API、音频与办公。** 0.12.0 尚未公开发布，可从源码构建体验。
+**推荐完整版 Full：基础功能与本版本全部官方插件一次备齐。** 已发布的 0.11.0 Full 包含 PDF、摄影、API 与音频；0.12.0 源码预览再加入办公文档比较，可从源码构建体验。
 
-基础版适合日常使用；想预装 PDF，就选完整版。两者均免费、开源，无需账号。
+只需要文本、文件夹、图片、Hex 和压缩包比较时，可以选择基础版 Base。两版均免费、开源，无需账号。
 
 <details>
-<summary><b>查看完整版、独立插件和其他下载文件</b></summary>
+<summary><b>查看基础版、独立插件和其他下载文件</b></summary>
 
 基础版与完整版的区别在于预装插件；之后也可以按需安装。
 
 | 下载 | 包含内容 | GitHub Release 文件 |
 | :--- | :--- | :--- |
+| **完整版 Full（推荐）** | 基础版加对应版本的全部官方插件，具体内容见上方版本说明。 | `CrossDiff-<版本>-full-macOS-arm64.zip` |
 | **基础版 Base** | 文本、文件夹、图片、Hex，以及内置压缩包插件。轻装开始，按需添加插件。 | `CrossDiff-<版本>-base-macOS-arm64.zip` |
-| **完整版 Full** | 基础版加对应版本的全部官方插件，具体内容见上方版本说明。 | `CrossDiff-<版本>-full-macOS-arm64.zip` |
 | **独立插件** | 按宿主版本安装兼容插件；已内置的插件随应用升级。 | `CrossDiff-Plugin-<名称>-<插件版本>.crossdiffplugin` |
 
 **[前往 GitHub Releases 下载 →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
@@ -146,7 +146,7 @@ Intel 构建尚未实测。当前为持续开发中的预览版本，也可按�
 
 ## 快速开始
 
-下载[基础版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
+下载[完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
 
 1. 点击 **新建…**（⌘N），选择文本、文件夹、压缩包、图片、二进制或已安装的插件比较。
 2. 分别准备左右内容，点击 **开始比较**。文本可直接粘贴，也可选择文件。
@@ -211,7 +211,7 @@ bash scripts/open-dev-app.command
 
 | 已经可以使用 | 接下来探索 |
 | :--- | :--- |
-| 文本、文件夹、图片、Hex、压缩包、PDF；0.12.0 源码含摄影、API、音频与办公插件 | 远程文件夹来源、文本三方合并、多对象比较 |
+| 文本、文件夹、图片、Hex、压缩包、PDF、摄影、API、音频；0.12.0 源码新增办公插件 | 远程文件夹来源、文本三方合并、多对象比较 |
 | 原生工作台、插件安装管理、基础版与完整版 | 旧版 Office 与完整视觉比较、网络包、数据库、摄影高级分析、视频、模型结构与张量插件；音频自动变速／变调识别 |
 | 中英文界面、浅深色主题、本机会话恢复 | 面向摄影师、媒体工作者与开发者的插件组合 |
 

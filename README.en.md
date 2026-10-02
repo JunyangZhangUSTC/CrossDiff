@@ -14,13 +14,13 @@ Local processing. Native interaction. No sign-up. Ready when you are. Extend it 
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[Download Base](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
+[Download Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
 
 </div>
 
-> 🌟 **Not sure which edition to choose? Download Base: [CrossDiff-0.8.0-base-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip).**
+> 🌟 **Not sure which edition to choose? Download Full: [CrossDiff-0.11.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip).**
 >
-> For Apple silicon Macs running macOS 14+. Start with Base for everyday comparisons; add the PDF plugin in the app when needed.
+> For Apple silicon Macs running macOS 14+. Every official plugin for this version is preinstalled and ready to use. Choose Base only if you need the essentials.
 
 <table>
 <tr><td>
@@ -43,7 +43,7 @@ From a quick text paste to code directories, archives, images, and research PDFs
 | **Free and open source**<br>AGPL v3 source you can inspect, build, and modify. No subscriptions, trial clocks, or feature paywalls. | **No sign-up. Ready to use.**<br>No account, login, or activation. Open the app, choose the two inputs, and start comparing. |
 | **Precise differences, deliberate edits**<br>Character highlights, aligned rows, block merging, independent undo, and explicit saving. Comparing never overwrites your source files. | **Considered design, room to grow**<br>Light and dark themes, English and Simplified Chinese, tabs, and synchronized scrolling. Add plugins when you need more. |
 
-The following features show the **0.12.0 source preview**. The public download remains **0.8.0**; the new Photography, API, Audio and Office plugins are not yet publicly released.
+The current public preview is **0.11.0**, including Photography, API and Audio. Office comparison below is new in the **0.12.0 source preview**, which is being prepared for release.
 
 ## See changes in sound
 
@@ -107,21 +107,21 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 
 ## Choose your edition
 
-**Published download: 0.8.0 · Source preview: 0.12.0 · macOS 14+ · Apple silicon (arm64)**
+**Published download: 0.11.0 · Source preview: 0.12.0 · macOS 14+ · Apple silicon (arm64)**
 
-**Full 0.8.0 = Base + PDF. Full from the 0.12.0 source adds Photography, API, Audio and Office.** Version 0.12.0 is not yet publicly released; build from source to try it.
+**Full is recommended: all core features and every official plugin for the version, ready to use.** The published 0.11.0 Full includes PDF, Photography, API and Audio. The 0.12.0 source preview adds Office comparison; build from source to try it.
 
-Base is the everyday starting point. Choose Full if you want PDF preinstalled. Both are free, open source, and account-free.
+Choose Base if you only need text, folders, images, Hex and archives. Both editions are free, open source, and account-free.
 
 <details>
-<summary><b>Full edition, individual plugins, and other downloads</b></summary>
+<summary><b>Base edition, individual plugins, and other downloads</b></summary>
 
 Base and Full differ only in their preinstalled plugins. You can add more plugins later.
 
 | Download | Included | GitHub Release asset |
 | :--- | :--- | :--- |
+| **Full (recommended)** | Base plus every official plugin for that version; see the version summary above. | `CrossDiff-<version>-full-macOS-arm64.zip` |
 | **Base** | Text, folders, images, Hex, and the bundled Archive plugin. Start small and add what you need. | `CrossDiff-<version>-base-macOS-arm64.zip` |
-| **Full** | Base plus every official plugin for that version; see the version summary above. | `CrossDiff-<version>-full-macOS-arm64.zip` |
 | **Individual plugins** | Install packages compatible with your host version. Bundled plugins update with the app. | `CrossDiff-Plugin-<name>-<plugin-version>.crossdiffplugin` |
 
 **[Download from GitHub Releases →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
@@ -146,7 +146,7 @@ Base features such as Archive also ship as plugins, keeping different domains in
 
 ## Get started
 
-Download [Base](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.8.0/CrossDiff-0.8.0-base-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
+Download [Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
 
 1. Click **New…** (⌘N), then choose text, folders, archives, images, binary files, or an installed plugin.
 2. Prepare the left and right inputs and click **Compare**. For text, paste directly or select a file.
@@ -211,7 +211,7 @@ Our direction is **“Compare everything. Make every comparison count.”** Star
 
 | Available today | Next to explore |
 | :--- | :--- |
-| Text, folders, images, Hex, archives, PDF; Photography, API, Audio and Office in the 0.12.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
+| Text, folders, images, Hex, archives, PDF, Photography, API and Audio; Office added in the 0.12.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
 | A native workspace, plugin management, Base and Full editions | Legacy Office and full visual comparison, network packets, databases, advanced photography analysis, video, model structures, and tensor plugins; automatic audio tempo/pitch recognition |
 | English and Simplified Chinese, light and dark themes, local session restoration | Plugin bundles for photographers, media professionals, and developers |
 
