@@ -43,7 +43,7 @@ private enum ReplacementInputError: LocalizedError {
 private struct UnsupportedDocumentError: LocalizedError {
     let fileName: String
     var errorDescription: String? {
-        L("\(fileName)：尚未安装支持此文档格式的比较器。", "\(fileName): No comparison provider is installed for this document format.")
+        L("\(fileName)：请先将旧版 Office 文件转换为 .docx、.xlsx 或 .pptx。", "\(fileName): Convert this legacy Office file to .docx, .xlsx or .pptx first.")
     }
 }
 
@@ -150,6 +150,16 @@ final class ComparisonSession: ObservableObject, Identifiable {
         }
         return model
     }()
+    private var storedOfficeState: OfficeWorkspaceState?
+    lazy var officeModel: OfficeComparisonModel = {
+        let model = OfficeComparisonModel(state: storedOfficeState ?? .init())
+        model.onStateChanged = { [weak self, weak model] in
+            guard let self, let model else { return }
+            self.storedOfficeState = model.state
+            self.changed?()
+        }
+        return model
+    }()
     private struct ClearedText {
         let left: String
         let right: String
@@ -158,11 +168,12 @@ final class ComparisonSession: ObservableObject, Identifiable {
     @Published private var clearedText: ClearedText?
     private var changingClearAction = false
 
-    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil, audioState: AudioWorkspaceState? = nil) {
+    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil, audioState: AudioWorkspaceState? = nil, officeState: OfficeWorkspaceState? = nil) {
         self.id = id; self.kind = kind; self.left = left; self.right = right; self.pluginID = pluginID
         storedPhotoState = photoState?.isValid == true ? photoState : nil
         storedAPIState = apiState?.isValid == true ? apiState : nil
         storedAudioState = audioState?.isValid == true ? audioState : nil
+        storedOfficeState = officeState?.isValid == true ? officeState : nil
         if kind == .text { compare() }
     }
     deinit {
@@ -179,7 +190,7 @@ final class ComparisonSession: ObservableObject, Identifiable {
         return l == nil && r == nil ? L("临时文本", "Untitled Comparison") : "\(l ?? unnamed) ↔ \(r ?? unnamed)"
     }
     var dirty: Bool { !left.text.utf16.elementsEqual(left.savedText.utf16) || !right.text.utf16.elementsEqual(right.savedText.utf16) }
-    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState, audioState: storedAudioState) }
+    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState, audioState: storedAudioState, officeState: storedOfficeState) }
     var canClearText: Bool { kind == .text && (!left.text.isEmpty || !right.text.isEmpty) }
     var canRestoreClearedText: Bool { clearedText != nil && left.text.isEmpty && right.text.isEmpty }
     func value(_ side: Side) -> StoredTextSide { side == .left ? left : right }
@@ -476,11 +487,17 @@ struct OpenCandidate: Identifiable, Hashable {
     let kind: ComparisonKind
     var pluginID: String? = nil
     var acceptsFolders = false
+    var isOfficeDocument = false
     func isCompatible(with other: OpenCandidate) -> Bool {
         if kind == .folder && other.kind == .plugin && other.acceptsFolders { return true }
         if other.kind == .folder && kind == .plugin && acceptsFolders { return true }
         if [.text, .binary].contains(kind), [.text, .binary].contains(other.kind) { return true }
-        return kind == other.kind && pluginID == other.pluginID
+        guard kind == other.kind, pluginID == other.pluginID else { return false }
+        if isOfficeDocument || other.isOfficeDocument || pluginID == "org.crossdiff.office" {
+            guard let documentKind = OfficeDocumentKind.from(fileExtension: url.pathExtension) else { return false }
+            return documentKind == OfficeDocumentKind.from(fileExtension: other.url.pathExtension)
+        }
+        return true
     }
     var id: String { url.path }
     var name: String { url.lastPathComponent }
@@ -528,7 +545,7 @@ final class WorkspaceStore: ObservableObject {
         do {
             for record in try SessionFile.load(from: sessionURL) {
                 guard let kind = ComparisonKind(rawValue: record.kind) else { continue }
-                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState, audioState: record.audioState))
+                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState, audioState: record.audioState, officeState: record.officeState))
             }
         } catch {
             recoveryFailed = true
@@ -573,6 +590,9 @@ final class WorkspaceStore: ObservableObject {
         if session.kind == .binary { session.binaryComparisonModel.cancel() }
         if session.kind == .plugin, PluginManager.shared.plugin(id: session.pluginID)?.package.manifest.inputKind == .audioAnalysis {
             session.audioComparisonModel.cancel()
+        }
+        if session.kind == .plugin, session.pluginID == "org.crossdiff.office" || PluginManager.shared.plugin(id: session.pluginID)?.package.manifest.inputKind == .officeDocument {
+            session.officeModel.cancel()
         }
         sessions.removeAll { $0.id == session.id }
         if selectedID == session.id { selectedID = sessions.last?.id }
@@ -634,18 +654,21 @@ final class WorkspaceStore: ObservableObject {
             guard let plugin = PluginManager.shared.plugin(id: pluginID), plugin.enabled else {
                 throw PluginAppError(zh: "所选文件与插件不兼容，或插件已停用。", en: "The selected file is incompatible with this plugin, or the plugin is disabled.")
             }
+            if plugin.package.manifest.inputKind == .officeDocument, ["doc", "xls", "ppt"].contains(url.pathExtension.lowercased()) {
+                throw UnsupportedDocumentError(fileName: url.lastPathComponent)
+            }
             let acceptsFolder = plugin.package.manifest.inputKind == .archiveCatalog
             guard resource.isDirectory == true ? acceptsFolder : plugin.package.manifest.fileExtensions.contains(url.pathExtension.lowercased()) else {
                 throw PluginAppError(zh: "所选文件与插件不兼容。", en: "The selected file is incompatible with this plugin.")
             }
-            return .init(url: url, kind: .plugin, pluginID: pluginID, acceptsFolders: acceptsFolder)
+            return .init(url: url, kind: .plugin, pluginID: pluginID, acceptsFolders: acceptsFolder, isOfficeDocument: plugin.package.manifest.inputKind == .officeDocument)
         }
         // Existing native folder/image opening keeps its default route. A plugin
         // may still handle these extensions when explicitly chosen in Compare.
         if resource.isDirectory == true { return .init(url: url, kind: .folder) }
         if resource.contentType?.conforms(to: .image) == true { return .init(url: url, kind: .image) }
         if let plugin = PluginManager.shared.matching(url) {
-            return .init(url: url, kind: .plugin, pluginID: plugin.id, acceptsFolders: plugin.package.manifest.inputKind == .archiveCatalog)
+            return .init(url: url, kind: .plugin, pluginID: plugin.id, acceptsFolders: plugin.package.manifest.inputKind == .archiveCatalog, isOfficeDocument: plugin.package.manifest.inputKind == .officeDocument)
         }
         // Preserve PDF sessions even while their bundled plugin is disabled.
         if url.pathExtension.lowercased() == "pdf" { return .init(url: url, kind: .plugin, pluginID: "org.crossdiff.pdf") }
@@ -653,7 +676,10 @@ final class WorkspaceStore: ObservableObject {
             return .init(url: url, kind: .plugin, pluginID: ArchiveComparisonModel.pluginID, acceptsFolders: true)
         }
         let inferredKind: ComparisonKind
-        if ["doc", "docx", "xlsx", "xls", "pptx"].contains(url.pathExtension.lowercased()) {
+        if OfficeDocumentKind.from(fileExtension: url.pathExtension) != nil {
+            return .init(url: url, kind: .plugin, pluginID: "org.crossdiff.office", isOfficeDocument: true)
+        }
+        if ["doc", "xls", "ppt"].contains(url.pathExtension.lowercased()) {
             throw UnsupportedDocumentError(fileName: url.lastPathComponent)
         } else { inferredKind = try BinaryFileDetection.isLikelyBinary(url: url) ? .binary : .text }
         return .init(url: url, kind: inferredKind)

@@ -184,7 +184,7 @@ struct PluginManagerView: View {
 
     private func pluginRow(_ entry: AvailablePlugin) -> some View {
         HStack(alignment: .top, spacing: 14) {
-            Image(systemName: entry.package.manifest.inputKind == .audioAnalysis ? "waveform" : entry.package.manifest.inputKind == .httpExchange ? "arrow.left.arrow.right.square" : entry.package.manifest.inputKind == .photoAnalysis ? "camera.aperture" : entry.package.manifest.inputKind == .archiveCatalog ? "archivebox" : entry.package.manifest.inputKind == .pdf ? "doc.richtext" : "tablecells")
+            Image(systemName: entry.package.manifest.inputKind == .officeDocument ? "doc.text.image" : entry.package.manifest.inputKind == .audioAnalysis ? "waveform" : entry.package.manifest.inputKind == .httpExchange ? "arrow.left.arrow.right.square" : entry.package.manifest.inputKind == .photoAnalysis ? "camera.aperture" : entry.package.manifest.inputKind == .archiveCatalog ? "archivebox" : entry.package.manifest.inputKind == .pdf ? "doc.richtext" : "tablecells")
                 .font(.system(size: 21, weight: .light)).foregroundStyle(Color(nsColor: theme.accent))
                 .frame(width: 32, height: 34)
             VStack(alignment: .leading, spacing: 7) {

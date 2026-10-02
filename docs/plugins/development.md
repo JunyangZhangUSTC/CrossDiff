@@ -1,6 +1,6 @@
 # 插件开发 · 实验 v1
 
-状态：2026-10-02，面向尚未发布的 CrossDiff 0.11.0 源码预览（Photography/API/Audio 0.1.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
+状态：2026-10-02，面向尚未发布的 CrossDiff 0.12.0 源码预览（Photography/API/Audio/Office 0.1.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
 
 实现依据为 [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift)、[PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift)、[PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) 与 [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift)。早期[框架设计](../architecture/compare-everything.md)描述的远期能力不代表本版本已经支持。
 
@@ -16,6 +16,7 @@
 | `httpExchange` | 有界 HTTP／cURL／HAR 导入，规范化为带类型的分区与字段 | `apiExchange`：请求／响应字段双栏差异 |
 | `photoAnalysis` | Apple／OpenCV 管线生成的有界归一化 RGB／HSL 分布、中性色比例及分析说明 | `photography`：双图、选区、直方图、记录曲线与拍摄信息 |
 | `audioAnalysis` | 有界源元数据与宿主匹配证据；不含 PCM、波形或谱图网格 | `audioTimeline`：双时间线、声道波形、时频图、选区与 A/B 试听 |
+| `officeDocument` | DOCX/XLSX/PPTX 所选部分的类型化单元格、原位置、公式与保存结果 | `officeDocuments`：原生表格与段落／幻灯片内容 |
 
 内置 [PDF 插件](../../Plugins/PDF/)的 JavaScript 决定页面对应与分类；PDFKit 在宿主侧提取并显示页面。独立 [JSON 示例插件](../../Plugins/Examples/JSON/)自行比较 JSON 顶层键值，使用相同安装和执行协议。
 
@@ -366,3 +367,19 @@ bash scripts/tests/check-audio-workflow.sh
 受限 JS 整理元数据差异与两侧非拒绝区间的覆盖并集。结果必须原样保留宿主对应数组、分析状态及诊断，宿主重新核对源范围、有限数、数量/字节预算、schema、任务 id 和覆盖。原始 PCM、波形和谱图不进入 JSON。宿主 Apple 分析与独立 Olaf C helper 属于受信的应用组件，不表示任意第三方插件获得了原生调用或通用文件句柄能力，也不等于操作系统沙箱。
 
 契约源代码见 [`AudioComparison.swift`](../../Sources/CrossDiffCore/AudioComparison.swift)。检查入口：`bash scripts/tests/check-audio-plugin.sh`、`bash scripts/tests/check-audio-engine.sh`、`bash scripts/tests/check-audio-cache.sh`、`bash scripts/tests/check-audio-workflow.sh`。独立包用 `python3 scripts/package-audio-plugin.py`；两种宿主均带音频服务与 renderer。
+
+## crossdiff.office/1
+
+Office 0.1.0 需要 0.12.0 宿主；实验协议版本仍为 1，并不意味着旧宿主支持新增类型。每次请求比较**一个选中部分**，两侧 `kind` 必须相同：`word`、`spreadsheet` 或 `presentation`。
+
+输入含 `sectionID`、`name` 与 `rows`。每行保存来源 `id`、从 1 开始的 `position`、`label`、`cells`。单元格包含从 1 开始的 `column`、`type`、可为 null 的原始字符串 `value`、`formula` 与 `format`。数值字符串禁止转成 JavaScript number；缺失缓存为 null，不是空字符串。格式记录供展示，不参与本版内容相等判断。
+
+`options.keyColumns` 是最多 16 个不重复的列号，仅用于表格。输出 `payload.rows` 包含唯一 `id`、可为空的 `leftID/rightID`、`status`（`equal/modified/added/removed`）、`basis`（`exact/key/position/unmatched`）、`moved` 和 `ambiguous`。所有源行恰好覆盖一次。宿主验证来源、状态、关键列依据与覆盖，再根据自己保留的原文渲染；插件不能替换原文。先匹配完全相同行，再匹配关键列；重复或空键保持不确定。只有可信的 exact/key 对应参与相对顺序重排判定，位置配对不证明同一记录。
+
+宿主对 ZIP/XML 资源、实体与外部关系施加限制。界面说明内容子集，并提供独立原文预览；不能把已提取内容相同表述为整个文档或视觉效果一致。参见[设计与边界](../architecture/office-comparison.md)和[官方实现](../../Plugins/Official/Office/)。
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-office-plugin.py --output dist/Plugins/Office.crossdiffplugin
+bash scripts/tests/check-office-plugin.sh
+```

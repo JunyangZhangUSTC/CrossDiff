@@ -1,6 +1,6 @@
 # Plugin development · Experimental v1
 
-Status: 2026-10-02, for the unpublished CrossDiff 0.11.0 source preview (Photography/API/Audio 0.1.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
+Status: 2026-10-02, for the unpublished CrossDiff 0.12.0 source preview (Photography/API/Audio/Office 0.1.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
 
 The contract is implemented in [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift), [PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift), [PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) and [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift). Future capabilities discussed in the [architecture design](../architecture/compare-everything.md) are not automatically available in this preview.
 
@@ -16,6 +16,7 @@ Plugins supply comparison algorithms. The host reads inputs, runs tasks and disp
 | `httpExchange` | Bounded HTTP/cURL/HAR records normalized to typed sections and fields | `apiExchange`: paired request/response field differences |
 | `photoAnalysis` | Bounded, normalized Apple/OpenCV RGB/HSL distributions, neutral share and analysis metadata | `photography`: paired photos, regions, histograms, recorded curves and capture information |
 | `audioAnalysis` | Bounded source metadata and host matching evidence; no PCM, waveform or spectral grids | `audioTimeline`: paired timelines, channel waveforms, spectrograms, regions and A/B audition |
+| `officeDocument` | One selected DOCX/XLSX/PPTX section with typed cells, original positions, formulas and saved values | `officeDocuments`: native grids and paragraph/slide content |
 
 The bundled [PDF plugin](../../Plugins/PDF/) contains the JavaScript algorithm that aligns and classifies pages. PDFKit extracts and presents them in the host. The independently installable [JSON example](../../Plugins/Examples/JSON/) compares top-level JSON values through the same contract.
 
@@ -378,3 +379,17 @@ Inputs contain `AudioSourceMetadata`: source identity/name, duration, sample rat
 The restricted script reports metadata differences and independent union coverage. The host validates source bounds, finite values, budgets, schema/run identity and coverage, and requires the original evidence, state and host diagnostics to be retained. PCM, waveforms and spectral grids stay outside JSON. Apple analysis and the separate Olaf C helper are trusted host components; this does not grant arbitrary native/file access to third-party scripts or establish an OS sandbox.
 
 The contract is implemented in [`AudioComparison.swift`](../../Sources/CrossDiffCore/AudioComparison.swift). Run `check-audio-plugin.sh`, `check-audio-engine.sh`, `check-audio-cache.sh` and `check-audio-workflow.sh` under `scripts/tests/`. Package with `python3 scripts/package-audio-plugin.py`. Both editions contain the required host services and renderer.
+
+## crossdiff.office/1
+
+Office 0.1.0 requires host 0.12.0, even though the experimental protocol version remains 1. Each request compares **one selected section** of matching `kind` (`word`, `spreadsheet`, `presentation`). Inputs contain `sectionID`, `name`, and `rows`: source `id`, 1-based `position`, `label`, and `cells` with 1-based `column`, `type`, nullable source-string `value`, nullable `formula`, and nullable `format`. Numeric strings must never become JavaScript numbers. A missing cached value remains null, not an empty string. Format records are informative, not part of content equality.
+
+`options.keyColumns` is an array of at most 16 unique column numbers (spreadsheet only). Output `payload.rows` contains unique `id`, nullable `leftID`/`rightID`, `status` (`equal`, `modified`, `added`, `removed`), `basis` (`exact`, `key`, `position`, `unmatched`), `moved` and `ambiguous`. Every source row is covered exactly once. The host validates references, states, key identity and coverage before rendering its retained originals. The plugin cannot substitute source text. Exact matches precede key matches; duplicate or empty keys are uncertain. Reorder is based on relative order, not a raw row-number difference.
+
+The importer enforces ZIP/XML resource and entity boundaries. The renderer reports content scope and offers independent original preview. It must not label equal extracted content as whole-document or visual identity. See [Office design](../architecture/office-comparison.md) and the [official implementation](../../Plugins/Official/Office/).
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-office-plugin.py --output dist/Plugins/Office.crossdiffplugin
+bash scripts/tests/check-office-plugin.sh
+```

@@ -5,6 +5,53 @@ import Darwin
 /// A deliberately strict ZIP32 subset. Inspect raw names before libarchive can
 /// expose them as NUL-terminated strings, and reject ambiguous hidden records.
 enum ArchiveZIPReader {
+    /// Read selected package parts without extracting files. Every entry,
+    /// including unselected media, is bounded and CRC-verified before return.
+    static func packageParts(_ input: ArchiveInput, maximumEntries: Int,
+                             maximumExpandedBytes: Int64, maximumPartBytes: Int,
+                             maximumStoredBytes: Int, deadline: Date? = nil,
+                             include: (String) -> Bool) throws -> [String: Data] {
+        let records = try directory(input)
+        guard records.count <= maximumEntries else { throw ArchiveError.limit }
+        var declared: Int64 = 0
+        for record in records.values {
+            guard record.kind == .file || record.kind == .directory else { throw ArchiveError.unsupported }
+            guard record.size <= maximumExpandedBytes - declared else { throw ArchiveError.limit }
+            declared += record.size
+            if include(record.path), record.size > Int64(maximumPartBytes) { throw ArchiveError.limit }
+        }
+        if records.isEmpty { return [:] }
+        let stream = try ArchiveStream(input: input, zip: true)
+        var seen = Set<String>(), result: [String: Data] = [:], stored = 0, total: Int64 = 0
+        while let entry = try stream.next() {
+            let description = try stream.description(entry)
+            let path = try ArchiveBuilder.normalize(description.path, directory: description.kind == .directory) ?? ""
+            guard let record = records[path], seen.insert(path).inserted,
+                  description.kind == record.kind,
+                  description.size == nil || description.size == record.size else { throw ArchiveError.damaged }
+            let keep = record.kind == .file && include(path)
+            var content = Data(), crc = ZIPCRC(), amount: Int64 = 0
+            while true {
+                if let deadline, Date() > deadline { throw ArchiveError.limit }
+                let bytes = try stream.read()
+                if bytes.isEmpty { break }
+                amount += Int64(bytes.count); total += Int64(bytes.count)
+                guard amount <= record.size, total <= maximumExpandedBytes else { throw ArchiveError.limit }
+                crc.update(bytes)
+                if keep {
+                    guard content.count <= maximumPartBytes - bytes.count,
+                          stored <= maximumStoredBytes - bytes.count else { throw ArchiveError.limit }
+                    content.append(bytes); stored += bytes.count
+                }
+            }
+            guard amount == record.size, crc.value == record.crc else { throw ArchiveError.damaged }
+            if keep { result[path] = content }
+        }
+        guard seen.count == records.count else { throw ArchiveError.damaged }
+        try stream.finish()
+        return result
+    }
+
     struct Record {
         let rawName: Data
         let path: String

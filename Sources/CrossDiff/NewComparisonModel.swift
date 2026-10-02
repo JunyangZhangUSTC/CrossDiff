@@ -21,6 +21,7 @@ struct NewComparisonType: Identifiable, Equatable {
             if pluginID == "org.crossdiff.photography" { return L("摄影", "Photography") }
             if pluginID == "org.crossdiff.api" { return L("API 对比", "API Compare") }
             if pluginID == "org.crossdiff.audio" { return L("音频", "Audio") }
+            if pluginID == "org.crossdiff.office" { return L("办公文档", "Office Documents") }
             return manifest?.name.localized ?? L("插件比较", "Plugin Comparison")
         }
     }
@@ -36,17 +37,20 @@ struct NewComparisonType: Identifiable, Equatable {
             if manifest?.inputKind == .photoAnalysis { return L("影调、配色与局部区域分析", "Analyze tone, color and selected regions") }
             if isAPI { return L("HTTP 请求与响应的结构化差异", "Structured HTTP request and response differences") }
             if manifest?.inputKind == .audioAnalysis { return L("波形、时频图与片段对应", "Waveforms, spectrograms and matching passages") }
+            if isOffice { return L("Word、Excel 与 PowerPoint 内容差异", "Word, Excel and PowerPoint content differences") }
             return manifest?.summary.localized ?? ""
         }
     }
     @MainActor var symbol: String {
         if manifest?.inputKind == .photoAnalysis { return "camera.aperture" }
         if isAPI { return "arrow.left.arrow.right.square" }
+        if isOffice { return "doc.text.image" }
         if manifest?.inputKind == .audioAnalysis { return "waveform" }
         if kind == .plugin { return acceptsFolders ? "archivebox" : pluginID == "org.crossdiff.pdf" ? "doc.richtext" : "puzzlepiece.extension" }
         return kind.symbol
     }
     @MainActor var isAPI: Bool { manifest?.inputKind == .httpExchange }
+    @MainActor var isOffice: Bool { manifest?.inputKind == .officeDocument }
     @MainActor var acceptsTextInput: Bool { kind == .text || isAPI }
     @MainActor var acceptsFolders: Bool { kind == .folder || manifest?.inputKind == .archiveCatalog }
 
@@ -65,6 +69,10 @@ struct NewComparisonType: Identifiable, Equatable {
                 throw PluginAppError(zh: "此插件尚未安装或已停用，请在插件页启用后重试。", en: "This plugin is missing or disabled. Enable it in Plugins, then try again.")
             }
             if resource.isDirectory == true, acceptsFolders { return }
+            if isOffice, ["doc", "xls", "ppt"].contains(url.pathExtension.lowercased()) {
+                throw PluginAppError(zh: "请先将旧版 Office 文件转换为 .docx、.xlsx 或 .pptx，再进行比较。",
+                                     en: "Convert legacy Office files to .docx, .xlsx or .pptx before comparing.")
+            }
             guard resource.isRegularFile == true, manifest.fileExtensions.contains(url.pathExtension.lowercased()) else {
                 throw PluginAppError(zh: "此项目不适用于所选比较类型。", en: "This item is not supported by the selected comparison type.")
             }
@@ -118,6 +126,8 @@ final class NewComparisonModel: ObservableObject, Identifiable {
     }
     var canCreate: Bool {
         guard !busy, let type = selectedType, types.contains(type) else { return false }
+        if type.isOffice, case .file(let first) = left, case .file(let second) = right,
+           OfficeDocumentKind.from(fileExtension: first.pathExtension) != OfficeDocumentKind.from(fileExtension: second.pathExtension) { return false }
         return [left, right].allSatisfy {
             switch $0 {
             case .empty: return false
@@ -140,7 +150,15 @@ final class NewComparisonModel: ObservableObject, Identifiable {
     func setInput(_ input: NewComparisonInput, side: Side) {
         guard !busy, let type = selectedType else { return }
         do {
-            if case .file(let url) = input { try type.validate(url) }
+            if case .file(let url) = input {
+                try type.validate(url)
+                let other = side == .left ? right : left
+                if type.isOffice, case .file(let otherURL) = other,
+                   OfficeDocumentKind.from(fileExtension: url.pathExtension) != OfficeDocumentKind.from(fileExtension: otherURL.pathExtension) {
+                    throw PluginAppError(zh: "两侧需要同类 Office 文件，请选择两个 Word、两个 Excel 或两个 PowerPoint 文件。",
+                                         en: "Choose the same Office format on both sides: two Word, Excel or PowerPoint files.")
+                }
+            }
             if case .text(let text) = input {
                 guard type.acceptsTextInput else { return }
                 if type.isAPI, text.utf8.count > 4 * 1024 * 1024 {

@@ -4,7 +4,7 @@ CrossDiff is a native macOS application built with SwiftUI and AppKit. Its compa
 
 For product behavior, see the [user guide](usage.md), [specification](specification.md), and [roadmap](roadmap.md). Contribution expectations are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-The next framework direction is documented separately in the [product vision](product-vision.md), [architecture proposal](architecture/compare-everything.md), and [draft plugin guide](plugins/development.md). The broader architecture remains a proposal. The implemented experimental contract includes a JavaScriptCore helper and native table, document-page, archive-tree, photography, HTTP field and audio timeline renderers. Photography began in the 0.9.0 source preview, API Compare in 0.10.0, and Audio in 0.11.0. The current, unpublished 0.11.0 Full source build bundles all three at plugin version 0.1.0. Version 0.8.0 introduced Base and Full editions with a shared offline official-plugin catalog; see the [implemented API](plugins/development.en.md). Shared comparison terms are in the [glossary](../GLOSSARY.md), with accepted design decisions under [docs/adr](adr/0001-comparison-modes.md).
+The next framework direction is documented separately in the [product vision](product-vision.md), [architecture proposal](architecture/compare-everything.md), and [draft plugin guide](plugins/development.md). The broader architecture remains a proposal. The implemented experimental contract includes a JavaScriptCore helper and native table, document-page, archive-tree, photography, HTTP field, audio timeline and Office content renderers. Photography began in the 0.9.0 source preview, API Compare in 0.10.0, and Audio in 0.11.0. The current, unpublished 0.12.0 Full source build also bundles Office; all four use plugin version 0.1.0. Version 0.8.0 introduced Base and Full editions with a shared offline official-plugin catalog; see the [implemented API](plugins/development.en.md). Shared comparison terms are in the [glossary](../GLOSSARY.md), with accepted design decisions under [docs/adr](adr/0001-comparison-modes.md).
 
 ## Requirements
 
@@ -34,13 +34,13 @@ codesign --verify --deep --strict dist/CrossDiff.app
 bash scripts/open-dev-app.command
 ```
 
-The default build is **Full**: text, folders, images, Hex, the Archive plugin, PDF, Photography, API Compare and Audio. The output is `dist/CrossDiff.app`. You can also double-click `scripts/open-dev-app.command` in Finder. This launcher keeps runtime data local to the project. Opening the `.app` directly through Finder uses the ordinary application data directory, separate from development sessions.
+The default build is **Full**: text, folders, images, Hex, the Archive plugin, PDF, Photography, API Compare, Audio and Office. The output is `dist/CrossDiff.app`. You can also double-click `scripts/open-dev-app.command` in Finder. This launcher keeps runtime data local to the project. Opening the `.app` directly through Finder uses the ordinary application data directory, separate from development sessions.
 
 The build script replaces the executable atomically and applies an ad-hoc signature. Quit an older app normally before opening the new build; an already running process does not acquire newly built code. Do not force-terminate it and risk unsaved work. This is a local development package, not a Developer ID signed or notarized release.
 
 ### Build an edition
 
-Both editions compile the same host and renderers. **Base** bundles Archive; **Full** adds PDF, Photography, API Compare and Audio. The independently packaged JSON example is not bundled in either edition.
+Both editions compile the same host and renderers. **Base** bundles Archive; **Full** adds PDF, Photography, API Compare, Audio and Office. The independently packaged JSON example is not bundled in either edition.
 
 ```sh
 # Explicit Full build (the default).
@@ -217,7 +217,7 @@ These limits are deliberate product boundaries, not silent data conversions:
 - PDF uses read-only snapshots: up to 48 MiB per file, the first 200 pages, bounded extracted text and 384 px page fingerprints. It is preview/text analysis, not exact full-resolution visual equality or OCR. Scanned pages need manual visual review.
 - Photography is a read-only plugin using the host’s Apple/OpenCV pipeline. Each source is limited to 256 MiB and 64 megapixels; the display preview has a 2048 px longest edge and source-region statistics resample above a 4096 px longest edge. Values are floating-point sRGB SDR clamped to 0–1. HSL L is lightness, not physical luminance or exposure. Fully transparent/non-finite samples are excluded; valid pixels have equal weight; saturation below 2% is neutral and excluded from hue bins. RAW availability depends on macOS, the camera and encoding mode. Unsupported RAW fails without embedded-preview substitution. XMP curves are actual recorded control points, never inferred editing settings. There is no photo editing, HDR analysis, waveform/vectorscope, noise/sharpness scoring or full-resolution inspector in this preview. See [photography usage](usage.md#photography).
 - Audio accepts at most 2 GiB, two hours and eight channels per source for analysis, subject to the actual macOS decoder. Audition supports only mono/stereo; three-to-eight-channel files can still display waveforms, spectra and comparison results. Waveforms are overview envelopes, bounded to 8192 bins per channel. Spectra use a 48 kHz analysis copy and at most the first 30 seconds of the selected source region; dense FFT/hop settings can shorten that range with an explicit partial indicator. Frequencies above a source's Nyquist limit are shown as unavailable; original content above 24 kHz is outside these spectra. STFT uses mean channel power; fingerprints use the highest-energy source channel to avoid antiphase downmix cancellation. Matching emits candidates for fixed-speed excerpts of the same recording, not proof of identity, deletion or exact edit boundaries. Independent tempo/pitch recognition, arbitrary mixtures, sample-accurate waveform inspection, loudness-standard analysis and audio export are not included. Saved state contains regions and audition settings, not an edited audio file. See [audio usage](usage.md#audio).
-- Plugin v1 uses bounded single-file JSON packages and six native result views: `table`, `documentPages`, `archiveTree`, `photography`, `apiExchange` and `audioTimeline`. The official catalog installs missing restricted plugins only; existing external-plugin updates retain review, and bundled plugins update with the app. Restricted JavaScript has no host I/O APIs; native full-trust code is not sandboxed and quarantined executables are refused. Custom native views, assets/dependency loading, remote sources, Word, spreadsheets, three-way merging, syntax highlighting, unified diff view, context folding, and report export are future work. See the [roadmap](roadmap.md).
+- Plugin v1 uses bounded single-file JSON packages and seven native result views: `table`, `documentPages`, `archiveTree`, `photography`, `apiExchange`, `audioTimeline` and `officeDocuments`. The official catalog installs missing restricted plugins only; existing external-plugin updates retain review, and bundled plugins update with the app. Restricted JavaScript has no host I/O APIs; native full-trust code is not sandboxed and quarantined executables are refused. Custom native views, assets/dependency loading, remote sources, legacy Office and full visual comparison, three-way merging, syntax highlighting, unified diff view, context folding, and report export are future work. See the [roadmap](roadmap.md).
 
 Normal app data lives in `~/Library/Application Support/CrossDiff/`: `sessions.json` for local restoration and `preferences.json` for language and appearance, `Plugins/` for external packages and version state, and `plugin-preferences.json` for bundled-plugin enablement. Files are owner-readable/writable, not encrypted by the application. See [SECURITY.md](../SECURITY.md) for the privacy boundary.
 
@@ -232,3 +232,16 @@ bash scripts/tests/render-api-readme.sh
 ```
 
 Run these native captures serially in a macOS application session. Each script loads the project environment and uses isolated data, fixtures and build output inside this checkout. Only the named PNG files are copied to `docs/assets/screenshots/`. Audio examples are synthesized locally and capture does not play sound; API examples do not send requests. Inspect the rendered windows before committing assets. These captures supplement the workflow checks; they do not replace behavioral validation.
+
+### Office content comparison
+
+Office 0.1.0 requires the 0.12.0 host. `OfficeImporter.load` reads bounded DOCX/XLSX/PPTX packages with the existing system libarchive reader and Foundation XML. It does not add a Python/JVM runtime or execute formulas, macros or external relationships. `OfficeContract` supplies typed source cells to the restricted JS algorithm and validates one-to-one source coverage in its result. `OfficeComparisonModel` retains immutable source snapshots; keys and navigation rerun comparison, while Reload rereads files. Quick Look is an optional original-file preview, independent of the structured comparison.
+
+```sh
+bash scripts/tests/check-office-import.sh
+bash scripts/tests/check-office-plugin.sh
+bash scripts/tests/check-office-model.sh
+bash scripts/tests/check-office-workflow.sh
+```
+
+The native workflow uses only generated project-local DOCX/XLSX/PPTX fixtures. `--build-only` proves compilation, not native UI behavior. Scope and semantic limitations are in the [Office architecture](architecture/office-comparison.md).

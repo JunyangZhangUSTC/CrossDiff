@@ -1,6 +1,6 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac; the 0.11.0 source preview includes Photography, API Compare and Audio plugins. There is no sign-in. For build instructions, see the [development guide](development.md); for planned formats such as Word and spreadsheets, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac; the 0.12.0 source preview includes Photography, API Compare, Audio and Office plugins. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
@@ -90,9 +90,9 @@ Comparison uses an 8-bit sRGB preview with a maximum 1600-pixel longest edge. Im
 <a id="photography"></a>
 ## Photography / 摄影对比
 
-**始于 0.9.0 源码预览。** 当前公开下载仍为 0.8.0，不含摄影插件；当前 0.11.0 源码预览尚未发布，默认完整版预装 Photography 0.1.0；从同一源码构建的基础版可安装独立摄影包。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
+**始于 0.9.0 源码预览。** 当前公开下载仍为 0.8.0，不含摄影插件；当前 0.12.0 源码预览尚未发布，默认完整版预装 Photography 0.1.0；从同一源码构建的基础版可安装独立摄影包。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
 
-**Introduced in the 0.9.0 source preview.** The public 0.8.0 download does not include Photography. The current, unpublished 0.11.0 Full source build bundles Photography 0.1.0; a Base build from the same source can install its standalone package. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
+**Introduced in the 0.9.0 source preview.** The public 0.8.0 download does not include Photography. The current, unpublished 0.12.0 Full source build bundles Photography 0.1.0; a Base build from the same source can install its standalone package. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
 
 默认以双图为主，显示同刻度的 RGB 与 **HSL 明度 L** 直方图，以及低明度、高明度、高饱和区域占比的简短对比。**专业图表**展开 HSL、处理曲线、拍摄与分析信息。HSL L 不是物理亮度或曝光值，图表描述所选画面的分布，不给作品评分，也不反推调色滑块。快门、光圈、ISO、焦距等仅显示实际文件记录，缺失不猜测。
 
@@ -120,7 +120,7 @@ Each photograph is limited to **256 MiB and 64 megapixels**. Display previews ha
 <a id="api"></a>
 ## API 对比 / API Compare
 
-**始于 0.10.0 源码预览。** 当前 0.11.0 源码预览尚未发布，Full 预装 API 0.1.0，Base 可安装独立包；0.8.0/0.9.0 宿主不支持新的 HTTP 输入契约。
+**始于 0.10.0 源码预览。** 当前 0.12.0 源码预览尚未发布，Full 预装 API 0.1.0，Base 可安装独立包；0.8.0/0.9.0 宿主不支持新的 HTTP 输入契约。
 
 1. 选择 **新建… → API 对比**，两侧各粘贴一份 HTTP 请求/响应、常见浏览器复制的 cURL 命令，或 HAR 1.2；也可选择 `.http`、`.curl`、`.har` 等本地文件。
 2. HAR 包含多次调用时，在左右上方分别选择要比较的记录。请求与响应属于同一次调用，不是互相比较。
@@ -134,7 +134,7 @@ Each photograph is limited to **256 MiB and 64 megapixels**. Display previews ha
 
 默认遮罩常见凭据字段的展示值，真实值照常参与比较；这不是完整脱敏。粘贴记录可能含令牌、Cookie 或正文秘密，并按既有机制**明文保存在本机会话**；可通过“会话”菜单清除记录。源文件不被修改。
 
-**Introduced in the 0.10.0 source preview.** The current, unpublished 0.11.0 Full source build bundles API 0.1.0; a matching Base host can install the standalone package. Earlier hosts do not support the HTTP input contract.
+**Introduced in the 0.10.0 source preview.** The current, unpublished 0.12.0 Full source build bundles API 0.1.0; a matching Base host can install the standalone package. Earlier hosts do not support the HTTP input contract.
 
 Choose **New… → API Compare** and paste or open two HTTP/cURL/HAR sources. Each side represents an HTTP call, with its request and/or response. Select HAR records independently, filter request/response sections, search fields, and inspect JSON paths and types. Missing differs from null; array order and duplicate headers/parameters are retained. JSON numbers retain their exact spelling and precision. Explicit ignored header names and JSON Pointer subtrees remain inspectable, and selections/rules are restored with the session.
 
@@ -182,9 +182,9 @@ Choose each side through New… → PDF Documents, or open two PDFs through File
 
 Manage extensions under CrossDiff → Plugins…: choose or drop a `.crossdiffplugin` file, or enter an HTTPS URL and click Download & Inspect. Review the name, identifier, version, unverified publisher and runtime permissions before installation. Downloads from arbitrary URLs require review before installation. Changed packages must use a new version number.
 
-官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；0.8.0 完整版额外预装 PDF，0.11.0 源码完整版再加入摄影、API 与音频。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
+官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；0.8.0 完整版额外预装 PDF，0.12.0 源码完整版再加入摄影、API、音频与办公。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
 
-The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full 0.8.0 adds PDF, and Full 0.11.0 source builds add Photography, API Compare and Audio. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
+The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full 0.8.0 adds PDF, and Full 0.12.0 source builds add Photography, API Compare, Audio and Office. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
 
 停用或卸载后，会话保留并提示需要对应插件。外部插件更新后可回退至上一版本。内置 PDF 的更新随应用分发，不能由外部同名标识覆盖。
 
@@ -244,3 +244,26 @@ Each input is limited to **8 GiB**. The bounded algorithm may use explicitly ind
 **English:** Choose **New… → Audio** and select two local files. Full bundles Audio 0.1.0; a matching Base host can install its standalone package. Inspect per-channel waveforms or calibrated STFT spectrograms, select and save up to 32 region pairs, and audition A/B or loop a region. Audition supports mono/stereo. B has independent rate and pitch controls; these never rewrite the source. Find Matches uses a bundled Olaf helper for fixed-speed excerpts of the same recording, including reordered and repeated candidates. Automatic recognition of independent tempo or pitch changes is not supported in this preview. Unmatched regions are not proof of deletion. Analysis accepts up to 2 GiB, two hours and eight channels per side; three-to-eight-channel files remain available for waveforms, spectra and comparison, without audition. Codec support is probed by macOS. Waveforms are bounded overview envelopes. Spectra analyze at most the first 30 seconds of the selected region at 48 kHz, with smaller explicit ranges for dense settings. All comparison remains local.
 
 **Clear Audio Temporary Files** in the parameter panel removes abandoned analysis caches while preserving active jobs. Normal completions clean up automatically. Original audio and saved regions are unaffected.
+
+<a id="office"></a>
+## 办公文档 / Office Compare（0.12.0 源码预览）
+
+选择 **新建… → 办公文档**，在两侧选择同类 `.docx`、`.xlsx` 或 `.pptx`。Full 预装 Office 0.1.0；同版本 Base 可安装独立包。旧 `.doc/.xls/.ppt` 请先在办公软件中另存为现代格式。此预览尚未公开发布。
+
+- **Word：** 按段落与表格行对照，变更文字显示红绿高亮；通过两侧选择器查看已提取的其他文档部分。段落编号不是页码。
+- **Excel：** 默认先跨位置匹配完全相同行。点击 **匹配关键列**，选择编号等一列或多列，进一步识别同一记录的修改；左右按相同列位置取键，最多 16 列。重复或空键会标记不确定，不强行配对。无关键列时，剩余记录按位置对照，详情会说明这不证明记录身份。
+- **PowerPoint：** 按文稿的实际幻灯片顺序读取文字、表格与可提取备注。两侧可独立选择幻灯片；左侧选择会优先按同名部分、再按位置选择右侧，必要时自行更正配对。
+- **阅读差异：** 左右保留原行号；中间符号区分相同、变更、新增、删除和重排。插入导致的行号偏移不等于重排。点击中间符号查看匹配依据、完整单元格、类型、公式与保存的结果。搜索同时检查内容与公式，支持“仅差异”；宽表按列组切换并可横向滚动。
+- **原文预览：** 点击文件名旁的眼睛按钮，按需打开系统 Quick Look。展示的是当前磁盘文件，支持情况取决于 macOS；预览不提供与差异逐页同步的承诺。重新读取按钮才会更新比较快照。
+
+**比较范围：** 当前结果与计数针对选中的工作表、文档部分或幻灯片，不是整份文件完全一致的判定。内容比较不等于完整视觉比较；字体、排版、图表、图片、嵌入对象等未完整比较。导入说明与范围入口会列出限制。公式及缓存结果分别保留，不执行公式；缓存可能缺失或陈旧。日期与数值保留原始记录，格式可在详情查看，不模拟 Excel 显示引擎。
+
+解析在本机只读执行，使用系统 ZIP 解码和 Foundation XML；不执行宏、不获取外部关系或 XML 实体，不写出解压文件。每侧文件最多 128 MiB；累计解码 256 MiB，单 XML 16 MiB、保留 XML 64 MiB，单文档内容与请求还受行数、单元格数及协议预算约束。超限或损坏明确报错，不静默截断后宣称相同。
+
+**English:** Choose **New… → Office Documents** and select two files of the same modern format: DOCX, XLSX or PPTX. Full bundles Office 0.1.0; a matching Base host can install the package. Convert legacy DOC/XLS/PPT files first. This preview is not yet publicly released.
+
+Word shows paragraph/table content with character highlights. Excel matches exact rows across positions; **Match by Key** accepts up to 16 columns to identify changed records. Keys use the same column positions on both sides. Duplicate or empty keys remain uncertain; unmatched records without keys use an explicitly labeled positional comparison. PowerPoint follows presentation order and extracts text, tables and available notes. Section selectors work independently; choosing on the left suggests a right-side match by name, then position.
+
+Original row numbers, changes and reorder markers remain separate. Click a center symbol for matching evidence, complete cell values, types, formulas and saved results. Search covers content and formulas. Wide sheets provide column groups and horizontal scrolling. The eye button opens the current file in system Quick Look, whose support depends on macOS; it is not a synchronized page renderer. Reload explicitly refreshes the imported snapshot.
+
+Results cover the selected sections, not complete visual or file identity. Formatting, charts, images and embedded objects are not fully compared. Formulas are never evaluated; saved results may be missing or stale. Numeric/date records preserve source precision, without emulating Excel formatting. Parsing stays local and read-only with bounded ZIP/XML resources, no macro execution, external-relationship fetch or external entities. Unsupported, damaged and oversized inputs report errors. See [implementation boundaries](architecture/office-comparison.md).

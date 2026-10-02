@@ -1,0 +1,13 @@
+{
+  "id": "org.crossdiff.office",
+  "version": "0.1.0",
+  "name": { "zhHans": "办公文档对比", "en": "Office Compare" },
+  "summary": { "zhHans": "只读比较 Word、Excel 与 PowerPoint 内容；全表匹配相同行，按关键列定位修改并保留原始位置。", "en": "Read-only Word, Excel and PowerPoint content comparison, with cross-row matching, key columns and original source positions." },
+  "runtime": "restrictedJavaScript",
+  "inputKind": "officeDocument",
+  "fileExtensions": ["docx", "xlsx", "pptx"],
+  "resultView": "officeDocuments",
+  "supportedModes": ["pairwise"],
+  "minHostProtocol": 1,
+  "maxHostProtocol": 1
+}

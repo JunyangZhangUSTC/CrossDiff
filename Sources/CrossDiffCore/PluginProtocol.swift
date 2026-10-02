@@ -60,7 +60,7 @@ public struct PluginLocalizedText: Codable, Equatable, Sendable {
 }
 
 public enum PluginRuntimeProfile: String, Codable, Sendable { case restrictedJavaScript, trustedExecutable }
-public enum PluginInputKind: String, Codable, Sendable { case text, pdf, archiveCatalog, photoAnalysis, httpExchange, audioAnalysis }
+public enum PluginInputKind: String, Codable, Sendable { case text, pdf, archiveCatalog, photoAnalysis, httpExchange, audioAnalysis, officeDocument }
 public enum PluginComparisonMode: String, Codable, Sendable { case pairwise, threeWayMerge, multiSubject }
 public enum PluginInputRole: String, Codable, Sendable { case left, right, base, ours, theirs, peer }
 public enum PluginResultStatus: String, Codable, Sendable { case completed, partial }
@@ -96,6 +96,7 @@ public struct PluginManifest: Codable, Equatable, Sendable {
         case "photography": return "crossdiff.photography/1"
         case "apiExchange": return "crossdiff.api-exchange/1"
         case "audioTimeline": return "crossdiff.audio/1"
+        case "officeDocuments": return "crossdiff.office/1"
         default: return ""
         }
     }
@@ -152,6 +153,13 @@ public struct PluginComparisonRequest: Codable, Equatable, Sendable {
             }
             try AudioContract.validateOptions(options, leftDuration: AudioContract.metadata(left.content).duration,
                                               rightDuration: AudioContract.metadata(right.content).duration)
+        }
+        if manifest.inputKind == .officeDocument {
+            for input in inputs { try OfficeContract.validateInput(input.content) }
+            try OfficeContract.validateOptions(options)
+            guard Set(inputs.compactMap { $0.content["kind"]?.stringValue }).count == 1 else {
+                throw PluginValidationError.invalidField("office document kinds")
+            }
         }
         let roles = inputs.map(\.role)
         switch mode {
@@ -219,6 +227,7 @@ public struct PluginComparisonResult: Codable, Equatable, Sendable {
         guard try JSONEncoder().encode(self).count <= 8 * 1024 * 1024 else { throw PluginValidationError.sizeLimit }
         if schema == "crossdiff.api-exchange/1" { _ = try APIComparisonResult.parse(self) }
         if schema == "crossdiff.audio/1" { try AudioContract.validateResult(self, request: request) }
+        if schema == "crossdiff.office/1" { try OfficeContract.validateResult(self, request: request) }
         if schema == "crossdiff.photography/1" {
             guard let findings = payload["findings"]?.arrayValue, findings.count <= 8,
                   findings.allSatisfy({ value in

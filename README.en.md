@@ -43,7 +43,7 @@ From a quick text paste to code directories, archives, images, and research PDFs
 | **Free and open source**<br>AGPL v3 source you can inspect, build, and modify. No subscriptions, trial clocks, or feature paywalls. | **No sign-up. Ready to use.**<br>No account, login, or activation. Open the app, choose the two inputs, and start comparing. |
 | **Precise differences, deliberate edits**<br>Character highlights, aligned rows, block merging, independent undo, and explicit saving. Comparing never overwrites your source files. | **Considered design, room to grow**<br>Light and dark themes, English and Simplified Chinese, tabs, and synchronized scrolling. Add plugins when you need more. |
 
-The following features show the **0.11.0 source preview**. The public download remains **0.8.0**; the new Photography, API and Audio plugins are not yet publicly released.
+The following features show the **0.12.0 source preview**. The public download remains **0.8.0**; the new Photography, API, Audio and Office plugins are not yet publicly released.
 
 ## See changes in sound
 
@@ -81,6 +81,7 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 | **Images** | Side-by-side, overlay, wipe, and pixel-difference views. Scale, rotate, flip, drag to align, resize from corners, or compare only the overlapping area. |
 | **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |
 | **PDF documents** | Page matching, inserted/deleted-page navigation, native page previews, and extracted-text differences. Included in Full; available as an official plugin for Base. |
+| **Office documents** | Word paragraphs and tables, Excel rows matched across positions or by key columns, and PowerPoint slide content. Character highlights, formulas and saved results, plus original previews. Read-only DOCX/XLSX/PPTX support. [Office guide](docs/usage.md#office) |
 | **API** | Compare locally saved requests and responses as structured fields to investigate changes. |
 | **Audio** | Compare recordings and edited versions on paired timelines, with a closer look at selected passages. |
 | **Photography** | Read-only paired photographs, RGB/HSL histograms, named region pairs, capture metadata, and recorded processing curves. Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
@@ -106,9 +107,9 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 
 ## Choose your edition
 
-**Published download: 0.8.0 · Source preview: 0.11.0 · macOS 14+ · Apple silicon (arm64)**
+**Published download: 0.8.0 · Source preview: 0.12.0 · macOS 14+ · Apple silicon (arm64)**
 
-**Full 0.8.0 = Base + PDF. Full from the 0.11.0 source adds Photography, API and Audio.** Version 0.11.0 is not yet publicly released; build from source to try it.
+**Full 0.8.0 = Base + PDF. Full from the 0.12.0 source adds Photography, API, Audio and Office.** Version 0.12.0 is not yet publicly released; build from source to try it.
 
 Base is the everyday starting point. Choose Full if you want PDF preinstalled. Both are free, open source, and account-free.
 
@@ -210,8 +211,8 @@ Our direction is **“Compare everything. Make every comparison count.”** Star
 
 | Available today | Next to explore |
 | :--- | :--- |
-| Text, folders, images, Hex, archives, PDF; Photography, API, and Audio in the 0.11.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
-| A native workspace, plugin management, Base and Full editions | Office, network packets, databases, advanced photography analysis, video, model structures, and tensor plugins; automatic audio tempo/pitch recognition |
+| Text, folders, images, Hex, archives, PDF; Photography, API, Audio and Office in the 0.12.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
+| A native workspace, plugin management, Base and Full editions | Legacy Office and full visual comparison, network packets, databases, advanced photography analysis, video, model structures, and tensor plugins; automatic audio tempo/pitch recognition |
 | English and Simplified Chinese, light and dark themes, local session restoration | Plugin bundles for photographers, media professionals, and developers |
 
 The right column is **planned work**. Current views provide two-way comparison. PDF has no OCR yet; archives do not support RAR, 7z, or encryption; folders do not provide full synchronization. See the [roadmap](docs/roadmap.md) and [implementation limits](docs/development.md#current-implementation-limits) for file limits, RAW compatibility, and analysis boundaries.
