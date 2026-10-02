@@ -195,6 +195,23 @@ public final class PluginStore {
         }
     }
 
+    /// Retry cleanup after a committed uninstall whose file removal failed.
+    /// Never removes registered versions, and never follows a plugin directory symlink.
+    public func pruneUnregisteredFiles(id: String) throws {
+        try locked {
+            guard PluginManifest.validIdentifier(id), state.plugins[id] == nil else {
+                throw PluginValidationError.unsafeStore
+            }
+            try validateRoot()
+            try checkMetadataUnchanged()
+            let directory = versionsURL.appendingPathComponent(id, isDirectory: true)
+            if try exists(directory) {
+                try requireDirectory(directory)
+                try fileManager.removeItem(at: directory)
+            }
+        }
+    }
+
     /// Returns only digest-verified native code. The caller must still validate its signature before launching.
     public func executableURL(id: String) throws -> URL? {
         try locked {

@@ -8,6 +8,10 @@ struct AlignmentChecks {
     static func main() async {
         _ = NSApplication.shared
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 500), styleMask: [.titled], backing: .buffered, defer: false)
+        if CommandLine.arguments.contains("--newline-only") {
+            await checkNewlineBackground(window: window)
+            return
+        }
         let cases = [
             ("shared\nend", "new first\nshared\nend\nnew last"),
             ("head\nremoved one\nremoved two\n共同🧑‍💻\ntail", "head\n共同🧑‍💻\ntail"),
@@ -23,7 +27,81 @@ struct AlignmentChecks {
         checkEditing(window: window)
         checkNativeEditReentry(window: window)
         await checkSearchEditing(window: window)
+        await checkNewlineBackground(window: window)
         print("Alignment checks passed: leading/middle/trailing gaps, empty sides, Unicode/CRLF, unequal wrapping, selection, independent undo, IME, toggles, direct scroll positions, stale refresh rejection, and search typing caret.")
+    }
+
+    // The first Return in an otherwise identical wrapped paragraph changes the
+    // alignment geometry. Inspect the composed parent, not an editor-only draw:
+    // empty space below the last glyph row must not split into white/green halves.
+    static func checkNewlineBackground(window: NSWindow) async {
+        AppAppearance.shared.isDark = false
+        window.setContentSize(NSSize(width: 1000, height: 720))
+        window.setFrameOrigin(NSPoint(x: -10000, y: -10000))
+        window.orderFront(nil)
+        let prefix = String(repeating: "A green leaf ", count: 8)
+        let suffix = String(repeating: "Distant flowers ", count: 8) + prefix
+        let original = prefix + suffix
+        let session = ComparisonSession(left: .init(text: original), right: .init(text: original))
+        session.wrapLines = true; session.alignDifferences = true
+        let left = TextEditorState(text: original, side: .left, wrapLines: true)
+        let right = TextEditorState(text: original, side: .right, wrapLines: true)
+        session.leftEditorState = left; session.rightEditorState = right
+        let link = EditorScrollLink()
+        let lc = attach(left, side: .left, session: session, link: link, width: 500, window: window)
+        let rc = attach(right, side: .right, session: session, link: link, width: 500, window: window)
+        left.scroll.frame = NSRect(x: 0, y: 0, width: 500, height: 720)
+        right.scroll.frame = NSRect(x: 500, y: 0, width: 500, height: 720)
+        defer { lc.disconnect(); rc.disconnect(); left.scroll.removeFromSuperview(); right.scroll.removeFromSuperview() }
+        await settle(session)
+        lc.refresh(text: session.left.text, in: left.scroll); rc.refresh(text: session.right.text, in: right.scroll)
+        window.makeFirstResponder(right.editor)
+        right.editor.setSelectedRange(NSRange(location: prefix.utf16.count, length: 0))
+        let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent(".build-alignment-checks/renders", isDirectory: true)
+        try! FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        var failures: [String] = []
+        for count in 1...2 {
+            right.editor.insertNewline(nil)
+            await settle(session)
+            lc.refresh(text: session.left.text, in: left.scroll); rc.refresh(text: session.right.text, in: right.scroll)
+            window.contentView!.layoutSubtreeIfNeeded()
+            let layout = right.editor.layoutManager!, container = right.editor.textContainer!
+            layout.ensureLayout(for: container)
+            let glyph = layout.glyphIndexForCharacter(at: prefix.utf16.count - 1)
+            let fragment = layout.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+            let used = layout.lineFragmentUsedRect(forGlyphAt: glyph, effectiveRange: nil)
+            let gap = fragment.maxY - used.maxY
+            let parent = window.contentView!
+            parent.displayIfNeeded()
+            guard let bitmap = parent.bitmapImageRepForCachingDisplay(in: parent.bounds) else {
+                preconditionFailure("No parent-window bitmap for newline regression")
+            }
+            parent.cacheDisplay(in: parent.bounds, to: bitmap)
+            let name = "newline-\(count)-light-parent"
+            try! bitmap.representation(using: .png, properties: [:])!.write(to: output.appendingPathComponent(name + ".png"))
+            func sample(x: CGFloat) -> NSColor {
+                let point = right.editor.convert(NSPoint(x: x + right.editor.textContainerOrigin.x,
+                    y: used.maxY + gap / 2 + right.editor.textContainerOrigin.y), to: parent)
+                let px = Int((point.x - parent.bounds.minX) * CGFloat(bitmap.pixelsWide) / parent.bounds.width)
+                let y = parent.isFlipped ? point.y - parent.bounds.minY : parent.bounds.maxY - point.y
+                let py = Int(y * CGFloat(bitmap.pixelsHigh) / parent.bounds.height)
+                precondition(px >= 0 && py >= 0 && px < bitmap.pixelsWide && py < bitmap.pixelsHigh,
+                             "Newline regression sample must be inside the composed parent window")
+                return bitmap.colorAt(x: px, y: py)!.usingColorSpace(.sRGB)!
+            }
+            let leading = sample(x: fragment.minX + 14)
+            let trailing = sample(x: fragment.maxX - 14)
+            let distance = max(abs(leading.redComponent - trailing.redComponent),
+                abs(leading.greenComponent - trailing.greenComponent), abs(leading.blueComponent - trailing.blueComponent))
+            let validSource = session.left.text == original && session.right.text == prefix + String(repeating: "\n", count: count) + suffix
+            if !validSource { failures.append("\(name): Return must preserve both source texts") }
+            if !link.alignment.isAligned || gap < 30 { failures.append("\(name): fixture must create a visible wrapped-line alignment gap (actual \(gap))") }
+            if distance > 0.03 { failures.append("\(name): blank alignment area has discontinuous background: leading=\(leading), trailing=\(trailing)") }
+            print("\(name): fragment=\(fragment), used=\(used), gap=\(gap), backgroundDistance=\(distance); PNG=\(output.appendingPathComponent(name + ".png").path)")
+        }
+        if !failures.isEmpty { print("FAIL: " + failures.joined(separator: "; ")); exit(1) }
+        print("PASS: first and second native Return preserve continuous parent-rendered alignment backgrounds")
     }
 
     static func checkNativeEditReentry(window: NSWindow) {

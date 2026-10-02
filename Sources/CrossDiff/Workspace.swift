@@ -115,6 +115,7 @@ final class ComparisonSession: ObservableObject, Identifiable {
     var leftEditorState: TextEditorState?
     var rightEditorState: TextEditorState?
     // Keep image alignment and decoded previews when switching comparison tabs.
+    lazy var folderComparisonModel = FolderComparisonModel()
     lazy var imageComparisonModel = ImageComparisonModel()
     lazy var binaryComparisonModel = BinaryComparisonModel()
     lazy var pdfComparisonModel = PDFComparisonModel()
@@ -587,6 +588,7 @@ final class WorkspaceStore: ObservableObject {
             alert.addButton(withTitle: L("取消", "Cancel")); alert.addButton(withTitle: L("关闭并丢弃", "Discard Changes and Close"))
             guard alert.runModal() == .alertSecondButtonReturn else { return }
         }
+        if session.kind == .folder { session.folderComparisonModel.cancel() }
         if session.kind == .binary { session.binaryComparisonModel.cancel() }
         if session.kind == .plugin, PluginManager.shared.plugin(id: session.pluginID)?.package.manifest.inputKind == .audioAnalysis {
             session.audioComparisonModel.cancel()

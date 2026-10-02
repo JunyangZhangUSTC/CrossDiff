@@ -138,6 +138,43 @@ private final class CatalogTransport: URLProtocol {
 
             baseAgain.rollback(official.id)
             try check(baseAgain.plugin(id: official.id)?.package.manifest.version == "0.0.9", "rollback still works after changing editions")
+
+            let removalData = root.appendingPathComponent("removed-official")
+            let removalStore = try PluginStore(root: removalData.appendingPathComponent("Plugins"))
+            try removalStore.install(package())
+            try removalStore.setEnabled(false, for: official.id)
+            try bytes.write(to: bundleURL)
+            let removableFull = PluginManager(directory: removalData, bundledDirectory: bundles, catalogURL: catalogURL)
+            removableFull.removeBundled(official.id)
+            let beforeRestore = CatalogTransport.requests
+            removableFull.restoreBundled(official.id)
+            try check(removableFull.plugin(id: official.id)?.enabled == true && CatalogTransport.requests == beforeRestore,
+                      "restoring a preinstalled official plugin is entirely offline")
+            removableFull.removeBundled(official.id)
+            removableFull.installOfficial(official, configuration: config)
+            try await wait(removableFull)
+            try check(removableFull.plugin(id: official.id) == nil && removableFull.removedBundledPlugins.count == 1,
+                      "catalog installation cannot replace or silently restore a removed bundle")
+            try FileManager.default.removeItem(at: bundleURL)
+            let removedBase = PluginManager(directory: removalData, bundledDirectory: bundles, catalogURL: catalogURL)
+            try check(removedBase.plugin(id: official.id) == nil && removedBase.failedPlugins.isEmpty,
+                      "removed official identity stays hidden after moving from Full to Base")
+            let oldExternalPackage = removalData.appendingPathComponent("Plugins/versions/\(official.id)/0.1.0/package.crossdiffplugin")
+            try Data("broken external package".utf8).write(to: oldExternalPackage)
+            let oldRegistry = try Data(contentsOf: removalData.appendingPathComponent("Plugins/state.json"))
+            CatalogTransport.respond(Data(repeating: 1, count: bytes.count))
+            removedBase.installOfficial(official, configuration: config); try await wait(removedBase)
+            try check(removedBase.plugin(id: official.id) == nil && removedBase.message != nil,
+                      "a failed official reinstall never clears removal preferences")
+            try check(try Data(contentsOf: oldExternalPackage) == Data("broken external package".utf8)
+                      && Data(contentsOf: removalData.appendingPathComponent("Plugins/state.json")) == oldRegistry,
+                      "invalid downloaded replacement cannot remove the old external registration or files")
+            CatalogTransport.respond(bytes)
+            removedBase.installOfficial(official, configuration: config); try await wait(removedBase)
+            try check(removedBase.plugin(id: official.id)?.enabled == true && removedBase.pendingPackage == nil,
+                      "explicit verified official reinstall repairs the damaged hidden package and clears removal")
+            try check(PluginManager(directory: removalData, bundledDirectory: bundles, catalogURL: catalogURL).plugin(id: official.id)?.enabled == true,
+                      "official reinstall activation survives a fresh manager")
             let waiting = PluginManager(directory: root.appendingPathComponent("waiting"), bundledDirectory: bundles, catalogURL: catalogURL)
             CatalogTransport.respond(bytes, waiting: true)
             waiting.installOfficial(official, configuration: config)

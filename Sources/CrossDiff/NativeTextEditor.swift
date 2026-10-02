@@ -305,7 +305,7 @@ final class TextEditorState {
 
     init(text: String, side: Side, wrapLines: Bool) {
         let storage = NSTextStorage()
-        let layout = NSLayoutManager(); storage.addLayoutManager(layout); layout.delegate = alignmentLayout
+        let layout = ComparisonTextLayoutManager(); storage.addLayoutManager(layout); layout.delegate = alignmentLayout
         let container = NSTextContainer(size: NSSize(width: 500, height: CGFloat.greatestFiniteMagnitude)); layout.addTextContainer(container)
         container.lineFragmentPadding = 0
         editor = ComparisonTextView(frame: NSRect(x: 0, y: 0, width: 500, height: 400), textContainer: container)

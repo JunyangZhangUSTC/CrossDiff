@@ -14,13 +14,15 @@ Local processing. Native interaction. No sign-up. Ready when you are. Extend it 
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[Download Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
+[Download Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
 
 </div>
 
-> 🌟 **Not sure which edition to choose? Download Full: [CrossDiff-0.11.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip).**
+> 🌟 **Not sure which edition to choose? Download Full: [CrossDiff-0.12.1-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip).**
 >
 > For Apple silicon Macs running macOS 14+. Every official plugin for this version is preinstalled and ready to use. Choose Base only if you need the essentials.
+>
+> Draft assets become available after publication. If the link above is not available yet, get the current public version from [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases).
 
 <table>
 <tr><td>
@@ -43,7 +45,7 @@ From a quick text paste to code directories, archives, images, and research PDFs
 | **Free and open source**<br>AGPL v3 source you can inspect, build, and modify. No subscriptions, trial clocks, or feature paywalls. | **No sign-up. Ready to use.**<br>No account, login, or activation. Open the app, choose the two inputs, and start comparing. |
 | **Precise differences, deliberate edits**<br>Character highlights, aligned rows, block merging, independent undo, and explicit saving. Comparing never overwrites your source files. | **Considered design, room to grow**<br>Light and dark themes, English and Simplified Chinese, tabs, and synchronized scrolling. Add plugins when you need more. |
 
-The current public preview is **0.11.0**, including Photography, API and Audio. Office comparison below is new in the **0.12.0 source preview**, which is being prepared for release.
+**0.12.1** improves large folder comparisons, plugin removal and wrapped text rendering. Full includes PDF, Photography, API, Audio and Office. See [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases) for published versions and available assets.
 
 ## See changes in sound
 
@@ -76,7 +78,7 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 | Compare | Available today |
 | :--- | :--- |
 | **Text & code** | Paste text or open files; inspect character or line changes; align rows; edit either side; merge blocks; find and replace; undo independently. Works with text formats such as TXT, Markdown, HTML, JSON, XML, and YAML. |
-| **Local folders** | Compare directories recursively, filter differences, find one-sided files, and preview additions or overwrites before copying selected files. |
+| **Local folders** | Show clear differences before verifying contents, with scan progress, custom ignore rules and results retained across tab switches; preview and revalidate selected copies. |
 | **Archives** | Treat ZIP, TAR, and common compressed TAR formats as virtual folders. Compare an archive with another archive or a local folder, verify contents, and find identical files across paths without extracting to disk. Bundled with Base. |
 | **Images** | Side-by-side, overlay, wipe, and pixel-difference views. Scale, rotate, flip, drag to align, resize from corners, or compare only the overlapping area. |
 | **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |
@@ -107,9 +109,9 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 
 ## Choose your edition
 
-**Published download: 0.11.0 · Source preview: 0.12.0 · macOS 14+ · Apple silicon (arm64)**
+**Version covered here: 0.12.1 · macOS 14+ · Apple silicon (arm64)**
 
-**Full is recommended: all core features and every official plugin for the version, ready to use.** The published 0.11.0 Full includes PDF, Photography, API and Audio. The 0.12.0 source preview adds Office comparison; build from source to try it.
+**Full is recommended: all core features and every official plugin for the version, ready to use.** Archive, PDF, Photography, API, Audio and Office comparison are all included.
 
 Choose Base if you only need text, folders, images, Hex and archives. Both editions are free, open source, and account-free.
 
@@ -136,9 +138,10 @@ Intel builds have not yet been verified. CrossDiff is an actively developed prev
 
 Choose **New… → More Comparisons**, or **CrossDiff → Plugins…**.
 
-- **Install in the app:** choose **Download & Install** in the official plugin list. CrossDiff downloads the matching GitHub Release package, verifies it, and completes the installation.
+- **Install in the app:** choose **Download & Install** on the **Discover** page. CrossDiff downloads the matching GitHub Release package, verifies it, and completes the installation.
 - **Install a downloaded file:** get a `.crossdiffplugin` from Release Assets, then drag it into CrossDiff or select it in the plugin manager.
-- **Stay in control:** disable, uninstall, or roll back updated plugins while keeping existing comparison sessions.
+- **Manage installed plugins:** the plugin manager opens on Installed, with visible controls to enable, disable or **uninstall** locally installed plugins. Updated plugins can also roll back.
+- **Organize bundled plugins:** **remove** preinstalled plugins from your workspace and **restore** them offline whenever needed. Removal persists and keeps your files and sessions. Bundled files remain in the app, so its size does not change.
 
 Browse the official list offline. **The app connects only when you choose to download a plugin; your comparisons stay local.** No registration or GitHub login is required.
 
@@ -146,7 +149,7 @@ Base features such as Archive also ship as plugins, keeping different domains in
 
 ## Get started
 
-Download [Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
+Download [Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
 
 1. Click **New…** (⌘N), then choose text, folders, archives, images, binary files, or an installed plugin.
 2. Prepare the left and right inputs and click **Compare**. For text, paste directly or select a file.
@@ -211,7 +214,7 @@ Our direction is **“Compare everything. Make every comparison count.”** Star
 
 | Available today | Next to explore |
 | :--- | :--- |
-| Text, folders, images, Hex, archives, PDF, Photography, API and Audio; Office added in the 0.12.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
+| Text, folders, images, Hex, archives, PDF, Photography, API, Audio and Office | Remote folder sources, three-way text merging, and multi-object comparison |
 | A native workspace, plugin management, Base and Full editions | Legacy Office and full visual comparison, network packets, databases, advanced photography analysis, video, model structures, and tensor plugins; automatic audio tempo/pitch recognition |
 | English and Simplified Chinese, light and dark themes, local session restoration | Plugin bundles for photographers, media professionals, and developers |
 

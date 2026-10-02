@@ -1,29 +1,23 @@
 import SwiftUI
 import CrossDiffCore
 
-public struct FolderComparisonView: View {
+@MainActor
+struct FolderComparisonView: View {
     let left: URL
     let right: URL
     let onOpenPair: (URL, URL) -> Void
     @ObservedObject private var settings = AppSettings.shared
-    @StateObject private var model = FolderComparisonModel()
-    @State private var selection = Set<String>()
-    @State private var differencesOnly = true
-    @State private var query = ""
+    @ObservedObject private var appearance = AppAppearance.shared
+    @ObservedObject var model: FolderComparisonModel
+    @State private var showingIgnoreRules = false
+    @State private var ignoreDraft = ""
+    private var theme: ComparisonTheme { appearance.colors }
 
-    public init(left: URL, right: URL, onOpenPair: @escaping (URL, URL) -> Void) {
-        self.left = left
-        self.right = right
-        self.onOpenPair = onOpenPair
+    init(left: URL, right: URL, model: FolderComparisonModel, onOpenPair: @escaping (URL, URL) -> Void) {
+        self.left = left; self.right = right; self.model = model; self.onOpenPair = onOpenPair
     }
 
-    private var entries: [FolderEntry] {
-        (model.result?.entries ?? []).filter {
-            (!differencesOnly || $0.status != .same) && (query.isEmpty || $0.path.localizedCaseInsensitiveContains(query))
-        }
-    }
-
-    public var body: some View {
+    var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
                 rootLabel(left, title: L("左侧", "Left"))
@@ -32,22 +26,10 @@ public struct FolderComparisonView: View {
             }
             .padding(.horizontal, 20).padding(.vertical, 14)
             Divider()
-            HStack(spacing: 12) {
-                Toggle(L("仅显示差异", "Differences Only"), isOn: $differencesOnly).toggleStyle(.checkbox)
-                TextField(L("筛选路径", "Filter Paths"), text: $query).textFieldStyle(.roundedBorder).frame(maxWidth: 220)
-                Spacer()
-                Button { selection.removeAll(); model.scan(left: left, right: right) } label: {
-                    Label(L("重新比较", "Compare Again"), systemImage: "arrow.clockwise")
-                }.disabled(model.busy)
-                Button { preview(toRight: false) } label: {
-                    Label(L("复制到左", "Copy to Left"), systemImage: "arrow.left")
-                }.disabled(!canCopy(toRight: false))
-                Button { preview(toRight: true) } label: {
-                    Label(L("复制到右", "Copy to Right"), systemImage: "arrow.right")
-                }.disabled(!canCopy(toRight: true))
-            }.padding(.horizontal, 20).padding(.vertical, 10)
+            controls
             Divider()
-            Table(entries, selection: $selection) {
+            if model.scanning { scanProgress; Divider() }
+            Table(model.visibleEntries, selection: $model.selection) {
                 TableColumn(L("相对路径", "Relative Path")) { entry in
                     HStack(spacing: 7) {
                         Image(systemName: icon(entry)).foregroundStyle(entry.isDirectory ? Color.accentColor : .secondary)
@@ -66,36 +48,126 @@ public struct FolderComparisonView: View {
                 TableColumn(L("右侧大小", "Right Size")) { entry in sizeLabel(entry.right) }.width(100)
             }
             .overlay {
-                if model.scanning {
-                    VStack(spacing: 14) {
-                        ProgressView()
-                        Text(L("正在比较文件内容…", "Comparing file contents…")).font(.callout)
-                        Button(L("取消", "Cancel")) { model.cancel() }
-                    }.padding(28).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-                } else if entries.isEmpty {
-                    ContentUnavailableView(model.result == nil ? L("尚未完成比较", "Comparison Not Completed") : L("没有匹配的差异", "No Matching Differences"),
-                                           systemImage: model.result == nil ? "folder" : "checkmark.circle",
-                                           description: Text(model.result == nil ? L("点击重新比较开始扫描。", "Click Compare Again to start scanning.") : L("关闭差异筛选可查看相同文件。", "Turn off Differences Only to see identical files.")))
+                if model.visibleEntries.isEmpty && !model.filtering {
+                    if model.scanning && model.result == nil {
+                        ContentUnavailableView(L("正在建立文件清单", "Building File Inventory"), systemImage: "folder.badge.gearshape",
+                                               description: Text(L("先检查路径和大小，再核验需要比较的文件内容。", "Checking paths and sizes before verifying file contents.")))
+                    } else if !model.scanning {
+                        ContentUnavailableView(model.result?.isComplete == true ? L("没有匹配的差异", "No Matching Differences") : L("比较尚未完成", "Comparison Incomplete"),
+                                               systemImage: model.result?.isComplete == true ? "checkmark.circle" : "folder",
+                                               description: Text(model.result?.isComplete == true ? L("调整筛选条件，或关闭差异筛选查看相同文件。", "Adjust the filter, or turn off Differences Only to see identical files.") : L("点击重新比较，完成内容核验。", "Click Compare Again to finish verifying file contents.")))
+                    }
                 }
             }
             Divider()
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 if model.busy && !model.scanning { ProgressView().controlSize(.small) }
                 Text(model.status).lineLimit(1).help(model.status)
-                Spacer()
+                Spacer(minLength: 4)
                 if let result = model.result {
-                    Text(L("已忽略 \(result.ignoredCount) 项", "Items ignored: \(result.ignoredCount)"))
-                        .help(L("默认忽略 .git、.DS_Store、.build、node_modules。每个被忽略的目录计为一项，不读取其内容。", "Ignores .git, .DS_Store, .build, and node_modules by default. Each ignored folder counts as one item; its contents are not read."))
+                    Text(L("已忽略 \(result.ignoredCount) 项", "Ignored: \(result.ignoredCount)"))
+                        .help(model.ignoredNames.sorted().joined(separator: ", "))
                 }
-                Text(L("双击文件查看差异", "Double-click a file to compare")).foregroundStyle(.tertiary)
-            }.font(.caption).foregroundStyle(.secondary).padding(.horizontal, 20).padding(.vertical, 9)
+                if let date = model.completedAt {
+                    Text(date, format: .dateTime.hour().minute().second().locale(settings.locale))
+                        .help(L("上次比较完成时间；点击重新比较以读取最新改动。", "Last comparison completed. Use Compare Again to read subsequent changes."))
+                }
+            }.font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText)).padding(.horizontal, 20).padding(.vertical, 9)
         }
-        .task(id: left.path + "\n" + right.path) { selection.removeAll(); model.scan(left: left, right: right) }
-        .onDisappear { model.cancelScan() }
+        .background(Color(nsColor: theme.canvas))
+        .foregroundStyle(Color(nsColor: theme.text))
+        .tint(Color(nsColor: theme.accent))
+        .task(id: [left.path, right.path]) { model.loadIfNeeded(left: left, right: right) }
         .sheet(item: $model.preview) { plan in copyPreview(plan) }
         .alert(L("文件夹比较", "Folder Comparison"), isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
-            Button(L("好", "OK"), role: .cancel) { model.error = nil }
+            Button(L("好", "OK")) { model.error = nil }
         } message: { Text(model.error.map(localizedErrorDescription) ?? "") }
+    }
+
+    private var controls: some View {
+        HStack(spacing: 10) {
+            Toggle(L("仅显示差异", "Differences Only"), isOn: $model.differencesOnly)
+                .toggleStyle(.checkbox).fixedSize().accessibilityIdentifier("folders.differences-only")
+            TextField(L("筛选路径", "Filter Paths"), text: $model.query)
+                .textFieldStyle(.roundedBorder).frame(minWidth: 100, maxWidth: 220)
+                .accessibilityIdentifier("folders.filter")
+            Spacer(minLength: 0)
+            Button {
+                ignoreDraft = model.ignoredNames.sorted().joined(separator: "\n")
+                showingIgnoreRules = true
+            } label: { Label(L("忽略规则", "Ignore Rules"), systemImage: "line.3.horizontal.decrease.circle") }
+                .disabled(model.busy).accessibilityIdentifier("folders.ignore")
+                .popover(isPresented: $showingIgnoreRules, arrowEdge: .bottom) { ignoreRules }
+            Button { model.scan(left: left, right: right) } label: {
+                Image(systemName: "arrow.clockwise")
+            }.help(L("重新比较", "Compare Again")).accessibilityLabel(L("重新比较", "Compare Again"))
+                .disabled(model.busy).accessibilityIdentifier("folders.reload")
+            Divider().frame(height: 18)
+            Button { model.prepare(paths: model.selection, toRight: false) } label: {
+                Image(systemName: "arrow.left.to.line")
+            }.help(L("复制到左", "Copy to Left")).accessibilityLabel(L("复制到左", "Copy to Left"))
+                .disabled(!model.canCopy(toRight: false)).accessibilityIdentifier("folders.copy-left")
+            Button { model.prepare(paths: model.selection, toRight: true) } label: {
+                Image(systemName: "arrow.right.to.line")
+            }.help(L("复制到右", "Copy to Right")).accessibilityLabel(L("复制到右", "Copy to Right"))
+                .disabled(!model.canCopy(toRight: true)).accessibilityIdentifier("folders.copy-right")
+        }.controlSize(.small).buttonStyle(.bordered)
+            .padding(.horizontal, 20).padding(.vertical, 10)
+            .background(Color(nsColor: theme.chrome))
+    }
+
+    private var scanProgress: some View {
+        HStack(spacing: 12) {
+            if let progress = model.progress, progress.stage == .comparing {
+                ProgressView(value: Double(progress.completedPairs), total: Double(max(1, progress.totalPairs)))
+                    .frame(width: 120)
+                Text(L("校验内容 \(progress.completedPairs) / \(progress.totalPairs)", "Verifying contents \(progress.completedPairs) / \(progress.totalPairs)"))
+                    .monospacedDigit()
+                Text(ByteCountFormatStyle(style: .file, locale: settings.locale).format(progress.bytesRead))
+                    .foregroundStyle(Color(nsColor: theme.secondaryText))
+                    .help(L("本次已读取的文件内容", "File contents read during this comparison"))
+            } else {
+                ProgressView().controlSize(.small)
+                Text(L("扫描目录 · 已发现 \(model.progress?.discoveredItems ?? 0) 项", "Scanning folders · \(model.progress?.discoveredItems ?? 0) items found"))
+                    .monospacedDigit()
+            }
+            Spacer(minLength: 4)
+            Button(L("取消", "Cancel")) { model.cancel() }
+                .buttonStyle(.bordered).controlSize(.small).accessibilityIdentifier("folders.cancel")
+        }.font(.system(size: 12)).padding(.horizontal, 20).padding(.vertical, 10)
+            .background(Color(nsColor: theme.accent).opacity(0.06))
+    }
+
+    private var draftNames: [String] {
+        ignoreDraft.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+    private var validDraft: Bool { draftNames.allSatisfy { !$0.contains("/") && $0 != "." && $0 != ".." } }
+    private var ignoreRules: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L("忽略规则", "Ignore Rules")).font(.headline)
+            Text(L("仅用于当前比较。每行一个完整文件名或文件夹名，在任意层级精确匹配；不使用通配符或路径。", "For this comparison only. Enter one exact file or folder name per line, matched at any depth. Wildcards and paths are not supported."))
+                .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText)).fixedSize(horizontal: false, vertical: true)
+            TextEditor(text: $ignoreDraft).font(.system(.body, design: .monospaced))
+                .scrollContentBackground(.hidden).padding(6).frame(height: 135)
+                .background(Color(nsColor: theme.chrome), in: RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: theme.separator)))
+                .accessibilityIdentifier("folders.ignore.names")
+            if !validDraft {
+                Text(L("请输入名称，不要使用路径、. 或 ..。", "Enter names without paths, . or .. ."))
+                    .font(.caption).foregroundStyle(Color(nsColor: theme.differenceForeground(isRemoval: true)))
+            }
+            HStack {
+                Button(L("恢复默认", "Restore Defaults")) { ignoreDraft = FolderComparison.ignoredNames.sorted().joined(separator: "\n") }
+                Spacer()
+                Button(L("取消", "Cancel")) { showingIgnoreRules = false }
+                Button(L("应用并比较", "Apply & Compare")) {
+                    model.applyIgnoredNames(Set(draftNames), left: left, right: right)
+                    showingIgnoreRules = false
+                }.disabled(!validDraft).keyboardShortcut(.defaultAction).accessibilityIdentifier("folders.ignore.apply")
+            }.controlSize(.small)
+        }.padding(20).frame(width: 390)
+            .background(Color(nsColor: theme.canvas)).foregroundStyle(Color(nsColor: theme.text))
+            .preferredColorScheme(appearance.isDark ? .dark : .light)
     }
 
     private func rootLabel(_ url: URL, title: String) -> some View {
@@ -114,13 +186,6 @@ public struct FolderComparisonView: View {
             .font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
     }
 
-    private func canCopy(toRight: Bool) -> Bool {
-        guard !model.busy, !selection.isEmpty, let result = model.result else { return false }
-        let chosen = result.entries.filter { selection.contains($0.path) }
-        return chosen.count == selection.count && chosen.allSatisfy { $0.canCopy(toRight: toRight) }
-    }
-
-    private func preview(toRight: Bool) { model.prepare(paths: selection, toRight: toRight) }
     private func open(_ entry: FolderEntry) {
         guard entry.canOpenPair, let result = model.result else { return }
         onOpenPair(result.leftRoot.appendingPathComponent(entry.path), result.rightRoot.appendingPathComponent(entry.path))
@@ -132,7 +197,7 @@ public struct FolderComparisonView: View {
     }
     private func statusColor(_ status: FolderEntryStatus) -> Color {
         switch status {
-        case .same: return .secondary
+        case .same, .pending: return .secondary
         case .changed: return .orange
         case .leftOnly: return .blue
         case .rightOnly: return .teal
@@ -142,6 +207,7 @@ public struct FolderComparisonView: View {
     private func statusIcon(_ status: FolderEntryStatus) -> String {
         switch status {
         case .same: return "equal.circle"
+        case .pending: return "clock"
         case .changed: return "pencil.circle"
         case .leftOnly: return "arrow.left.circle"
         case .rightOnly: return "arrow.right.circle"
@@ -174,82 +240,5 @@ public struct FolderComparisonView: View {
                     .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
             }
         }.padding(24).frame(width: 580, height: 450)
-    }
-}
-
-@MainActor private final class FolderComparisonModel: ObservableObject {
-    @Published var result: FolderComparisonResult?
-    @Published var preview: FolderCopyPlan?
-    @Published var busy = false
-    @Published var scanning = false
-    @Published var error: Error?
-    @Published private var statusText: () -> String = { L("内容比较使用逐块读取，不根据修改时间推测", "Files are compared by content, not modification date") }
-    var status: String { statusText() }
-    private var task: Task<Void, Never>?
-    private var generation = UUID()
-
-    func scan(left: URL, right: URL) {
-        task?.cancel()
-        let current = UUID()
-        generation = current
-        result = nil
-        busy = true; scanning = true; statusText = { L("正在读取文件内容…", "Reading file contents…") }
-        task = Task {
-            let worker = Task.detached(priority: .userInitiated) { try FolderComparison.scan(left: left, right: right) }
-            do {
-                let scanned = try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
-                guard generation == current else { return }
-                try Task.checkCancellation()
-                result = scanned
-                let changed = scanned.entries.filter { !$0.isDirectory && $0.status != .same }.count
-                statusText = { L("\(scanned.entries.count) 项 · \(changed) 个文件有差异或需要处理", "Items: \(scanned.entries.count) · Files with differences or issues: \(changed)") }
-            } catch is CancellationError {
-                guard generation == current else { return }
-                statusText = { L("已取消扫描", "Scan cancelled") }
-            } catch {
-                guard generation == current else { return }
-                self.error = error; statusText = { L("比较未完成", "Comparison not completed") }
-            }
-            guard generation == current else { return }
-            busy = false; scanning = false
-        }
-    }
-
-    func cancel() { task?.cancel() }
-    func cancelScan() { if scanning { cancel() } }
-
-    func prepare(paths: Set<String>, toRight: Bool) {
-        guard let result, !busy else { return }
-        busy = true; statusText = { L("正在核验复制预览…", "Verifying files for copy preview…") }
-        task = Task {
-            do {
-                preview = try await Task.detached(priority: .userInitiated) {
-                    try FolderComparison.prepareCopy(result, paths: paths, toRight: toRight)
-                }.value
-                statusText = { L("请核对待复制的文件", "Review the files to be copied") }
-            } catch { self.error = error; statusText = { L("无法准备复制", "Unable to prepare copy") } }
-            busy = false
-        }
-    }
-
-    func execute(_ plan: FolderCopyPlan, left: URL, right: URL) {
-        preview = nil; busy = true; statusText = { L("正在复制文件…", "Copying files…") }
-        task = Task {
-            do {
-                _ = try await Task.detached(priority: .userInitiated) { try FolderComparison.execute(plan) }.value
-                busy = false
-                scan(left: left, right: right)
-            } catch {
-                self.error = FolderCopyFailure(underlying: error)
-                statusText = { L("复制已停止，请重新比较", "Copying stopped. Compare again to check the result.") }; busy = false
-            }
-        }
-    }
-}
-
-private struct FolderCopyFailure: LocalizedError {
-    let underlying: Error
-    var errorDescription: String? {
-        localizedErrorDescription(underlying) + "\n" + L("已完成的复制可能已保留，请重新比较确认。", "Some files may already have been copied. Compare again to check the result.")
     }
 }

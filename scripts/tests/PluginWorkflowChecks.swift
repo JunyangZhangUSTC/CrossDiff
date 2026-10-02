@@ -97,6 +97,32 @@ enum PluginWorkflowChecks {
         try await render(D.window, name: "pdf-text-light", dark: false, width: 1220)
         AppSettings.shared.language = .english
         try await render(D.window, name: "pdf-text-english-narrow", dark: true, width: 860)
+        // Full edition removal hides a bundled capability, but its real session
+        // and input paths must survive, then resume after a local restore.
+        pdf.pdfComparisonModel.mode = .pages
+        let snapshotEncoder = JSONEncoder(); snapshotEncoder.outputFormatting = [.sortedKeys]
+        let beforeRemoval = try snapshotEncoder.encode(pdf.snapshot)
+        let pdfResource = root.appendingPathComponent("Plugins/PDF.crossdiffplugin")
+        let pdfResourceBytes = try Data(contentsOf: pdfResource)
+        manager.removeBundled("org.crossdiff.pdf")
+        try await D.pause()
+        D.check(manager.plugin(id: "org.crossdiff.pdf") == nil && manager.removedBundledPlugins.contains { $0.id == "org.crossdiff.pdf" }, "bundled PDF removal removes availability and keeps an offline recovery entry")
+        D.check(store.selected === pdf && store.sessions.contains { $0 === pdf }, "bundled PDF removal retains the actual comparison session and selection")
+        D.check(pdfCanvases().isEmpty, "removed bundled plugin displays unavailable state instead of stale PDF pages")
+        D.check(try snapshotEncoder.encode(pdf.snapshot) == beforeRemoval, "bundled PDF removal preserves both input paths and session data")
+        D.check(store.persistNow(), "removed bundled plugin session still persists")
+        let removedRecovery = try SessionFile.load(from: root.appendingPathComponent("data/sessions.json"))
+        D.check(removedRecovery.contains { $0.id == pdf.id && $0.pluginID == "org.crossdiff.pdf" && $0.left.path == pdfA.path && $0.right.path == pdfB.path }, "persisted removed-plugin session retains its identity and original files")
+        try await render(D.window, name: "pdf-bundled-removed-session", dark: false, width: 860)
+        manager.restoreBundled("org.crossdiff.pdf")
+        try await D.wait("restored PDF comparison resumes") {
+            manager.plugin(id: "org.crossdiff.pdf")?.enabled == true && pdf.pdfComparisonModel.result != nil && !pdf.pdfComparisonModel.isLoading
+        }
+        try await D.wait("restored native PDF pages") { pdfCanvases().count == 2 }
+        D.check(store.selected === pdf && pdf.pdfComparisonModel.pairs.count == 3, "offline bundled restore resumes the same PDF comparison")
+        D.check(try snapshotEncoder.encode(pdf.snapshot) == beforeRemoval, "restore preserves the original session snapshot")
+        D.check(try Data(contentsOf: pdfResource) == pdfResourceBytes, "bundled remove/restore never rewrites signed app resources")
+        try await render(D.window, name: "pdf-bundled-restored-session", dark: true, width: 860)
         D.check(try [Data(contentsOf: a), Data(contentsOf: b)] == originals, "text plugin leaves originals unchanged")
         D.check(try [Data(contentsOf: pdfA), Data(contentsOf: pdfB)] == pdfBytes, "PDF plugin leaves originals unchanged")
         // Extension declarations must not hijack existing native image routing.
@@ -122,6 +148,10 @@ enum PluginWorkflowChecks {
         D.check(store.selected?.pluginID == nil, "folder ending in pdf remains a folder")
         let legacy = Data("[{\"id\":\"\(UUID())\",\"kind\":\"text\",\"left\":{\"text\":\"old\",\"encoding\":\"utf8\",\"savedText\":\"\"},\"right\":{\"text\":\"\",\"encoding\":\"utf8\",\"savedText\":\"\"}}]".utf8)
         D.check((try JSONDecoder().decode([StoredComparison].self, from: legacy)).first?.pluginID == nil, "old sessions without pluginID still decode")
+    }
+    static func pdfCanvases() -> [NSView] {
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        return D.window.contentView.map(descendants)?.filter { $0.identifier?.rawValue == "pdf.page.canvas" && !$0.isHiddenOrHasHiddenAncestor } ?? []
     }
     static func render(_ window: NSWindow, name: String, dark: Bool, width: Double) async throws {
         AppAppearance.shared.isDark = dark

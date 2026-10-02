@@ -335,6 +335,8 @@ The local picker, dropping a `.crossdiffplugin` file and an arbitrary HTTPS down
 
 External plugins live under the data directory's `Plugins/` folder, normally `~/Library/Application Support/CrossDiff/Plugins/`. The development launcher uses repository-local `CROSSDIFF_DATA_DIR`. External installation does not alter the signed application bundle. Bundled plugins are assembled before app signing, updated with the app and can be disabled.
 
+Bundled plugins can be disabled or removed from the active workspace and restored offline. Removal is a local preference, not a change to the signed app or a reduction in its size. The removed ID stays hidden across restarts, updates and Base/Full switches until explicitly restored or reinstalled.
+
 Versions are immutable. Metadata is committed atomically before the active in-memory state changes. Different contents under the same ID and version are rejected. External plugins support enable/disable, rollback to the preceding version and uninstall. Uninstall atomically removes registration; failed cleanup may leave inactive files, without restoring their trust. Sessions retain source paths and plugin identifiers and show a recovery view when a plugin is missing or disabled.
 
 A running task captures its validated package version; management changes invalidate old view tasks and may resume or rerun already open comparisons. Packages have no installation hooks, but installing one does not guarantee that an existing session’s algorithm will remain idle. Plugin-state migration, arbitrary historical restoration and private-state compatibility across versions are not promised.

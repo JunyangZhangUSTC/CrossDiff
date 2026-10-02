@@ -7,10 +7,12 @@ import CrossDiffCore
 final class TextAlignmentLayout: NSObject, @preconcurrency NSLayoutManagerDelegate {
     private var after: [Int: CGFloat] = [:]
     private var leading: CGFloat = 0
+    private(set) var hasVerticalPadding = false
 
     func setPadding(after: [Int: CGFloat], leading: CGFloat, layout: NSLayoutManager) {
         guard self.after != after || self.leading != leading else { return }
         self.after = after; self.leading = leading
+        hasVerticalPadding = after.values.contains { $0 > 0 }
         layout.invalidateLayout(forCharacterRange: NSRange(location: 0, length: layout.textStorage?.length ?? 0), actualCharacterRange: nil)
     }
 
@@ -28,6 +30,39 @@ final class TextAlignmentLayout: NSObject, @preconcurrency NSLayoutManagerDelega
             lineFragmentRect.pointee.size.height += padding
         }
         return true
+    }
+}
+
+/// TextKit fills a newline's trailing background using the whole line fragment.
+/// Alignment extends that fragment for display-only space, not source text.
+/// Exclude that space from all native background fills (diff, search, selection)
+/// while leaving glyph, caret and used-rect geometry untouched.
+@MainActor
+final class ComparisonTextLayoutManager: NSLayoutManager {
+    override func drawBackground(forGlyphRange glyphsToShow: NSRange, at origin: NSPoint) {
+        guard (delegate as? TextAlignmentLayout)?.hasVerticalPadding == true,
+              let context = NSGraphicsContext.current?.cgContext else {
+            super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
+            return
+        }
+        let bounds = context.boundingBoxOfClipPath
+        let path = NSBezierPath(rect: bounds)
+        path.windingRule = .evenOdd
+        var hasGap = false
+        enumerateLineFragments(forGlyphRange: glyphsToShow) { fragment, used, _, _, _ in
+            guard fragment.maxY > used.maxY else { return }
+            let gap = NSRect(x: bounds.minX, y: origin.y + used.maxY,
+                             width: bounds.width, height: fragment.maxY - used.maxY).intersection(bounds)
+            if !gap.isEmpty { path.appendRect(gap); hasGap = true }
+        }
+        guard hasGap else {
+            super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
+            return
+        }
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        path.addClip()
+        super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
     }
 }
 

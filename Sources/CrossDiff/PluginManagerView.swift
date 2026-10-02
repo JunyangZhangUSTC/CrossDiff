@@ -10,7 +10,9 @@ struct PluginManagerView: View {
     @State private var address = ""
     @State private var showDownload = false
     @State private var trustNative = false
-    @State private var removingID: String?
+    @State private var page = 0
+    private struct Removal: Identifiable { let id: String; let name: String; let bundled: Bool }
+    @State private var removal: Removal?
     private var theme: ComparisonTheme { appearance.colors }
 
     var body: some View {
@@ -58,45 +60,20 @@ struct PluginManagerView: View {
                 }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Color(nsColor: theme.chrome))
                 Divider()
             }
+            HStack {
+                Picker(L("插件列表", "Plugin List"), selection: $page) {
+                    Text(L("已安装", "Installed")).tag(0)
+                    Text(L("发现插件", "Discover")).tag(1)
+                }
+                .pickerStyle(.segmented).labelsHidden().frame(width: 260)
+                .id(settings.language).accessibilityIdentifier("plugins.sections")
+                Spacer()
+            }.padding(.horizontal, 22).padding(.vertical, 12)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(L("官方插件", "Official Plugins")).font(.headline)
-                        Text(L("来自 GitHub Releases，点击后下载、校验并安装。比较始终在本机完成。",
-                               "Download, verify, and install from GitHub Releases with one click. Comparisons stay on your Mac."))
-                            .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }.padding(.horizontal, 22).padding(.top, 16).padding(.bottom, 12)
-                    ForEach(manager.officialPlugins) { entry in
-                        officialRow(entry).padding(.horizontal, 18).padding(.bottom, 10)
-                    }
-                    if let error = manager.officialCatalogError {
-                        Label(error, systemImage: "exclamationmark.triangle")
-                            .font(.callout).padding(.horizontal, 22).padding(.bottom, 16)
-                    } else if manager.officialPlugins.isEmpty {
-                        Text(L("此构建未附带官方插件目录。仍可从文件安装插件。", "This build has no official catalog. You can still install plugins from files."))
-                            .font(.callout).foregroundStyle(Color(nsColor: theme.secondaryText))
-                            .padding(.horizontal, 22).padding(.bottom, 16)
-                    }
-                    HStack {
-                        Text(L("已安装", "Installed")).font(.headline)
-                        Text("\(manager.plugins.count + manager.failedPlugins.count)")
-                            .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
-                    }.padding(.horizontal, 22).padding(.top, 16).padding(.bottom, 2)
-                    if manager.plugins.isEmpty && manager.failedPlugins.isEmpty {
-                        Text(L("安装一个插件，为 CrossDiff 添加新的比较能力。", "Install a plugin to add a new way to compare."))
-                            .font(.callout).foregroundStyle(Color(nsColor: theme.secondaryText)).padding(22)
-                    }
-                    ForEach(manager.plugins) { plugin in
-                        pluginRow(plugin)
-                        Divider().padding(.leading, 64)
-                    }
-                    ForEach(manager.failedPlugins) { plugin in
-                        failedPluginRow(plugin)
-                        Divider().padding(.leading, 64)
-                    }
-                }.padding(.vertical, 8)
-            }
+                    if page == 0 { installedSection } else { discoverSection }
+                }.padding(.bottom, 12)
+            }.id(page)
             Divider()
             HStack(spacing: 7) {
                 Image(systemName: "externaldrive")
@@ -115,9 +92,7 @@ struct PluginManagerView: View {
         .alert(L("插件", "Plugins"), isPresented: Binding(get: { manager.message != nil }, set: { if !$0 { manager.message = nil } })) {
             Button(L("好", "OK")) { manager.message = nil }
         } message: { Text(manager.message ?? "") }
-        .confirmationDialog(L("卸载此插件？", "Uninstall this plugin?"), isPresented: Binding(get: { removingID != nil }, set: { if !$0 { removingID = nil } }), titleVisibility: .visible) {
-            Button(L("卸载", "Uninstall"), role: .destructive) { if let id = removingID { manager.uninstall(id) }; removingID = nil }
-        } message: { Text(L("比较会话将保留，重新安装后可继续使用。", "Comparison sessions are retained and can be reopened after reinstalling.")) }
+        .sheet(item: $removal) { target in removalConfirmation(target) }
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: nil) { providers in
             guard let first = providers.first else { return false }
             first.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, _ in
@@ -126,6 +101,151 @@ struct PluginManagerView: View {
             }
             return true
         }
+    }
+
+    private func removalConfirmation(_ target: Removal) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                Image(systemName: target.bundled ? "minus.circle" : "trash")
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundStyle(Color(nsColor: theme.secondaryText))
+                Text(target.bundled ? L("移除“\(target.name)”？", "Remove “\(target.name)”?")
+                     : L("卸载“\(target.name)”？", "Uninstall “\(target.name)”?"))
+                    .font(.title3.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("plugins.removal.title")
+            }
+            Text(target.bundled
+                ? L("将从已安装列表和比较入口移除。原文件和比较会话会保留，可随时离线恢复。预装文件仍随应用保留，不会减小应用体积。",
+                    "Remove it from Installed and comparison choices. Your files and sessions are kept, and you can restore it offline. Bundled files remain in the app; its size will not change.")
+                : L("将删除此插件及其已安装的历史版本。原文件和比较会话会保留，重新安装后可继续使用。",
+                    "Delete this plugin and its installed versions. Your files and comparison sessions are kept and can be used again after reinstalling."))
+                .font(.callout).foregroundStyle(Color(nsColor: theme.secondaryText))
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("plugins.removal.message")
+            HStack(spacing: 10) {
+                Spacer()
+                Button(L("取消", "Cancel")) { removal = nil }
+                    .keyboardShortcut(.cancelAction)
+                    .accessibilityIdentifier("plugins.removal.cancel")
+                Button(target.bundled ? L("移除", "Remove") : L("卸载", "Uninstall"), role: .destructive) {
+                    removal = nil
+                    if target.bundled { manager.removeBundled(target.id) } else { manager.uninstall(target.id) }
+                }
+                .foregroundStyle(Color(nsColor: theme.differenceForeground(isRemoval: true)))
+                .accessibilityIdentifier("plugins.removal.confirm")
+            }.padding(.top, 4).buttonStyle(.bordered)
+        }.padding(24).frame(width: 460)
+        .foregroundStyle(Color(nsColor: theme.text)).background(Color(nsColor: theme.canvas))
+        .preferredColorScheme(appearance.isDark ? .dark : .light)
+    }
+
+    private var installedSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Text(L("已安装", "Installed")).font(.headline)
+                Text("\(manager.plugins.count + manager.failedPlugins.count)")
+                    .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
+            }.padding(.horizontal, 22).padding(.top, 6).padding(.bottom, 4)
+            if manager.plugins.isEmpty && manager.failedPlugins.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(manager.removedBundledPlugins.isEmpty
+                        ? L("还没有安装插件，选择你需要的比较功能。", "No plugins installed. Discover a comparison tool to get started.")
+                        : L("还没有安装插件。选择需要的比较功能，或恢复下方的预装插件。",
+                            "No plugins installed. Discover a comparison tool or restore a bundled plugin below."))
+                        .font(.callout).foregroundStyle(Color(nsColor: theme.secondaryText))
+                    Button(L("发现插件", "Discover Plugins")) { page = 1 }
+                        .buttonStyle(.bordered).controlSize(.small)
+                }.padding(22)
+            }
+            ForEach(manager.plugins) { plugin in
+                pluginRow(plugin)
+                Divider().padding(.leading, 64)
+            }
+            ForEach(manager.failedPlugins) { plugin in
+                failedPluginRow(plugin)
+                Divider().padding(.leading, 64)
+            }
+            if !manager.removedBundledPlugins.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L("已移除的预装插件", "Removed Bundled Plugins")).font(.headline)
+                    Text(L("保留在应用中，可随时离线恢复。", "Kept in the app and available to restore offline."))
+                        .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
+                }.padding(.horizontal, 22).padding(.top, 22).padding(.bottom, 10)
+                ForEach(manager.removedBundledPlugins) { plugin in
+                    HStack(spacing: 12) {
+                        Image(systemName: "puzzlepiece.extension")
+                            .foregroundStyle(Color(nsColor: theme.secondaryText)).frame(width: 32)
+                        Text(plugin.package.manifest.name.localized).font(.callout.weight(.medium))
+                        Spacer()
+                        restoreButton(plugin)
+                    }.padding(.horizontal, 22).padding(.vertical, 10)
+                }
+            }
+        }
+    }
+
+    private var discoverSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(L("官方插件", "Official Plugins")).font(.headline)
+                Text(L("按需下载并安装，比较始终在本机完成。预装插件可以离线恢复。",
+                       "Download what you need; comparisons stay local. Restore bundled plugins offline."))
+                    .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
+                    .fixedSize(horizontal: false, vertical: true)
+            }.padding(.horizontal, 22).padding(.top, 6).padding(.bottom, 12)
+            ForEach(manager.officialPlugins) { entry in
+                officialRow(entry).padding(.horizontal, 18).padding(.bottom, 10)
+            }
+            if let error = manager.officialCatalogError {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.callout).padding(.horizontal, 22).padding(.bottom, 16)
+            } else if manager.officialPlugins.isEmpty {
+                Text(L("此构建未附带官方插件目录。仍可从文件安装插件。", "This build has no official catalog. You can still install plugins from files."))
+                    .font(.callout).foregroundStyle(Color(nsColor: theme.secondaryText))
+                    .padding(.horizontal, 22).padding(.bottom, 16)
+            }
+        }
+    }
+
+    private func pluginActions(_ entry: AvailablePlugin) -> some View {
+        VStack(alignment: .trailing, spacing: 10) {
+            HStack(spacing: 7) {
+                Text(entry.enabled ? L("已启用", "Enabled") : L("已停用", "Disabled"))
+                    .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
+                Toggle(L("启用插件", "Enable Plugin"), isOn: Binding(get: { entry.enabled }, set: { manager.setEnabled($0, id: entry.id) }))
+                    .toggleStyle(.switch).controlSize(.small).labelsHidden()
+                    .accessibilityLabel(entry.package.manifest.name.localized + " · " + L("启用插件", "Enable Plugin"))
+                    .accessibilityIdentifier("plugins.toggle." + entry.id)
+            }
+            HStack(spacing: 8) {
+                if entry.installation?.previousVersion != nil {
+                    Menu {
+                        Button(L("回退到上一版本", "Roll Back to Previous Version")) { manager.rollback(entry.id) }
+                    } label: { Image(systemName: "arrow.uturn.backward") }
+                    .menuStyle(.borderlessButton).fixedSize()
+                    .help(L("回退到上一版本", "Roll Back to Previous Version"))
+                }
+                Button(role: .destructive) {
+                    removal = Removal(id: entry.id, name: entry.package.manifest.name.localized, bundled: entry.bundled)
+                } label: {
+                    Label(entry.bundled ? L("移除…", "Remove…") : L("卸载…", "Uninstall…"),
+                          systemImage: entry.bundled ? "minus.circle" : "trash")
+                }
+                .buttonStyle(.bordered).controlSize(.small)
+                .accessibilityIdentifier((entry.bundled ? "plugins.remove." : "plugins.uninstall.") + entry.id)
+            }
+        }.fixedSize(horizontal: true, vertical: false)
+        .disabled(manager.downloading || manager.pendingPackage != nil)
+    }
+
+    private func restoreButton(_ entry: AvailablePlugin) -> some View {
+        Button { manager.restoreBundled(entry.id) } label: {
+            Label(L("恢复", "Restore"), systemImage: "arrow.counterclockwise")
+        }
+        .buttonStyle(.bordered).controlSize(.small)
+        .disabled(manager.downloading || manager.pendingPackage != nil)
+        .accessibilityIdentifier("plugins.restore." + entry.id)
     }
 
     private func officialRow(_ entry: OfficialPlugin) -> some View {
@@ -155,10 +275,15 @@ struct PluginManagerView: View {
                 } else if let installed {
                     Label(installed.bundled ? L("已内置", "Bundled") : L("已安装", "Installed"), systemImage: "checkmark.circle")
                         .font(.callout).foregroundStyle(Color(nsColor: theme.secondaryText))
+                    pluginActions(installed)
                     if installed.package.manifest.version != entry.version {
                         Text(L("已安装版本：", "Installed: ") + installed.package.manifest.version)
                             .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
                     }
+                } else if let removed = manager.removedBundledPlugins.first(where: { $0.id == entry.id }) {
+                    restoreButton(removed)
+                    Text(L("本机恢复 · 无需下载", "Restore locally · No download"))
+                        .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
                 } else if failed {
                     Text(L("请检查安装状态", "Check installation"))
                         .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
@@ -203,16 +328,8 @@ struct PluginManagerView: View {
                 Text(entry.id).font(.system(size: 10, design: .monospaced)).foregroundStyle(Color(nsColor: theme.secondaryText)).textSelection(.enabled)
             }
             Spacer(minLength: 10)
-            VStack(alignment: .trailing, spacing: 12) {
-                Toggle(L("启用", "Enabled"), isOn: Binding(get: { entry.enabled }, set: { manager.setEnabled($0, id: entry.id) }))
-                    .toggleStyle(.switch).controlSize(.small).labelsHidden().accessibilityLabel(L("启用插件", "Enable Plugin"))
-                if !entry.bundled {
-                    Menu {
-                        if entry.installation?.previousVersion != nil { Button(L("回退到上一版本", "Roll Back to Previous Version")) { manager.rollback(entry.id) } }
-                        Button(L("卸载…", "Uninstall…"), role: .destructive) { removingID = entry.id }
-                    } label: { Image(systemName: "ellipsis") }.menuStyle(.borderlessButton).fixedSize()
-                }
-            }
+            pluginActions(entry)
+
         }.padding(20)
     }
 
@@ -229,7 +346,11 @@ struct PluginManagerView: View {
                     .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
             }
             Spacer(minLength: 10)
-            Button(L("卸载…", "Uninstall…"), role: .destructive) { removingID = entry.id }
+            Button(L("卸载…", "Uninstall…"), role: .destructive) {
+                removal = Removal(id: entry.id, name: entry.id, bundled: false)
+            }
+            .buttonStyle(.bordered).controlSize(.small)
+            .accessibilityIdentifier("plugins.uninstall." + entry.id)
         }.padding(20)
     }
 

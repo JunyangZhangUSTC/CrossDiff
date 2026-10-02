@@ -1,6 +1,6 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac; the 0.12.0 source preview includes Photography, API Compare, Audio and Office plugins. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio and Office plugins. This guide describes the 0.12.1 source preview; 0.12.0 is the current public preview, and 0.12.1 is being prepared for release. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
@@ -46,11 +46,21 @@ Matching is literal: regular expressions and replacement backreferences are not 
 
 CrossDiff restores comparisons locally on the next launch. **Session → Clear Local Session History…** asks for confirmation, then closes all comparisons and removes saved temporary text. It leaves original files, language, and appearance preferences unchanged. Compared text and paths may be present in the local session file. See the [privacy details](../SECURITY.md#local-data-and-file-handling).
 
-## Compare folders
+## Compare folders / 文件夹比较
 
-Folder comparisons scan recursively and show changed, matching, one-sided, unreadable, and type-mismatched entries. `.git`, `.build`, `node_modules`, and `.DS_Store` are ignored by default.
+文件夹比较先递归检查路径、类型和大小，直接显示仅单侧存在、类型不同及大小不同的项目；同大小的普通文件随后使用 SHA-256 核验内容，默认最多两个文件比较任务并行。大小与时间戳相同不能证明内容相同。扫描期间可查看部分结果，上方显示发现数量、内容核验进度及实际读取量；尚未核验的项目标为“待校验”。取消后保留部分结果，但不能据此复制。
 
-Select a regular file to copy it in either direction. CrossDiff first lists planned additions and overwrites, then checks the inputs again before executing. It does not perform full synchronization or batch deletion and does not follow or copy symbolic links. If a copy sequence fails partway through, completed copies remain; compare the folders again before continuing.
+Folder comparisons first inventory paths, types and sizes, showing one-sided entries, type mismatches and size differences immediately after enumeration. Equal-size regular files are then verified with SHA-256, with up to two comparison tasks at a time by default. Matching size and timestamps never establish identical contents. Partial results remain visible while the progress bar reports discovered items, verified pairs and bytes read. Unverified entries are marked **Pending**; canceled partial results cannot be used to copy files.
+
+默认忽略 `.git`、`.build`、`node_modules` 和 `.DS_Store`。点击 **忽略规则 / Ignore Rules**，每行输入一个完整文件名或目录名；在任意层级精确匹配，忽略目录时也跳过其内容。不支持通配符或路径，规则仅用于当前比较；点击“应用并比较”重新扫描。
+
+**Ignore Rules** accepts one exact file or folder name per line at any depth, without wildcards or paths. Ignoring a folder skips its descendants. Rules apply only to the current comparison; choose **Apply & Compare** to rescan. The four names above are the defaults.
+
+同一次运行中，切换标签会保留结果、扫描任务、筛选、选择及忽略规则，不重新读取目录。结果是上次扫描的快照，右下角显示完成时间；外部文件变化后点击 **重新比较 / Compare Again** 更新。重启应用会重新扫描，不把旧内容摘要作为文件相同的依据。
+
+Switching tabs during the same app run preserves results, active scans, filters, selection and ignore rules. Results are a snapshot with a completion time, not a live filesystem view. Use **Compare Again** after external changes. Restarting the app scans again; old content hashes are not reused to declare files identical.
+
+Select a regular file in a completed comparison to copy it in either direction. CrossDiff first lists planned additions and overwrites, then checks the inputs again before executing. Contents not needed during the scan are verified when preparing the copy. It does not perform full synchronization or batch deletion and does not follow or copy symbolic links. If a copy sequence fails partway through, completed copies remain; compare the folders again before continuing.
 
 <a id="archives"></a>
 ## Compare archives / 压缩包比较
@@ -90,9 +100,9 @@ Comparison uses an 8-bit sRGB preview with a maximum 1600-pixel longest edge. Im
 <a id="photography"></a>
 ## Photography / 摄影对比
 
-**始于 0.9.0 源码预览。** 当前公开下载仍为 0.8.0，不含摄影插件；当前 0.12.0 源码预览尚未发布，默认完整版预装 Photography 0.1.0；从同一源码构建的基础版可安装独立摄影包。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
+**摄影插件 Photography 0.1.0。** 当前公开的 0.12.0 与待发布的 0.12.1 Full 均预装；同版本 Base 可安装独立摄影包。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
 
-**Introduced in the 0.9.0 source preview.** The public 0.8.0 download does not include Photography. The current, unpublished 0.12.0 Full source build bundles Photography 0.1.0; a Base build from the same source can install its standalone package. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
+**Photography 0.1.0.** The public 0.12.0 and upcoming 0.12.1 Full editions both bundle this plugin; a matching Base host can install its standalone package. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
 
 默认以双图为主，显示同刻度的 RGB 与 **HSL 明度 L** 直方图，以及低明度、高明度、高饱和区域占比的简短对比。**专业图表**展开 HSL、处理曲线、拍摄与分析信息。HSL L 不是物理亮度或曝光值，图表描述所选画面的分布，不给作品评分，也不反推调色滑块。快门、光圈、ISO、焦距等仅显示实际文件记录，缺失不猜测。
 
@@ -120,7 +130,7 @@ Each photograph is limited to **256 MiB and 64 megapixels**. Display previews ha
 <a id="api"></a>
 ## API 对比 / API Compare
 
-**始于 0.10.0 源码预览。** 当前 0.12.0 源码预览尚未发布，Full 预装 API 0.1.0，Base 可安装独立包；0.8.0/0.9.0 宿主不支持新的 HTTP 输入契约。
+**API 0.1.0。** Full 预装，Base 可安装同版本发行目录中的独立包；0.8.0/0.9.0 宿主不支持 HTTP 输入契约。
 
 1. 选择 **新建… → API 对比**，两侧各粘贴一份 HTTP 请求/响应、常见浏览器复制的 cURL 命令，或 HAR 1.2；也可选择 `.http`、`.curl`、`.har` 等本地文件。
 2. HAR 包含多次调用时，在左右上方分别选择要比较的记录。请求与响应属于同一次调用，不是互相比较。
@@ -134,7 +144,7 @@ Each photograph is limited to **256 MiB and 64 megapixels**. Display previews ha
 
 默认遮罩常见凭据字段的展示值，真实值照常参与比较；这不是完整脱敏。粘贴记录可能含令牌、Cookie 或正文秘密，并按既有机制**明文保存在本机会话**；可通过“会话”菜单清除记录。源文件不被修改。
 
-**Introduced in the 0.10.0 source preview.** The current, unpublished 0.12.0 Full source build bundles API 0.1.0; a matching Base host can install the standalone package. Earlier hosts do not support the HTTP input contract.
+**API 0.1.0.** Full bundles this plugin; a Base host can install the package from its matching release catalog. Hosts before 0.10.0 do not support the HTTP input contract.
 
 Choose **New… → API Compare** and paste or open two HTTP/cURL/HAR sources. Each side represents an HTTP call, with its request and/or response. Select HAR records independently, filter request/response sections, search fields, and inspect JSON paths and types. Missing differs from null; array order and duplicate headers/parameters are retained. JSON numbers retain their exact spelling and precision. Explicit ignored header names and JSON Pointer subtrees remain inspectable, and selections/rules are restored with the session.
 
@@ -182,13 +192,19 @@ Choose each side through New… → PDF Documents, or open two PDFs through File
 
 Manage extensions under CrossDiff → Plugins…: choose or drop a `.crossdiffplugin` file, or enter an HTTPS URL and click Download & Inspect. Review the name, identifier, version, unverified publisher and runtime permissions before installation. Downloads from arbitrary URLs require review before installation. Changed packages must use a new version number.
 
-官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；0.8.0 完整版额外预装 PDF，0.12.0 源码完整版再加入摄影、API、音频与办公。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
+官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；当前完整版额外预装 PDF、摄影、API、音频与办公。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
 
-The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full 0.8.0 adds PDF, and Full 0.12.0 source builds add Photography, API Compare, Audio and Office. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
+The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. The current Full edition adds PDF, Photography, API Compare, Audio and Office. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
 
-停用或卸载后，会话保留并提示需要对应插件。外部插件更新后可回退至上一版本。内置 PDF 的更新随应用分发，不能由外部同名标识覆盖。
+插件页默认打开**已安装**，卡片上直接提供启用开关与**卸载…**或**移除…**，可先确认再执行；**发现插件**页用于查找和安装。
 
-Disabling or uninstalling retains comparison sessions. External plugin updates can roll back to the previous version. Bundled PDF updates ship with the app; external packages cannot override its identifier.
+- 本地安装插件的**卸载**会删除登记及已安装版本；清理失败时会提示，残留文件不会重新启用。
+- 预装插件的**移除**只从已安装列表与比较入口移除，应用包中的文件保留，不减少应用体积或破坏签名。移除状态跨重启、升级及 Base／Full 切换保持；在“已移除的预装插件”或“发现插件”卡片上点击**恢复**可离线启用。若切回不含该预装插件的 Base，可显式重新安装。
+- 停用、卸载或移除后，原文件和比较会话保留，并提示需要对应插件。外部插件更新后可回退至上一版本。预装插件的更新随应用分发，不能由外部同名标识覆盖。
+
+The plugin manager opens on **Installed**. Cards show an enable switch and **Uninstall…** for local installations or **Remove…** for bundled plugins, with confirmation before proceeding. Use **Discover** to find and install plugins.
+
+Uninstall deletes the local registration and installed versions; failed cleanup is reported and never reactivates leftovers. Remove hides a bundled plugin from Installed and comparison choices while keeping its files in the signed app; it does not reduce app size. Removal persists across restarts, updates and Base/Full switches. **Restore** in Removed Bundled Plugins or Discover enables it offline. In a Base edition without that bundle, explicitly reinstall it instead. Your files and sessions are retained. External updates can roll back; bundled updates ship with the app and cannot be replaced by an external package using the same identifier.
 
 受限 JavaScript 没有文件、网络或进程接口；原生“完全信任”插件有较广权限，需逐版本批准。当前不运行带系统隔离标记的原生插件，不提供绕过系统保护的操作。运行边界见 [SECURITY.md](../SECURITY.md)。
 
@@ -228,9 +244,9 @@ Each side shows its real source address, hexadecimal bytes and ASCII. Non-printa
 Each input is limited to **8 GiB**. The bounded algorithm may use explicitly indicated approximate alignment for complex regions; it does not claim a globally shortest edit path. All source bytes remain covered, and unconfirmed regions are never marked equal. Refresh after external file changes. Sessions store paths, not bytes. Binary editing, merging and patch export are not included.
 <a id="audio"></a>
 
-## 音频对比 / Audio Compare（0.11.0 源码预览）
+## 音频对比 / Audio Compare
 
-在“新建… → 音频”选择两个本地音频。Full 已内嵌 Audio 0.1.0；同版本 Base 可拖入独立 `.crossdiffplugin` 安装。此源码预览尚未发布到 GitHub，不会要求安装 Python、Java 或 FFmpeg。
+在“新建… → 音频”选择两个本地音频。Full 已内嵌 Audio 0.1.0；同版本 Base 可拖入独立 `.crossdiffplugin` 安装。无需另装 Python、Java 或 FFmpeg。
 
 - **看波形与时频图：** 默认上下 A/B 时间线，各声道保持原始幅度，深色包络表示 RMS。拖动选择片段，起止秒数也可输入；放大选区只改变视图。切换“时频图”查看真正的 Hann 窗 STFT。参数面板提供 FFT 长度、步长、线性/对数频率轴、共用 dB 范围和平均频谱。
 - **手动对比：** 试听支持单声道和立体声。A 保持原始声音，B 可以独立调整试听速度（0.25–4×，保持音高）和音高（±24 半音）。设置后点击试听；“匹配时长”按双方选区时长设置 B 速度。A/B 切换以当前区域相对位置定位，并非已证明自动同步。支持暂停、停止与循环选区；不会自动播放。
@@ -246,9 +262,9 @@ Each input is limited to **8 GiB**. The bounded algorithm may use explicitly ind
 **Clear Audio Temporary Files** in the parameter panel removes abandoned analysis caches while preserving active jobs. Normal completions clean up automatically. Original audio and saved regions are unaffected.
 
 <a id="office"></a>
-## 办公文档 / Office Compare（0.12.0 源码预览）
+## 办公文档 / Office Compare
 
-选择 **新建… → 办公文档**，在两侧选择同类 `.docx`、`.xlsx` 或 `.pptx`。Full 预装 Office 0.1.0；同版本 Base 可安装独立包。旧 `.doc/.xls/.ppt` 请先在办公软件中另存为现代格式。此预览尚未公开发布。
+选择 **新建… → 办公文档**，在两侧选择同类 `.docx`、`.xlsx` 或 `.pptx`。Full 预装 Office 0.1.0；同版本 Base 可安装独立包。旧 `.doc/.xls/.ppt` 请先在办公软件中另存为现代格式。
 
 - **Word：** 按段落与表格行对照，变更文字显示红绿高亮；通过两侧选择器查看已提取的其他文档部分。段落编号不是页码。
 - **Excel：** 默认先跨位置匹配完全相同行。点击 **匹配关键列**，选择编号等一列或多列，进一步识别同一记录的修改；左右按相同列位置取键，最多 16 列。重复或空键会标记不确定，不强行配对。无关键列时，剩余记录按位置对照，详情会说明这不证明记录身份。
@@ -260,7 +276,7 @@ Each input is limited to **8 GiB**. The bounded algorithm may use explicitly ind
 
 解析在本机只读执行，使用系统 ZIP 解码和 Foundation XML；不执行宏、不获取外部关系或 XML 实体，不写出解压文件。每侧文件最多 128 MiB；累计解码 256 MiB，单 XML 16 MiB、保留 XML 64 MiB，单文档内容与请求还受行数、单元格数及协议预算约束。超限或损坏明确报错，不静默截断后宣称相同。
 
-**English:** Choose **New… → Office Documents** and select two files of the same modern format: DOCX, XLSX or PPTX. Full bundles Office 0.1.0; a matching Base host can install the package. Convert legacy DOC/XLS/PPT files first. This preview is not yet publicly released.
+**English:** Choose **New… → Office Documents** and select two files of the same modern format: DOCX, XLSX or PPTX. Full bundles Office 0.1.0; a matching Base host can install the package. Convert legacy DOC/XLS/PPT files first.
 
 Word shows paragraph/table content with character highlights. Excel matches exact rows across positions; **Match by Key** accepts up to 16 columns to identify changed records. Keys use the same column positions on both sides. Duplicate or empty keys remain uncertain; unmatched records without keys use an explicitly labeled positional comparison. PowerPoint follows presentation order and extracts text, tables and available notes. Section selectors work independently; choosing on the left suggests a right-side match by name, then position.
 

@@ -29,10 +29,12 @@ bash scripts/tests/check-photo-metadata.sh
 bash scripts/tests/check-photo-engine.sh
 bash scripts/tests/check-editor.sh
 bash scripts/tests/check-alignment.sh
+bash scripts/tests/check-newline-workflow.sh
 bash scripts/tests/check-scroll-geometry.sh
 bash scripts/tests/check-deletion-preview.sh
 bash scripts/tests/check-workflow.sh
 bash scripts/tests/check-new-comparison-workflow.sh
+bash scripts/tests/check-folder-workflow.sh
 bash scripts/tests/check-image-workflow.sh
 bash scripts/tests/check-plugin-workflow.sh
 bash scripts/tests/check-official-plugin-ui.sh

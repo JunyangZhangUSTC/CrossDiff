@@ -14,13 +14,15 @@
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上) · [路线图](#对比一切持续向前)
+[下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上) · [路线图](#对比一切持续向前)
 
 </div>
 
-> 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.11.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip)。**
+> 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.12.1-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip)。**
 >
 > 适用于 macOS 14+ 的 Apple 芯片 Mac。已预装本版本全部官方插件，打开即可比较；只需基础功能时也可选择 Base。
+>
+> 草稿版本需发布后才能下载。若上方链接尚未开放，请前往 [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases) 下载当前公开版本。
 
 <table>
 <tr><td>
@@ -43,7 +45,7 @@
 | **免费开源，没有付费墙**<br>AGPL v3 开源，源码可审查、构建和修改。无订阅、试用倒计时或付费解锁。 | **无需注册，开箱即用**<br>没有账号、登录或激活步骤。打开应用、选好左右内容，就能开始比较。 |
 | **细致比较，修改可控**<br>字符级差异、行对齐、逐块合并、独立撤销与手动保存。只做比较，不会覆盖原文件。 | **优雅界面，按需扩展**<br>浅深色主题、中英文切换、多标签与同步滚动。安装插件，继续拓展比较能力。 |
 
-当前公开预览版为 **0.11.0**，已包含摄影、API 与音频插件。下方的办公文档比较为 **0.12.0 源码预览**新增能力，正在准备发布。
+**0.12.1** 改善大文件夹比较、插件卸载与文本换行显示；Full 包含 PDF、摄影、API、音频与办公插件。公开版本与附件状态以 [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases) 为准。
 
 ## 看见声音里的变化
 
@@ -76,7 +78,7 @@
 | 比较对象 | 当前能力 |
 | :--- | :--- |
 | **文本与代码** | 粘贴文本或打开文本文件，字符／整行差异、行对齐、左右编辑、逐块合并、查找替换与独立撤销。支持 TXT、Markdown、HTML、JSON、XML、YAML 等文本格式。 |
-| **本地文件夹** | 递归比较目录，筛选差异、查找单侧文件；复制选中文件前预览新增与覆盖项。 |
+| **本地文件夹** | 分阶段递归比较，先显示明确差异，再核验内容；扫描进度、自定义忽略规则、标签内结果保留，复制前预览与重新校验。 |
 | **压缩包** | 把 ZIP、TAR 及常见压缩 TAR 当作虚拟目录，与压缩包或本地文件夹互比。无需解压到磁盘，按内容校验，找出不同路径下的相同文件。基础版内置插件。 |
 | **图片** | 并排、叠加、滑动与像素差异；独立缩放、旋转、翻转、拖动对齐与四角调整，支持只比较重叠区域。 |
 | **二进制 / Hex** | 原生双栏十六进制与 ASCII，真实地址、插删对齐、差异导航、地址跳转和选中复制。按需读取，只读比较。 |
@@ -107,9 +109,9 @@
 
 ## 选择适合你的版本
 
-**已发布下载：0.11.0 · 源码开发预览：0.12.0 · macOS 14+ · Apple 芯片（arm64）**
+**本页对应版本：0.12.1 · macOS 14+ · Apple 芯片（arm64）**
 
-**推荐完整版 Full：基础功能与本版本全部官方插件一次备齐。** 已发布的 0.11.0 Full 包含 PDF、摄影、API 与音频；0.12.0 源码预览再加入办公文档比较，可从源码构建体验。
+**推荐完整版 Full：基础功能与本版本全部官方插件一次备齐。** 包含压缩包、PDF、摄影、API、音频与办公文档比较，下载后即可使用。
 
 只需要文本、文件夹、图片、Hex 和压缩包比较时，可以选择基础版 Base。两版均免费、开源，无需账号。
 
@@ -136,9 +138,10 @@ Intel 构建尚未实测。当前为持续开发中的预览版本，也可按�
 
 打开 **新建… → 更多对比项**，或 **CrossDiff → 插件…**。
 
-- **在应用内安装：** 从官方插件列表选择 **下载并安装**。应用从对应 GitHub Release 获取插件包，校验后自动完成安装。
+- **在应用内安装：** 在“发现插件”页选择 **下载并安装**。应用从对应 GitHub Release 获取插件包，校验后自动完成安装。
 - **下载后安装：** 从 Release 的 Assets 下载 `.crossdiffplugin`，拖入 CrossDiff，或在插件页选择本地文件。
-- **随时调整：** 停用、卸载或回退已更新的插件，保留已有比较会话。
+- **管理已安装插件：** 插件页默认显示“已安装”，卡片上可直接启用、停用或**卸载**本地安装的插件，更新后也可回退。
+- **整理预装插件：** 完整版等预装插件可**移除**并随时离线**恢复**。移除状态会保留，原文件和比较会话不受影响；预装文件仍随应用保留，不会减小应用体积。
 
 官方插件列表可以离线查看。**仅在你主动下载插件时联网；文件比较继续留在本机。** 不需要注册或登录 GitHub。
 
@@ -146,7 +149,7 @@ Intel 构建尚未实测。当前为持续开发中的预览版本，也可按�
 
 ## 快速开始
 
-下载[完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.11.0/CrossDiff-0.11.0-full-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
+下载[完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
 
 1. 点击 **新建…**（⌘N），选择文本、文件夹、压缩包、图片、二进制或已安装的插件比较。
 2. 分别准备左右内容，点击 **开始比较**。文本可直接粘贴，也可选择文件。
@@ -211,7 +214,7 @@ bash scripts/open-dev-app.command
 
 | 已经可以使用 | 接下来探索 |
 | :--- | :--- |
-| 文本、文件夹、图片、Hex、压缩包、PDF、摄影、API、音频；0.12.0 源码新增办公插件 | 远程文件夹来源、文本三方合并、多对象比较 |
+| 文本、文件夹、图片、Hex、压缩包、PDF、摄影、API、音频与办公文档 | 远程文件夹来源、文本三方合并、多对象比较 |
 | 原生工作台、插件安装管理、基础版与完整版 | 旧版 Office 与完整视觉比较、网络包、数据库、摄影高级分析、视频、模型结构与张量插件；音频自动变速／变调识别 |
 | 中英文界面、浅深色主题、本机会话恢复 | 面向摄影师、媒体工作者与开发者的插件组合 |
 

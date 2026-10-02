@@ -8,8 +8,8 @@
     <key>CFBundleIdentifier</key><string>dev.crossdiff.CrossDiff</string>
     <key>CFBundleExecutable</key><string>CrossDiff</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.12.0</string>
-    <key>CFBundleVersion</key><string>21</string>
+    <key>CFBundleShortVersionString</key><string>0.12.1</string>
+    <key>CFBundleVersion</key><string>25</string>
     <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Junyang Zhang. GNU AGPL v3.</string>
     <key>CFBundleIconFile</key><string>CrossDiff</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>

@@ -47,7 +47,8 @@ if [[ "${1:-}" == "--build-only" ]]; then
   echo "Built: $check_build/official-plugin-ui-checks"
   exit 0
 fi
-CROSSDIFF_DATA_DIR="$check_build/data" CROSSDIFF_RENDER_DIR="$check_build/renders" CROSSDIFF_PLUGIN_HELPER="$check_build/CrossDiffPluginHost" CROSSDIFF_BUNDLED_PLUGINS_DIR="$check_build/Plugins" \
+check_data="$(mktemp -d "$check_build/data.XXXXXX")"
+CROSSDIFF_DATA_DIR="$check_data" CROSSDIFF_RENDER_DIR="$check_build/renders" CROSSDIFF_PLUGIN_HELPER="$check_build/CrossDiffPluginHost" CROSSDIFF_BUNDLED_PLUGINS_DIR="$check_build/Plugins" \
 /usr/bin/python3 - "$check_build/official-plugin-ui-checks" <<'PY'
 import subprocess, sys
 try:

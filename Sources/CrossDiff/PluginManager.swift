@@ -60,7 +60,13 @@ final class PluginManager: ObservableObject {
     private var pendingQuarantine: Data?
     private var store: PluginStore?
     private var bundled: [PluginPackage] = []
-    private var disabledBundled: Set<String> = []
+    private struct Preferences: Codable {
+        var disabledBundled: Set<String> = []
+        // An explicit removal applies to this identity in either edition, including
+        // any external registration retained when switching from Base to Full.
+        var removedIDs: Set<String> = []
+    }
+    private var preferences = Preferences()
     private let preferencesURL: URL
     private let inspectionDirectory: URL
     private var downloadTask: Task<Void, Never>?
@@ -90,7 +96,13 @@ final class PluginManager: ObservableObject {
         } catch { message = localizedErrorDescription(error) }
         do {
             if FileManager.default.fileExists(atPath: preferencesURL.path) {
-                disabledBundled = try JSONDecoder().decode(Set<String>.self, from: Data(contentsOf: preferencesURL))
+                let bytes = try Data(contentsOf: preferencesURL)
+                let decoder = JSONDecoder()
+                if let legacy = try? decoder.decode(Set<String>.self, from: bytes) {
+                    preferences.disabledBundled = legacy
+                } else {
+                    preferences = try decoder.decode(Preferences.self, from: bytes)
+                }
             }
         } catch { message = localizedErrorDescription(error) }
         do {
@@ -103,6 +115,11 @@ final class PluginManager: ObservableObject {
     }
 
     var enabledPlugins: [AvailablePlugin] { plugins.filter { $0.enabled && $0.package.manifest.supportedModes.contains(.pairwise) } }
+    var removedBundledPlugins: [AvailablePlugin] {
+        bundled.filter { preferences.removedIDs.contains($0.manifest.id) }
+            .map { AvailablePlugin(package: $0, installation: nil, bundled: true, enabled: false) }
+            .sorted { $0.id < $1.id }
+    }
     func plugin(id: String?) -> AvailablePlugin? { plugins.first { $0.id == id } }
     func matching(_ url: URL) -> AvailablePlugin? {
         // Built-in text formats remain text by default. Users can explicitly
@@ -148,8 +165,10 @@ final class PluginManager: ObservableObject {
                 throw PluginAppError(zh: "完全信任插件需要单独授权。", en: "A full-trust plugin requires explicit authorization.")
             }
             if package.manifest.runtime == .trustedExecutable { try verifyNativePackage(package) }
-            _ = try storeRequired().install(package,
+            try repairHiddenInstallationIfNeeded(package.manifest.id)
+            let installed = try storeRequired().install(package,
                 approvedNativeDigest: trustNative ? package.sha256 : nil, sourceQuarantine: pendingQuarantine)
+            try finishExplicitInstallation(installed)
             cancelInstall()
             refresh()
         } catch { message = localizedErrorDescription(error) }
@@ -157,12 +176,38 @@ final class PluginManager: ObservableObject {
 
     func setEnabled(_ enabled: Bool, id: String) {
         perform {
+            guard !preferences.removedIDs.contains(id) else {
+                throw PluginAppError(zh: "此插件已移除，请先恢复或重新安装。", en: "This plugin was removed. Restore or reinstall it first.")
+            }
             if bundled.contains(where: { $0.manifest.id == id }) {
-                var updated = disabledBundled
-                if enabled { updated.remove(id) } else { updated.insert(id) }
-                try JSONEncoder().encode(updated).write(to: preferencesURL, options: .atomic)
-                disabledBundled = updated
+                var updated = preferences
+                if enabled { updated.disabledBundled.remove(id) } else { updated.disabledBundled.insert(id) }
+                try persistPreferences(updated)
             } else { try storeRequired().setEnabled(enabled, for: id) }
+        }
+    }
+    func removeBundled(_ id: String) {
+        perform {
+            guard bundled.contains(where: { $0.manifest.id == id }) else {
+                throw PluginAppError(zh: "当前应用未预装此插件。", en: "This plugin is not bundled with this app.")
+            }
+            guard !preferences.removedIDs.contains(id) else { return }
+            var updated = preferences
+            updated.removedIDs.insert(id)
+            try persistPreferences(updated)
+        }
+    }
+    func restoreBundled(_ id: String) {
+        perform {
+            guard let package = bundled.first(where: { $0.manifest.id == id }) else {
+                throw PluginAppError(zh: "当前应用未预装此插件，请重新安装。", en: "This plugin is not bundled with this app. Install it again.")
+            }
+            guard preferences.removedIDs.contains(id) else { return }
+            try package.validate()
+            var updated = preferences
+            updated.removedIDs.remove(id)
+            updated.disabledBundled.remove(id)
+            try persistPreferences(updated)
         }
     }
     func uninstall(_ id: String) {
@@ -175,6 +220,63 @@ final class PluginManager: ObservableObject {
     func rollback(_ id: String) { perform { try storeRequired().rollback(id: id) } }
     private func perform(_ action: () throws -> Void) {
         do { try action(); refresh() } catch { message = localizedErrorDescription(error) }
+    }
+    private func persistPreferences(_ updated: Preferences) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        try encoder.encode(updated).write(to: preferencesURL, options: .atomic)
+        preferences = updated
+    }
+    /// Called only after the requested replacement has passed all validation and
+    /// trust checks. Healthy hidden versions keep their rollback history.
+    private func repairHiddenInstallationIfNeeded(_ id: String) throws {
+        guard preferences.removedIDs.contains(id) else { return }
+        let store = try storeRequired()
+        if store.list().contains(where: { $0.id == id }) {
+            do { _ = try store.package(id: id); return }
+            catch {
+                let damaged: Bool
+                if error is DecodingError { damaged = true }
+                else if let validation = error as? PluginValidationError {
+                    switch validation {
+                    case .invalidField, .invalidPayload, .digestMismatch, .sizeLimit: damaged = true
+                    default: damaged = false
+                    }
+                } else {
+                    let code = error as NSError
+                    damaged = code.domain == NSPOSIXErrorDomain && code.code == Int(ENOENT)
+                }
+                // Permission errors and unsafe paths do not justify deleting an
+                // otherwise intact installation. Preserve them for explicit repair.
+                guard damaged else { throw error }
+            }
+            guard try store.uninstall(id: id) else { throw hiddenRepairError }
+        } else {
+            // A previous repair may have committed the unregister step but failed
+            // to remove files. This path permits retry after permissions are fixed.
+            do { try store.pruneUnregisteredFiles(id: id) }
+            catch { throw hiddenRepairError }
+        }
+    }
+    private var hiddenRepairError: PluginAppError {
+        PluginAppError(zh: "无法清理此插件的旧安装文件，插件仍保持移除状态。请修复插件存储目录权限后重新安装；比较文件和会话未受影响。",
+                       en: "Old plugin files could not be removed. The plugin remains removed. Fix plugin storage permissions and reinstall; your comparison files and sessions are unchanged.")
+    }
+    private func finishExplicitInstallation(_ installation: PluginInstallation) throws {
+        let id = installation.id
+        // Reinstalling an identical, previously disabled version is still an
+        // explicit request to use it. A failed preferences write keeps it hidden;
+        // the installation review/download can be retried without losing files.
+        if !installation.isEnabled { try storeRequired().setEnabled(true, for: id) }
+        guard preferences.removedIDs.contains(id) || preferences.disabledBundled.contains(id) else { return }
+        var updated = preferences
+        updated.removedIDs.remove(id)
+        updated.disabledBundled.remove(id)
+        do { try persistPreferences(updated) }
+        catch {
+            throw PluginAppError(zh: "插件文件已安装，但无法保存启用状态。已移除的插件仍保持隐藏；请检查存储权限后重试。",
+                                 en: "Plugin files were installed, but the activation preference could not be saved. Removed plugins remain hidden. Check storage permissions and retry.")
+        }
     }
     private func verifyNativePackage(_ package: PluginPackage) throws {
         // Installation runs no package code. Security assessment checks a private
@@ -205,10 +307,12 @@ final class PluginManager: ObservableObject {
         return store
     }
     private func refresh() {
-        var entries = bundled.map { AvailablePlugin(package: $0, installation: nil, bundled: true, enabled: !disabledBundled.contains($0.manifest.id)) }
+        var entries = bundled.filter { !preferences.removedIDs.contains($0.manifest.id) }
+            .map { AvailablePlugin(package: $0, installation: nil, bundled: true, enabled: !preferences.disabledBundled.contains($0.manifest.id)) }
         var failures: [FailedPlugin] = []
         if let store {
             for installation in store.list() {
+                guard !preferences.removedIDs.contains(installation.id) else { continue }
                 // Full gives bundled packages precedence. Preserve the external
                 // registration and versions for a later switch back to Base.
                 guard !bundled.contains(where: { $0.manifest.id == installation.id }) else { continue }
@@ -255,6 +359,10 @@ final class PluginManager: ObservableObject {
     /// Arbitrary links, native code and replacements keep their review flow.
     func installOfficial(_ entry: OfficialPlugin, configuration: URLSessionConfiguration = .ephemeral) {
         guard !downloading, pendingPackage == nil else { return }
+        if bundled.contains(where: { $0.manifest.id == entry.id }) && preferences.removedIDs.contains(entry.id) {
+            message = L("此插件已随应用预装。点击“恢复”即可离线重新使用。", "This plugin is included with the app. Choose Restore to use it again offline.")
+            return
+        }
         guard officialPlugins.contains(entry), plugin(id: entry.id) == nil,
               !failedPlugins.contains(where: { $0.id == entry.id }), storageError == nil else {
             message = L("此插件已安装或无法安装。请先在已安装列表中检查状态。", "This plugin is already installed or unavailable. Check its status in Installed."); return
@@ -272,7 +380,9 @@ final class PluginManager: ObservableObject {
                     throw PluginAppError(zh: "插件安装状态已改变，请检查已安装列表。", en: "Plugin installation state changed. Check Installed.")
                 }
                 try validateExternal(package)
-                _ = try storeRequired().install(package)
+                try repairHiddenInstallationIfNeeded(package.manifest.id)
+                let installed = try storeRequired().install(package)
+                try finishExplicitInstallation(installed)
                 refresh()
             } catch is CancellationError { }
             catch { message = localizedErrorDescription(error) }

@@ -4,7 +4,7 @@
 
 普通 `main` 推送运行检查，不发布版本；推送版本标签才会生成 Release 草稿。所有版本均免费，无需注册。两个发行版使用同一套本地比较引擎与会话格式，没有付费功能区别。
 
-当前源码版本为 **0.12.0**（构建号 21），正在准备发布；已公开预览版为 **0.11.0**。以下清单与命令说明如何准备 0.12.0，不代表构建已通过或附件已公开。
+当前源码版本为 **0.12.1**（构建号 25），正在准备发布；已公开预览版为 **0.12.0**。以下清单与命令说明如何准备 0.12.1，不代表构建已通过或附件已公开。
 
 ## 版本包含什么
 
@@ -22,7 +22,7 @@
 ## 创建本次 Release
 
 1. 完成受影响的核心与原生窗口验证，并记录未验证场景。CI 的 `--build-only` 只证明原生检查程序能够编译，不能替代真实窗口验收。
-2. 更新 `Resources/Info.plist` 的版本和递增构建号、`CHANGELOG.md`、中英文 README，以及 `docs/releases/<版本>.md` 双语发布说明。当前版本为 **0.12.0**（构建号 21）。README 默认推荐 **Full 完整版**，下载链接指向已公开版本；发布新版本后再更新。发布说明开头用一句话推荐 Full，完整包名用固定版本的下载超链接，点包名即可下载；Base 放在后面的可选说明。发布说明应可直接公开，草稿状态由 GitHub 标记，避免公开后仍写着“尚未发布”。
+2. 更新 `Resources/Info.plist` 的版本和递增构建号、`CHANGELOG.md`、中英文 README，以及 `docs/releases/<版本>.md` 双语发布说明。当前版本为 **0.12.1**（构建号 25）。README 默认推荐 **Full 完整版**。下载链接可以提前指向待发布版本，但必须注明草稿发布后可用，并保留 GitHub Releases 入口供下载现有版本。发布说明开头用一句话推荐 Full，完整包名用固定版本的下载超链接，点包名即可下载；Base 放在后面的可选说明。发布说明应可直接公开，草稿状态由 GitHub 标记，避免公开后仍写着“尚未发布”。
 3. 如果插件的代码或 manifest 有变化，递增该插件的 `version`。应用版本和插件版本独立；不要在同一插件版本下替换已经公开的包。
 4. 提交并推送精确的发行状态到 `main`。发行脚本拒绝脏工作区、未跟踪文件以及 `assume-unchanged` / `skip-worktree` 隐藏修改。
 5. 版本与发布说明一致后，从项目根目录的 Bash 运行：
@@ -31,8 +31,8 @@
 source scripts/project-env.sh
 git switch main
 git push origin main
-git tag -a v0.12.0 -m "CrossDiff 0.12.0 preview"
-git push origin v0.12.0
+git tag -a v0.12.1 -m "CrossDiff 0.12.1 preview"
+git push origin v0.12.1
 ```
 
 标签必须等于 `v` 加 `CFBundleShortVersionString`，对应提交必须可从 `origin/main` 到达。以后发布时替换版本号；不要移动已公开的版本标签。
@@ -46,8 +46,8 @@ git push origin v0.12.0
 ## Release 的全部附件
 
 ```text
-CrossDiff-0.12.0-base-macOS-arm64.zip
-CrossDiff-0.12.0-full-macOS-arm64.zip
+CrossDiff-0.12.1-base-macOS-arm64.zip
+CrossDiff-0.12.1-full-macOS-arm64.zip
 CrossDiff-Plugin-Archive-0.1.0.crossdiffplugin
 CrossDiff-Plugin-PDF-0.1.0.crossdiffplugin
 CrossDiff-Plugin-Photography-0.1.0.crossdiffplugin
@@ -55,19 +55,19 @@ CrossDiff-Plugin-API-0.1.0.crossdiffplugin
 CrossDiff-Plugin-Audio-0.1.0.crossdiffplugin
 CrossDiff-Plugin-Office-0.1.0.crossdiffplugin
 CrossDiff-Example-JSON-0.1.0.crossdiffplugin
-CrossDiff-0.12.0-source.tar.gz
+CrossDiff-0.12.1-source.tar.gz
 plugins.json
 BUILD-INFO.txt
 SHA256SUMS
 ```
 
-这里的插件版本来自各自的 manifest，后续独立递增。Photography、API、Audio 分别需要宿主提供 `photoAnalysis`、`httpExchange`、`audioAnalysis` 能力，最初在 0.9.0、0.10.0、0.11.0 源码中引入；Office 的 `officeDocument`/`officeDocuments` 在 0.12.0 加入。本次包配合 0.12.0 宿主使用；同为实验协议 v1 不表示旧版支持新增输入和视图，更新插件目录也不能补上旧宿主缺少的能力。所有附件都由脚本生成；不要手动重命名插件包或只上传应用 ZIP。`SHA256SUMS` 覆盖除自身之外的每一个附件。`BUILD-INFO.txt` 记录应用版本、构建号、完整源码提交、架构、两版应用文件名和签名状态，不包含开发者的本机路径。
+这里的插件版本来自各自的 manifest，后续独立递增。Photography、API、Audio 分别需要宿主提供 `photoAnalysis`、`httpExchange`、`audioAnalysis` 能力，最初在 0.9.0、0.10.0、0.11.0 源码中引入；Office 的 `officeDocument`/`officeDocuments` 在 0.12.0 加入。本次包配合 0.12.1 宿主使用；同为实验协议 v1 不表示旧版支持新增输入和视图，更新插件目录也不能补上旧宿主缺少的能力。所有附件都由脚本生成；不要手动重命名插件包或只上传应用 ZIP。`SHA256SUMS` 覆盖除自身之外的每一个附件。`BUILD-INFO.txt` 记录应用版本、构建号、完整源码提交、架构、两版应用文件名和签名状态，不包含开发者的本机路径。
 
 ## 官方插件目录与应用内安装
 
 [plugin_inventory.py](../scripts/plugin_inventory.py) 是打包清单的唯一来源，同时生成确定性的插件包与 `plugins.json`：
 
-- 目录格式为 `formatVersion: 1`，`releaseTag` 固定到本次应用版本，例如 `v0.12.0`。
+- 目录格式为 `formatVersion: 1`，`releaseTag` 固定到本次应用版本，例如 `v0.12.1`。
 - 每项包含 `id`、插件 `version`、中英文 `name` / `summary`、`asset`、`url`、**完整插件包字节**的 `sha256` 与 `size`。
 - 地址固定到本仓库 `releases/download/<releaseTag>/<asset>`；不用会随最新版本变化的地址。
 - 两版应用都内置**逐字节相同**的 `Contents/Resources/OfficialPlugins.json`，与 Release 的 `plugins.json` 相同。基础版因此可以离线展示尚未安装的官方插件。

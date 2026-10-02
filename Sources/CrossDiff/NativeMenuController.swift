@@ -12,6 +12,7 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
     private var languageObserver: NSObjectProtocol?
     private var menuItemObserver: NSObjectProtocol?
     private var settingsController: NSWindowController?
+    private var aboutController: NSWindowController?
     private var pluginsController: NSWindowController?
     private var pluginObserver: NSObjectProtocol?
     private(set) weak var comparisonWindow: NSWindow?
@@ -169,6 +170,7 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         mainMenu = root; NSApp.mainMenu = root
         scheduleMenuCleanup()
         settingsController?.window?.title = L("设置", "Settings")
+        aboutController?.window?.title = L("关于 CrossDiff", "About CrossDiff")
         pluginsController?.window?.title = L("插件", "Plugins")
     }
 
@@ -344,11 +346,22 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         pluginsController?.window?.makeKeyAndOrderFront(sender)
     }
     @objc func about(_ sender: Any?) {
-        let alert = NSAlert()
-        alert.messageText = "CrossDiff"
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? L("开发版", "Development")
-        alert.informativeText = L("版本 \(version)\n本地文本、文件夹和图片比较。\n\n免费开源 · GNU AGPL v3\n© 2026 Junyang Zhang", "Version \(version)\nLocal text, folder, and image comparison.\n\nFree & open source · GNU AGPL v3\n© 2026 Junyang Zhang")
-        alert.addButton(withTitle: L("好", "OK")); alert.runModal()
+        if aboutController == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 350),
+                                  styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            window.identifier = NSUserInterfaceItemIdentifier("crossdiff-about")
+            window.title = L("关于 CrossDiff", "About CrossDiff")
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: AboutView(onClose: { [weak window] in window?.close() }))
+            #if CROSSDIFF_UI_CHECKS
+            window.setFrameOrigin(NSPoint(x: -10000, y: -10000))
+            #else
+            window.center()
+            #endif
+            aboutController = NSWindowController(window: window)
+        }
+        aboutController?.showWindow(sender)
+        aboutController?.window?.makeKeyAndOrderFront(sender)
     }
     @objc func showHelp(_ sender: Any?) {
         let alert = NSAlert()
