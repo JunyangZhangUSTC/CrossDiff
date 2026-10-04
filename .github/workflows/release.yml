@@ -132,6 +132,12 @@ jobs:
       - name: Compile native plugin workflow checks
         run: bash scripts/tests/check-plugin-workflow.sh --build-only
 
+      - name: Video comparison checks
+        run: |
+          bash scripts/tests/check-video-plugin.sh
+          bash scripts/tests/check-video-source.sh
+          bash scripts/tests/check-video-workflow.sh --build-only
+
       - name: Compile new comparison workflow checks
         run: bash scripts/tests/check-new-comparison-workflow.sh --build-only
 

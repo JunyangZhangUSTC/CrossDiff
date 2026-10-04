@@ -21,6 +21,7 @@ struct NewComparisonType: Identifiable, Equatable {
             if pluginID == "org.crossdiff.photography" { return L("摄影", "Photography") }
             if pluginID == "org.crossdiff.api" { return L("API 对比", "API Compare") }
             if pluginID == "org.crossdiff.audio" { return L("音频", "Audio") }
+            if pluginID == "org.crossdiff.video" { return L("视频", "Video") }
             if pluginID == "org.crossdiff.office" { return L("办公文档", "Office Documents") }
             return manifest?.name.localized ?? L("插件比较", "Plugin Comparison")
         }
@@ -37,6 +38,7 @@ struct NewComparisonType: Identifiable, Equatable {
             if manifest?.inputKind == .photoAnalysis { return L("影调、配色与局部区域分析", "Analyze tone, color and selected regions") }
             if isAPI { return L("HTTP 请求与响应的结构化差异", "Structured HTTP request and response differences") }
             if manifest?.inputKind == .audioAnalysis { return L("波形、时频图与片段对应", "Waveforms, spectrograms and matching passages") }
+            if manifest?.inputKind == .videoAnalysis { return L("联动播放、逐帧与局部画面对照", "Linked playback, frame stepping and regional inspection") }
             if isOffice { return L("Word、Excel 与 PowerPoint 内容差异", "Word, Excel and PowerPoint content differences") }
             return manifest?.summary.localized ?? ""
         }
@@ -44,6 +46,7 @@ struct NewComparisonType: Identifiable, Equatable {
     @MainActor var symbol: String {
         if manifest?.inputKind == .photoAnalysis { return "camera.aperture" }
         if isAPI { return "arrow.left.arrow.right.square" }
+        if manifest?.inputKind == .videoAnalysis { return "film" }
         if isOffice { return "doc.text.image" }
         if manifest?.inputKind == .audioAnalysis { return "waveform" }
         if kind == .plugin { return acceptsFolders ? "archivebox" : pluginID == "org.crossdiff.pdf" ? "doc.richtext" : "puzzlepiece.extension" }

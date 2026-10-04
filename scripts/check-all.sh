@@ -26,6 +26,8 @@ bash scripts/tests/check-audio-plugin.sh
 bash scripts/tests/check-audio-engine.sh
 bash scripts/tests/check-audio-playback.sh
 bash scripts/tests/check-audio-cache.sh
+bash scripts/tests/check-video-plugin.sh
+bash scripts/tests/check-video-source.sh
 bash scripts/audio-research/build-matcher.sh
 python3 scripts/audio-research/check-matcher.py
 bash scripts/tests/check-photo-metadata.sh
@@ -46,3 +48,4 @@ bash scripts/tests/check-archive-workflow.sh
 bash scripts/tests/check-photo-workflow.sh
 bash scripts/tests/check-api-workflow.sh
 bash scripts/tests/check-audio-workflow.sh
+bash scripts/tests/check-video-workflow.sh

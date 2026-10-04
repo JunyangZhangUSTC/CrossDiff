@@ -134,6 +134,9 @@ private struct PluginResultView: View {
         } else if plugin.package.manifest.resultView == "audioTimeline" {
             AudioComparisonView(left: left, right: right, model: session.audioComparisonModel,
                 execute: { try await execution.compare($0, options: $1) }, executionID: executionID)
+        } else if plugin.package.manifest.resultView == "videoTimeline" {
+            VideoComparisonView(left: left, right: right, model: session.videoComparisonModel,
+                                execute: { try await execution.compare($0, options: $1) }, executionID: executionID)
         } else if plugin.package.manifest.resultView == "officeDocuments" {
             OfficeComparisonView(model: session.officeModel, leftURL: left, rightURL: right,
                 execute: { try await execution.compare($0, options: $1) }, executionID: executionID)

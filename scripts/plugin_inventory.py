@@ -36,6 +36,8 @@ PLUGINS = (
      "bundled": "dev.crossdiff.audio.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Official/Office", "id": "org.crossdiff.office", "label": "Office", "official": True,
      "bundled": "dev.crossdiff.office.crossdiffplugin", "editions": ("full",)},
+    {"source": "Plugins/Official/Video", "id": "org.crossdiff.video", "label": "Video", "official": True,
+     "bundled": "dev.crossdiff.video.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Examples/JSON", "id": "example.crossdiff.json-keys", "label": "JSON", "official": False,
      "bundled": None, "editions": ()},
 )

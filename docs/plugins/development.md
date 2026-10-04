@@ -1,6 +1,6 @@
 # 插件开发 · 实验 v1
 
-状态：2026-10-02，面向尚未发布的 CrossDiff 0.12.0 源码预览（Photography/API/Audio/Office 0.1.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
+状态：2026-10-04，面向尚未发布的 CrossDiff 0.14.0 源码预览（Photography/API/Audio/Office/Video 0.1.0，PDF 0.2.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
 
 实现依据为 [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift)、[PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift)、[PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) 与 [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift)。早期[框架设计](../architecture/compare-everything.md)描述的远期能力不代表本版本已经支持。
 
@@ -17,6 +17,7 @@
 | `photoAnalysis` | Apple／OpenCV 管线生成的有界归一化 RGB／HSL 分布、中性色比例及分析说明 | `photography`：双图、选区、直方图、记录曲线与拍摄信息 |
 | `audioAnalysis` | 有界源元数据与宿主匹配证据；不含 PCM、波形或谱图网格 | `audioTimeline`：双时间线、声道波形、时频图、选区与 A/B 试听 |
 | `officeDocument` | DOCX/XLSX/PPTX 所选部分的类型化单元格、原位置、公式与保存结果 | `officeDocuments`：原生表格与段落／幻灯片内容 |
+| `videoAnalysis` | 所选视频的有界元数据；不含路径、帧像素、PCM 或对应关系 | `videoTimeline`：原生双画面与时间线、手动对齐、暂停对照 |
 
 内置 [PDF 插件](../../Plugins/PDF/)的 JavaScript 决定页面对应与分类；PDFKit 在宿主侧提取并显示页面。独立 [JSON 示例插件](../../Plugins/Examples/JSON/)自行比较 JSON 顶层键值，使用相同安装和执行协议。
 
@@ -309,7 +310,7 @@ JSON 示例按解析后的值比较，忽略对象键顺序与空白；重复键
 
 默认 wall-time 为 15 秒，宿主可配置但不超过 60 秒；helper CPU 上限不超过 30 秒。stdin envelope 最多 32 MiB，结果最多 8 MiB，宿主默认 stderr 上限为 16 KiB。宿主在系统允许读取子进程统计时检查 512 MiB RSS；该检查是轮询预算，可能被系统拒绝，**不是硬内存隔离保证**。取消或超限会终止 helper，并丢弃结果。
 
-这是**受限 JavaScript 运行时，不是操作系统沙箱**。进程隔离和没有 I/O API 不等于能够防御所有 JavaScriptCore 漏洞；宿主侧 PDFKit、归档与 Apple/OpenCV 图片解析、Apple AVFoundation/Accelerate 音频分析及独立 Olaf helper 也不在该 JavaScript worker 内；上面的 JavaScript 时限不包含这些原生阶段。不会静默改用完全信任运行方式。
+这是**受限 JavaScript 运行时，不是操作系统沙箱**。进程隔离和没有 I/O API 不等于能够防御所有 JavaScriptCore 漏洞；宿主侧 PDFKit、归档与 Apple/OpenCV 图片解析、Apple AVFoundation/Accelerate 音频分析、AVFoundation/Core Image 视频读取与帧对照及独立 Olaf helper 也不在该 JavaScript worker 内；上面的 JavaScript 时限不包含这些原生阶段。不会静默改用完全信任运行方式。
 
 ### 完全信任原生可执行文件
 
@@ -372,6 +373,29 @@ bash scripts/tests/check-audio-workflow.sh
 受限 JS 整理元数据差异与两侧非拒绝区间的覆盖并集。结果必须原样保留宿主对应数组、分析状态及诊断，宿主重新核对源范围、有限数、数量/字节预算、schema、任务 id 和覆盖。原始 PCM、波形和谱图不进入 JSON。宿主 Apple 分析与独立 Olaf C helper 属于受信的应用组件，不表示任意第三方插件获得了原生调用或通用文件句柄能力，也不等于操作系统沙箱。
 
 契约源代码见 [`AudioComparison.swift`](../../Sources/CrossDiffCore/AudioComparison.swift)。检查入口：`bash scripts/tests/check-audio-plugin.sh`、`bash scripts/tests/check-audio-engine.sh`、`bash scripts/tests/check-audio-cache.sh`、`bash scripts/tests/check-audio-workflow.sh`。独立包用 `python3 scripts/package-audio-plugin.py`；两种宿主均带音频服务与 renderer。
+
+<a id="video-contract"></a>
+
+## 视频契约（0.14.0 新增）
+
+官方示例为 [`Plugins/Official/Video`](../../Plugins/Official/Video/)。清单使用 `inputKind: videoAnalysis`、`resultView: videoTimeline`，仅接受 `pairwise`，结果为 `schema: crossdiff.video/1`。需要 0.14.0 或更新、提供视频能力的宿主；整体协议仍为 v1，旧宿主会拒绝不认识的输入与视图。
+
+每侧 `VideoSourceMetadata.pluginContent` 只包含 `id`、`name`、`duration`、`width`、`height`、`nominalFrameRate`、`codec`、`hasAudio`、`isHDR`。`duration` 是 `{ "value": "6000", "timescale": 600 }` 形式的有理时间：值为无损十进制字符串，timescale 为正 Int32，时长大于 0 且不超过 24 小时。尺寸为方向变换后的显示尺寸，每轴 1–32768；名义帧率 0–1000，0 表示无法取得，不意味着固定帧率。`isHDR` 仅反映源传递函数标记。宿主不向脚本传文件路径、帧像素、PCM 或播放权限，未知元数据字段拒绝。
+
+首版 `options` 必须为空。结果 payload 只有：
+
+```json
+{
+  "metadataDifferences": ["duration", "codec"],
+  "contentCompared": false
+}
+```
+
+`metadataDifferences` 按 `duration`、`width`、`height`、`nominalFrameRate`、`codec`、`hasAudio`、`isHDR` 顺序列出真实不同的字段。宿主按原始输入重新核验；时长使用精确有理数比较，600/600 与 1000/1000 不算差异。额外字段、重复字段、遗漏／伪造差异以及 `contentCompared: true` 均拒绝。返回状态为 `completed` 只表示元数据整理完成，不能说明画面相同、整片已经对应或已完成质量分析。
+
+播放、真实 PTS 逐帧、人工偏移、区域循环和 ROI 由原生宿主管理。暂停差异仅用于同像素尺寸、显式 Rec.709 SDR 标记的帧对；第三方脚本不能改变此限制。自动片段匹配和专业质量指标尚未开放。
+
+契约实现见 [`VideoComparison.swift`](../../Sources/CrossDiffCore/VideoComparison.swift)。运行 `bash scripts/tests/check-video-plugin.sh` 验证 Core、真实 JavaScript 与 helper；`check-video-source.sh` 验证本机读取服务，`check-video-workflow.sh` 负责原生工作台。独立包通过 `python3 scripts/package-video-plugin.py` 生成；Full 预装，Base 可安装，两种宿主都包含原生视频能力。
 
 ## crossdiff.office/1
 

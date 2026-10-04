@@ -1,0 +1,13 @@
+{
+  "id": "org.crossdiff.video",
+  "version": "0.1.0",
+  "name": { "zhHans": "视频对比", "en": "Video Compare" },
+  "summary": { "zhHans": "本地只读视频工作台：并排播放、手动时间对齐、暂停滑动对照与帧差异，清楚查看同一素材的不同版本。", "en": "Local read-only video comparison: side-by-side playback, manual time alignment, paused wipe and frame differences for versions of the same material." },
+  "runtime": "restrictedJavaScript",
+  "inputKind": "videoAnalysis",
+  "fileExtensions": ["mov", "mp4", "m4v"],
+  "resultView": "videoTimeline",
+  "supportedModes": ["pairwise"],
+  "minHostProtocol": 1,
+  "maxHostProtocol": 1
+}

@@ -60,6 +60,14 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
     }
     private var canEditComparison: Bool { comparisonActive && session?.kind == .text }
     private var activeUndoManager: UndoManager? { NSApp.keyWindow?.firstResponder?.undoManager }
+    private var activeVideoHistory: VideoComparisonModel? {
+        guard comparisonActive, NSApp.keyWindow === comparisonWindow,
+              !(NSApp.keyWindow?.firstResponder is NSTextView),
+              let session, session.kind == .plugin,
+              let plugin = PluginManager.shared.plugin(id: session.pluginID), plugin.enabled,
+              plugin.package.manifest.inputKind == .videoAnalysis else { return nil }
+        return session.videoComparisonModel
+    }
     private var activeAudioHistory: AudioComparisonModel? {
         guard comparisonActive, NSApp.keyWindow === comparisonWindow,
               !(NSApp.keyWindow?.firstResponder is NSTextView),
@@ -152,6 +160,10 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         compare.addItem(item(L("上一处差异", "Previous Difference"), #selector(previousDifference(_:)), key: String(UnicodeScalar(NSUpArrowFunctionKey)!), modifiers: [.command, .option]))
         compare.addItem(.separator())
         compare.addItem(item(L("清空两侧", "Clear Both"), #selector(clearBoth(_:))))
+        compare.addItem(.separator())
+        compare.addItem(item(L("播放或暂停视频", "Play or Pause Videos"), #selector(playVideo(_:)), key: " ", modifiers: []))
+        compare.addItem(item(L("上一帧", "Previous Frame"), #selector(previousVideoFrame(_:)), key: String(UnicodeScalar(NSLeftArrowFunctionKey)!), modifiers: []))
+        compare.addItem(item(L("下一帧", "Next Frame"), #selector(nextVideoFrame(_:)), key: String(UnicodeScalar(NSRightArrowFunctionKey)!), modifiers: []))
         let sessions = addMenu(L("会话", "Session"), to: root)
         sessions.addItem(item(L("清除本机会话记录…", "Clear Local Session History…"), #selector(clearHistory(_:))))
 
@@ -206,6 +218,10 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         switch menuItem.action {
         case #selector(undo(_:)), #selector(redo(_:)):
             let isUndo = menuItem.action == #selector(undo(_:))
+            if let video = activeVideoHistory {
+                menuItem.title = isUndo ? L("撤销视频调整", "Undo Video Adjustment") : L("重做视频调整", "Redo Video Adjustment")
+                return isUndo ? video.canUndo : video.canRedo
+            }
             if let audio = activeAudioHistory {
                 menuItem.title = isUndo ? L("撤销音频调整", "Undo Audio Adjustment") : L("重做音频调整", "Redo Audio Adjustment")
                 return isUndo ? audio.canUndo : audio.canRedo
@@ -215,6 +231,8 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
             let verb = isUndo ? L("撤销", "Undo") : L("重做", "Redo")
             menuItem.title = name.isEmpty ? verb : verb + " " + name
             return isUndo ? manager?.canUndo == true : manager?.canRedo == true
+        case #selector(playVideo(_:)), #selector(previousVideoFrame(_:)), #selector(nextVideoFrame(_:)):
+            return activeVideoHistory?.hasSources == true && activeVideoHistory?.isLoading == false && activeVideoHistory?.isSeeking == false
         case #selector(save(_:)), #selector(saveAs(_:)), #selector(find(_:)), #selector(findAndReplace(_:)):
             return canEditComparison
         case #selector(findNext(_:)), #selector(findPrevious(_:)):
@@ -277,13 +295,18 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
     @objc func save(_ sender: Any?) { if canEditComparison, let session { WorkspaceStore.shared.save(session, side: session.focusSide) } }
     @objc func saveAs(_ sender: Any?) { if canEditComparison, let session { WorkspaceStore.shared.save(session, side: session.focusSide, saveAs: true) } }
     @objc func undo(_ sender: Any?) {
-        if let audio = activeAudioHistory { audio.undo() }
+        if let video = activeVideoHistory { video.undo() }
+        else if let audio = activeAudioHistory { audio.undo() }
         else if activeUndoManager?.canUndo == true { activeUndoManager?.undo() }
     }
     @objc func redo(_ sender: Any?) {
-        if let audio = activeAudioHistory { audio.redo() }
+        if let video = activeVideoHistory { video.redo() }
+        else if let audio = activeAudioHistory { audio.redo() }
         else if activeUndoManager?.canRedo == true { activeUndoManager?.redo() }
     }
+    @objc func playVideo(_ sender: Any?) { activeVideoHistory?.togglePlayback() }
+    @objc func previousVideoFrame(_ sender: Any?) { activeVideoHistory?.step(-1) }
+    @objc func nextVideoFrame(_ sender: Any?) { activeVideoHistory?.step(1) }
     @objc func find(_ sender: Any?) { beginFind(replacing: false) }
     @objc func findAndReplace(_ sender: Any?) { beginFind(replacing: true) }
     private func beginFind(replacing: Bool) {

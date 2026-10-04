@@ -151,6 +151,18 @@ final class ComparisonSession: ObservableObject, Identifiable {
         }
         return model
     }()
+    private var storedVideoState: VideoWorkspaceState?
+    private var hasCreatedVideoModel = false
+    lazy var videoComparisonModel: VideoComparisonModel = {
+        hasCreatedVideoModel = true
+        let model = VideoComparisonModel(state: storedVideoState ?? .init())
+        model.onStateChanged = { [weak self, weak model] in
+            guard let self, let model else { return }
+            self.storedVideoState = model.state
+            self.changed?()
+        }
+        return model
+    }()
     private var storedOfficeState: OfficeWorkspaceState?
     lazy var officeModel: OfficeComparisonModel = {
         let model = OfficeComparisonModel(state: storedOfficeState ?? .init())
@@ -169,12 +181,13 @@ final class ComparisonSession: ObservableObject, Identifiable {
     @Published private var clearedText: ClearedText?
     private var changingClearAction = false
 
-    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil, audioState: AudioWorkspaceState? = nil, officeState: OfficeWorkspaceState? = nil) {
+    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil, audioState: AudioWorkspaceState? = nil, officeState: OfficeWorkspaceState? = nil, videoState: VideoWorkspaceState? = nil) {
         self.id = id; self.kind = kind; self.left = left; self.right = right; self.pluginID = pluginID
         storedPhotoState = photoState?.isValid == true ? photoState : nil
         storedAPIState = apiState?.isValid == true ? apiState : nil
         storedAudioState = audioState?.isValid == true ? audioState : nil
         storedOfficeState = officeState?.isValid == true ? officeState : nil
+        storedVideoState = videoState?.isValid == true ? videoState : nil
         if kind == .text { compare() }
     }
     deinit {
@@ -191,7 +204,7 @@ final class ComparisonSession: ObservableObject, Identifiable {
         return l == nil && r == nil ? L("临时文本", "Untitled Comparison") : "\(l ?? unnamed) ↔ \(r ?? unnamed)"
     }
     var dirty: Bool { !left.text.utf16.elementsEqual(left.savedText.utf16) || !right.text.utf16.elementsEqual(right.savedText.utf16) }
-    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState, audioState: storedAudioState, officeState: storedOfficeState) }
+    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState, audioState: storedAudioState, officeState: storedOfficeState, videoState: hasCreatedVideoModel ? videoComparisonModel.persistedState : storedVideoState) }
     var canClearText: Bool { kind == .text && (!left.text.isEmpty || !right.text.isEmpty) }
     var canRestoreClearedText: Bool { clearedText != nil && left.text.isEmpty && right.text.isEmpty }
     func value(_ side: Side) -> StoredTextSide { side == .left ? left : right }
@@ -546,7 +559,7 @@ final class WorkspaceStore: ObservableObject {
         do {
             for record in try SessionFile.load(from: sessionURL) {
                 guard let kind = ComparisonKind(rawValue: record.kind) else { continue }
-                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState, audioState: record.audioState, officeState: record.officeState))
+                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState, audioState: record.audioState, officeState: record.officeState, videoState: record.videoState))
             }
         } catch {
             recoveryFailed = true
@@ -595,6 +608,9 @@ final class WorkspaceStore: ObservableObject {
         }
         if session.kind == .plugin, session.pluginID == "org.crossdiff.office" || PluginManager.shared.plugin(id: session.pluginID)?.package.manifest.inputKind == .officeDocument {
             session.officeModel.cancel()
+        }
+        if session.kind == .plugin, session.pluginID == "org.crossdiff.video" || PluginManager.shared.plugin(id: session.pluginID)?.package.manifest.inputKind == .videoAnalysis {
+            session.videoComparisonModel.cancel()
         }
         sessions.removeAll { $0.id == session.id }
         if selectedID == session.id { selectedID = sessions.last?.id }
@@ -676,6 +692,9 @@ final class WorkspaceStore: ObservableObject {
         if url.pathExtension.lowercased() == "pdf" { return .init(url: url, kind: .plugin, pluginID: "org.crossdiff.pdf") }
         if ArchiveComparisonModel.fileExtensions.contains(url.pathExtension.lowercased()) {
             return .init(url: url, kind: .plugin, pluginID: ArchiveComparisonModel.pluginID, acceptsFolders: true)
+        }
+        if ["mov", "mp4", "m4v"].contains(url.pathExtension.lowercased()) {
+            return .init(url: url, kind: .plugin, pluginID: "org.crossdiff.video")
         }
         let inferredKind: ComparisonKind
         if OfficeDocumentKind.from(fileExtension: url.pathExtension) != nil {

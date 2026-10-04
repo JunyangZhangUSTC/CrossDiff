@@ -47,6 +47,10 @@ From a quick text paste to code directories, archives, images, and research PDFs
 
 **0.12.1** improves large folder comparisons, plugin removal and wrapped text rendering. Full includes PDF, Photography, API, Audio and Office. See [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases) for published versions and available assets.
 
+**The 0.14.0 source preview adds Video Compare.** Inspect edited, graded, captioned or compressed versions of the same material with paired pictures and timelines, shared playback, frame stepping and manual time alignment. Pause for a wipe or difference view, and save local regions for later inspection. Native, local and read-only, with no additional large decoder or model download. [Video guide](docs/usage.md#video) · [Capabilities and limits](docs/architecture/video-comparison.md#video-m1)
+
+Video is bundled with 0.14.0 Full and separately installable on matching Base hosts. **The 0.12.1 download above does not include video.** This first version supports manual comparison; automatic correspondence across edits remains planned.
+
 ## See changes in sound
 
 Inspect waveforms and STFT spectrograms, select and save regions, and switch between A/B auditions. Find fixed-speed excerpts from the same recording, including reordered edits and repeated candidates. Rate and pitch can be adjusted manually for audition; automatic recognition of those changes remains research work. [Audio guide](docs/usage.md#audio)
@@ -86,6 +90,7 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 | **Office documents** | Word paragraphs and tables, Excel rows matched across positions or by key columns, and PowerPoint slide content. Character highlights, formulas and saved results, plus original previews. Read-only DOCX/XLSX/PPTX support. [Office guide](docs/usage.md#office) |
 | **API** | Compare locally saved requests and responses as structured fields to investigate changes. |
 | **Audio** | Compare recordings and edited versions on paired timelines, with a closer look at selected passages. |
+| **Video · 0.14.0 source preview** | Native MOV/MP4/M4V side-by-side viewing, source-time frame stepping, manual offset, mute or A/B audio, looped passages and saved local regions. Wipe and difference views pause playback; differences require equal pixel dimensions and explicit Rec.709 SDR tags. |
 | **Photography** | Read-only paired photographs, RGB/HSL histograms, named region pairs, capture metadata, and recorded processing curves. Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
 
 <details>
@@ -214,8 +219,8 @@ Our direction is **“Compare everything. Make every comparison count.”** Star
 
 | Available today | Next to explore |
 | :--- | :--- |
-| Text, folders, images, Hex, archives, PDF, Photography, API, Audio and Office | Remote folder sources, three-way text merging, and multi-object comparison |
-| A native workspace, plugin management, Base and Full editions | Legacy Office and full visual comparison, network packets, databases, advanced photography analysis, video, model structures, and tensor plugins; automatic audio tempo/pitch recognition |
+| Text, folders, images, Hex, archives, PDF, Photography, API, Audio and Office; manual video comparison in the 0.14.0 source preview | Remote folder sources, three-way text merging, and multi-object comparison |
+| A native workspace, plugin management, Base and Full editions | Legacy Office and full visual comparison, network packets, databases, advanced photography analysis, model structures, and tensor plugins; automatic audio tempo/pitch recognition and video segment correspondence |
 | English and Simplified Chinese, light and dark themes, local session restoration | Plugin bundles for photographers, media professionals, and developers |
 
 The right column is **planned work**. Current views provide two-way comparison. PDF has no OCR yet; archives do not support RAR, 7z, or encryption; folders do not provide full synchronization. See the [roadmap](docs/roadmap.md) and [implementation limits](docs/development.md#current-implementation-limits) for file limits, RAW compatibility, and analysis boundaries.

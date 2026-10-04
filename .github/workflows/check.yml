@@ -94,6 +94,12 @@ jobs:
           bash scripts/tests/check-binary-detection.sh
           bash scripts/tests/check-binary-workflow.sh --build-only
 
+      - name: Video comparison checks
+        run: |
+          bash scripts/tests/check-video-plugin.sh
+          bash scripts/tests/check-video-source.sh
+          bash scripts/tests/check-video-workflow.sh --build-only
+
       - name: Compile native plugin workflow checks
         run: bash scripts/tests/check-plugin-workflow.sh --build-only
 

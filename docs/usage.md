@@ -303,3 +303,22 @@ Word shows paragraph/table content with character highlights. Excel matches exac
 Original row numbers, changes and reorder markers remain separate. Click a center symbol for matching evidence, complete cell values, types, formulas and saved results. Search covers content and formulas. Wide sheets provide column groups and horizontal scrolling. The eye button opens the current file in system Quick Look, whose support depends on macOS; it is not a synchronized page renderer. Reload explicitly refreshes the imported snapshot.
 
 Results cover the selected sections, not complete visual or file identity. Formatting, charts, images and embedded objects are not fully compared. Formulas are never evaluated; saved results may be missing or stale. Numeric/date records preserve source precision, without emulating Excel formatting. Parsing stays local and read-only with bounded ZIP/XML resources, no macro execution, external-relationship fetch or external entities. Unsupported, damaged and oversized inputs report errors. See [implementation boundaries](architecture/office-comparison.md).
+
+<a id="video"></a>
+
+## 视频对比 / Video Compare
+
+0.14.0 源码预览支持 Video 插件：Full 预装，同版 Base 可在插件页安装 `Video.crossdiffplugin`。从 **新建… → 视频** 选择两个本地 MOV、MP4 或 M4V 文件；格式能否播放由 macOS 实际解码能力决定。
+
+- 默认双画面、双时间线；点击时间线定位。点击画面后，用 **空格** 播放／暂停，**← / →** 逐帧；A/B 选择逐帧的基准侧。对应命令也在“比较”菜单中。
+- 默认按同时间联动，这不代表内容已匹配。关闭联动分别找对应画面，然后在 **时间对齐… → 将当前两帧设为对应** 配对。也可输入偏移：`B 时间 = A 时间 + 偏移`。调整支持撤销／重做。
+- 默认静音；选择 A 或 B 只试听一侧。联动时可设置两侧有效重叠范围内的循环片段。
+- **滑动**和**差异**在暂停帧上工作；播放自动回到并排。差异图要求两侧明确标记为 Rec.709 SDR，且缩略解码画面或所选区域尺寸相同。它是视觉预览，不是编码质量评分；HDR、色彩标记缺失或尺寸不同可继续视觉对照。
+- 暂停后用框选按钮分别选择区域；在旁边菜单启用区域联动或保存命名区域，最多 32 组。点击恢复按钮回到全图。框选不会裁剪或修改原视频。
+- 信息按钮显示源时长、尺寸、标称帧率、编码、音轨与色彩标签，并提供重新读取。逐帧使用真实样本时间；无法确认精确帧时会明确提示。
+
+位置、偏移和区域在本机会话中恢复；切换标签或关闭比较会停止播放。原视频始终只读。首版不含自动剪辑匹配、视频导出或实时播放差异。
+
+**English.** In the 0.14.0 source preview, choose **New… → Video** and select two local MOV, MP4 or M4V files. Full includes the Video plugin; Base can install it locally. Click either timeline to seek, then focus a frame to use **Space** and the **Left/Right arrows**. A/B chooses the reference for frame stepping. Unlink to find corresponding frames independently, then use **Time Alignment… → Pair Current Frames**, or enter `B time = A time + offset`. Undo/redo restores viewing adjustments.
+
+Playback starts muted; choose A or B to hear only that source. Looping requires linked browsing and a range that exists in both videos. Wipe and difference inspect paused frames; playing returns to side-by-side. The difference preview requires explicit Rec.709 SDR tags and equal decoded/cropped dimensions. It is not a codec-quality score. Pause to select independent or linked regions and save up to 32 named pairs. Positions and viewing choices stay in the local session; switching tabs stops playback. Original media is never modified. Automatic edit matching and video export are not part of this milestone.
