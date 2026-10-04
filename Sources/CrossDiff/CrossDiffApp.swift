@@ -68,9 +68,7 @@ struct WorkspaceView: View {
                 switch session.kind {
                 case .text: TextComparisonView(session: session, store: store).id(session.id)
                 case .folder:
-                    if let l = session.left.path, let r = session.right.path {
-                        FolderComparisonView(left: URL(fileURLWithPath: l), right: URL(fileURLWithPath: r), model: session.folderComparisonModel, onOpenPair: store.openPair).id(session.id)
-                    }
+                    FolderComparisonSessionView(session: session, store: store).id(session.id)
                 case .plugin: PluginComparisonView(session: session).id(session.id)
                 case .binary:
                     if let l = session.left.path, let r = session.right.path {

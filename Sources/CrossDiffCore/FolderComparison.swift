@@ -30,6 +30,11 @@ public struct FolderSnapshot: Equatable, Sendable {
     fileprivate let changedSeconds: Int
     fileprivate let changedNanoseconds: Int
 
+    /// Captured during enumeration; displaying or sorting it never rereads the file.
+    public var modifiedDate: Date {
+        Date(timeIntervalSince1970: TimeInterval(modifiedSeconds) + TimeInterval(modifiedNanoseconds) / 1_000_000_000)
+    }
+
     fileprivate func hasSameMetadata(as other: FolderSnapshot) -> Bool {
         kind == other.kind && size == other.size && identity == other.identity && device == other.device &&
         modifiedSeconds == other.modifiedSeconds && modifiedNanoseconds == other.modifiedNanoseconds &&
@@ -44,10 +49,17 @@ public struct FolderEntry: Identifiable, Sendable {
     public let left: FolderSnapshot?
     public let right: FolderSnapshot?
     private let failure: FolderComparisonError?
+    private let failureIsInherited: Bool
     public var problem: String? { failure?.errorDescription }
+    /// An ancestor's incomplete inventory is not a second independent directory error.
+    public var hasDirectProblem: Bool {
+        status == .typeMismatch || (status == .unreadable && !failureIsInherited)
+    }
 
-    fileprivate init(path: String, status: FolderEntryStatus, left: FolderSnapshot?, right: FolderSnapshot?, failure: FolderComparisonError?) {
+    fileprivate init(path: String, status: FolderEntryStatus, left: FolderSnapshot?, right: FolderSnapshot?,
+                     failure: FolderComparisonError?, failureIsInherited: Bool = false) {
         self.path = path; self.status = status; self.left = left; self.right = right; self.failure = failure
+        self.failureIsInherited = failureIsInherited
     }
     public var isDirectory: Bool { left?.kind == .directory || right?.kind == .directory }
     public var canOpenPair: Bool { left?.kind == .file && right?.kind == .file && status != .unreadable }
@@ -274,11 +286,23 @@ public enum FolderComparison {
         reporter.publish(force: true)
         let lhs = try inventory(left), rhs = try inventory(right)
         let paths = Set(lhs.items.keys).union(rhs.items.keys).union(failures.keys)
+        func inheritedFailure(for path: String) -> (error: FolderComparisonError, inherited: Bool)? {
+            var candidate = path
+            while true {
+                if let failure = failures[candidate] { return (failure, candidate != path) }
+                guard let separator = candidate.lastIndex(of: "/") else { return nil }
+                candidate = String(candidate[..<separator])
+            }
+        }
         var candidates: [Int] = []
         let entries = paths.sorted { $0.localizedStandardCompare($1) == .orderedAscending }.enumerated().map { index, path in
             let a = lhs.items[path], b = rhs.items[path]
+            // An unreadable or concurrently changed ancestor means its inventory is
+            // incomplete. A visible descendant on the other side is not proven absent;
+            // keep it uncopyable and retain the original failure's source path.
+            let failure = inheritedFailure(for: path)
             let status: FolderEntryStatus
-            if failures[path] != nil { status = .unreadable }
+            if failure != nil { status = .unreadable }
             else if a == nil { status = .rightOnly }
             else if b == nil { status = .leftOnly }
             else if a?.kind != b?.kind { status = .typeMismatch }
@@ -286,7 +310,8 @@ public enum FolderComparison {
                 if a?.size != b?.size { status = .changed }
                 else { status = .pending; candidates.append(index) }
             } else { status = a?.digest == b?.digest ? .same : .changed }
-            return FolderEntry(path: path, status: status, left: a, right: b, failure: failures[path])
+            return FolderEntry(path: path, status: status, left: a, right: b, failure: failure?.error,
+                               failureIsInherited: failure?.inherited ?? false)
         }
         return Scan(left: lhs, right: rhs, entries: entries, candidates: candidates, ignoredCount: ignored)
     }

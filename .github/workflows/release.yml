@@ -87,6 +87,7 @@ jobs:
 
       - name: Folder comparison checks
         run: |
+          bash scripts/tests/check-folder-browser.sh
           bash scripts/tests/check-folder-performance.sh
           bash scripts/tests/check-folder-workflow.sh --build-only
 
