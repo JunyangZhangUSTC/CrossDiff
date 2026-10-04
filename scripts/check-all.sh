@@ -15,7 +15,10 @@ bash scripts/tests/check-plugin-download.sh
 bash scripts/tests/check-plugin-manager.sh
 bash scripts/tests/check-official-plugins.sh
 bash scripts/tests/check-pdf.sh
+bash scripts/tests/check-pdf-workflow.sh
 bash scripts/tests/check-image-comparison.sh
+bash scripts/tests/check-image-matching-bridge.sh
+bash scripts/tests/check-image-matching.sh
 bash scripts/tests/check-photography-plugin.sh
 bash scripts/tests/check-api-import.sh
 bash scripts/tests/check-api-plugin.sh

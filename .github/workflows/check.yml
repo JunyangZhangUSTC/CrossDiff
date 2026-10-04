@@ -48,6 +48,7 @@ jobs:
           bash scripts/tests/check-official-plugins.sh
           bash scripts/tests/check-official-plugin-ui.sh --build-only
           bash scripts/tests/check-pdf.sh
+          bash scripts/tests/check-pdf-workflow.sh --build-only
 
       - name: Folder comparison checks
         run: |
@@ -102,7 +103,10 @@ jobs:
       - name: Compile new comparison workflow checks
         run: bash scripts/tests/check-new-comparison-workflow.sh --build-only
       - name: Image comparison checks
-        run: bash scripts/tests/check-image-comparison.sh
+        run: |
+          bash scripts/tests/check-image-comparison.sh
+          bash scripts/tests/check-image-matching-bridge.sh
+          bash scripts/tests/check-image-matching.sh
       - name: Photography comparison checks
         run: |
           bash scripts/tests/check-photography-plugin.sh

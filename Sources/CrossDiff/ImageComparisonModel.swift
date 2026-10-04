@@ -42,6 +42,11 @@ final class ImageComparisonModel: ObservableObject {
     @Published private(set) var preview: ImageComparisonPreview?
     @Published private(set) var error: Error?
     @Published private(set) var isRendering = false
+    @Published private(set) var isMatching = false
+    @Published private(set) var matchingResult: ImageMatchingResult?
+    @Published private(set) var matchingNotice: ImageMatchingResult.Status?
+    @Published private(set) var canRestoreAlignment = false
+    @Published var showMatchPoints = false
     @Published var mode = ImageComparisonMode.sideBySide
     @Published var zoom = ImageComparisonZoom.fit
     @Published var opacity = 0.5
@@ -51,10 +56,10 @@ final class ImageComparisonModel: ObservableObject {
     @Published var rightAspectLocked = true
     @Published var overlapOnly = false { didSet { if overlapOnly != oldValue { render() } } }
     @Published var leftTransform = ImageComparisonTransform.identity {
-        didSet { if leftTransform != oldValue { render() } }
+        didSet { if leftTransform != oldValue { transformChanged() } }
     }
     @Published var rightTransform = ImageComparisonTransform.identity {
-        didSet { if rightTransform != oldValue { render() } }
+        didSet { if rightTransform != oldValue { transformChanged() } }
     }
     private(set) var renderedLeftTransform = ImageComparisonTransform.identity
     private(set) var renderedRightTransform = ImageComparisonTransform.identity
@@ -66,8 +71,109 @@ final class ImageComparisonModel: ObservableObject {
     private var renderID = UUID()
     private var renderTask: Task<Void, Never>?
     private var interactiveRenderInFlight = false
+    private var matchingID = UUID()
+    private var matchingTask: Task<Void, Never>?
+    private var applyingAlignment = false
+    private var previousAlignment: AlignmentSnapshot?
 
-    deinit { renderTask?.cancel() }
+    private struct AlignmentSnapshot {
+        let left: ImageComparisonTransform
+        let right: ImageComparisonTransform
+        let leftLocked: Bool
+        let rightLocked: Bool
+        let mode: ImageComparisonMode
+        let overlapOnly: Bool
+    }
+
+    deinit { renderTask?.cancel(); matchingTask?.cancel() }
+
+    var matchingWasAdjusted: Bool {
+        guard let transform = matchingResult?.rightTransform else { return false }
+        return !leftTransform.isIdentity || rightTransform != transform
+    }
+
+    /// Always match the immutable decoded originals, not resampled/manual previews.
+    /// Failed or cancelled estimates leave every existing adjustment untouched.
+    func alignAutomatically() {
+        guard let sources, !isMatching, !isInteracting else { return }
+        let request = UUID()
+        matchingID = request
+        let previousTask = matchingTask
+        previousTask?.cancel()
+        isMatching = true
+        matchingNotice = nil
+        showMatchPoints = false
+        matchingTask = Task { [weak self] in
+            // Cancellation cannot interrupt an individual OpenCV call. Serialize
+            // retries so repeated clicks never accumulate CPU/memory-heavy jobs.
+            await previousTask?.value
+            guard !Task.isCancelled else { return }
+            let worker = Task.detached(priority: .userInitiated) {
+                try ImageMatchingEngine.match(sources: sources)
+            }
+            do {
+                let result = try await withTaskCancellationHandler {
+                    try await worker.value
+                } onCancel: { worker.cancel() }
+                guard !Task.isCancelled, let self, self.matchingID == request else { return }
+                self.isMatching = false
+                self.matchingResult = result
+                self.showMatchPoints = false
+                guard let transform = result.rightTransform, result.status == .accepted else { return }
+                self.previousAlignment = AlignmentSnapshot(left: self.leftTransform, right: self.rightTransform,
+                    leftLocked: self.leftAspectLocked, rightLocked: self.rightAspectLocked,
+                    mode: self.mode, overlapOnly: self.overlapOnly)
+                self.canRestoreAlignment = true
+                self.applyingAlignment = true
+                self.leftTransform = .identity
+                self.rightTransform = transform
+                self.leftAspectLocked = true
+                self.rightAspectLocked = true
+                self.applyingAlignment = false
+                self.alignmentSide = .right
+                if self.mode == .sideBySide { self.mode = .wipe }
+                self.render()
+            } catch is CancellationError {
+                // A new request, reload or explicit cancel owns the current state.
+            } catch {
+                guard !Task.isCancelled, let self, self.matchingID == request else { return }
+                self.isMatching = false
+                self.matchingNotice = .failure
+            }
+        }
+    }
+
+    func cancelMatching() {
+        matchingID = UUID()
+        matchingTask?.cancel()
+        if isMatching { matchingNotice = .cancelled }
+        isMatching = false
+    }
+
+    func restoreAlignment() {
+        guard let previous = previousAlignment else { return }
+        cancelMatching()
+        applyingAlignment = true
+        leftTransform = previous.left
+        rightTransform = previous.right
+        leftAspectLocked = previous.leftLocked
+        rightAspectLocked = previous.rightLocked
+        applyingAlignment = false
+        mode = previous.mode
+        overlapOnly = previous.overlapOnly
+        previousAlignment = nil
+        canRestoreAlignment = false
+        matchingResult = nil
+        matchingNotice = nil
+        showMatchPoints = false
+        render()
+    }
+
+    private func transformChanged() {
+        guard !applyingAlignment else { return }
+        if isMatching { cancelMatching() }
+        render()
+    }
 
     func transform(for side: ImageComparisonSide) -> ImageComparisonTransform {
         side == .left ? leftTransform : rightTransform
@@ -108,6 +214,7 @@ final class ImageComparisonModel: ObservableObject {
     func setInteracting(_ value: Bool) {
         guard isInteracting != value else { return }
         isInteracting = value
+        if value && isMatching { cancelMatching() }
         // Finishing a gesture immediately requests the final parameters.
         if !value { render() }
     }
@@ -115,6 +222,12 @@ final class ImageComparisonModel: ObservableObject {
     func load(left: URL, right: URL, force: Bool = false) async {
         let pair = [left, right]
         if !force, loadedPair == pair, sources != nil { return }
+        cancelMatching()
+        matchingResult = nil
+        matchingNotice = nil
+        previousAlignment = nil
+        canRestoreAlignment = false
+        showMatchPoints = false
         let request = UUID()
         loadID = request
         renderID = UUID()

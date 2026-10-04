@@ -68,15 +68,16 @@ enum PluginWorkflowChecks {
         D.check(store.sessions.contains { $0.id == session.id } && manager.plugin(id: example.manifest.id) == nil, "uninstall retains session but removes capability")
         manager.inspect(packageURL); manager.installPending(trustNative: false)
         let pdfA = root.appendingPathComponent("draft.pdf"), pdfB = root.appendingPathComponent("revision.pdf")
-        try writePDF(pdfA, pages: [("CrossDiff Research", "Native comparison, local files."), ("Results", "Version one: 14 samples.")])
-        try writePDF(pdfB, pages: [("CrossDiff Research", "Native comparison, local files."), ("New Methods", "An inserted page."), ("Results", "Version two: 28 samples.")])
+        try writePDF(pdfA, pages: [("CrossDiff Research", "Native comparison, local files."), ("Results", "Version one: 14 samples. Measurements use the same calibration method and reference conditions.")])
+        try writePDF(pdfB, pages: [("CrossDiff Research", "Native comparison, local files."), ("New Methods", "An inserted page."), ("Results", "Version two: 28 samples. Measurements use the same calibration method and reference conditions.")])
         let pdfBytes = [try Data(contentsOf: pdfA), try Data(contentsOf: pdfB)]
         store.accept([pdfA, pdfB])
         try await D.wait("PDF session") { store.selected?.pluginID == "org.crossdiff.pdf" }
         let pdf = store.selected!
         try await D.wait("PDF plugin result") { pdf.pdfComparisonModel.result != nil || pdf.pdfComparisonModel.error != nil }
         if let error = pdf.pdfComparisonModel.error { throw error }
-        D.check(pdf.pdfComparisonModel.pairs.count == 3 && pdf.pdfComparisonModel.pairs.contains { $0.kind == .added }, "PDF plugin aligns inserted page")
+        pdf.pdfComparisonModel.selectAlignmentMode(.smart)
+        D.check(!pdf.pdfComparisonModel.isSmartFallback && pdf.pdfComparisonModel.pairs.count == 3 && pdf.pdfComparisonModel.pairs.contains { $0.left == 1 && $0.right == 2 }, "PDF plugin aligns inserted page using reliable content evidence")
         let externalManager = PluginManager(directory: root.appendingPathComponent("external-pdf-data-" + UUID().uuidString),
                                             bundledDirectory: root.appendingPathComponent("empty-bundled"))
         externalManager.pendingPackage = try PluginPackage.load(from: root.appendingPathComponent("Plugins/PDF.crossdiffplugin"))
@@ -86,6 +87,7 @@ enum PluginWorkflowChecks {
         let externalExecution = try externalManager.execution(for: "org.crossdiff.pdf")
         let externalPDF = PDFComparisonModel()
         await externalPDF.load(left: pdfA, right: pdfB, execute: { try await externalExecution.compare($0) })
+        externalPDF.selectAlignmentMode(.smart)
         D.check(externalPDF.error == nil && externalPDF.pairs.count == 3 && externalPDF.pairs.contains { $0.kind == .added },
                 "Locally installed official PDF runs the same actual external algorithm")
         AppSettings.shared.language = .simplifiedChinese

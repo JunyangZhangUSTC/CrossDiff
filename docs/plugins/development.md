@@ -212,7 +212,11 @@ JSON 示例按解析后的值比较，忽略对象键顺序与空白；重复键
 
 `kind` 为 `same`、`changed`、`added`、`removed` 或 `unknown`。新增仅有 right，删除仅有 left；其他分类必须有两侧索引。索引必须在本次已提取页面范围内，每侧页面恰好出现一次，不允许重复或漏掉。宿主对映射验证后才渲染。
 
-官方算法结合文字与预览指纹进行页面对齐；`same` 表示这些表示匹配，不代表 PDF 文件字节相同或全分辨率视觉相同。扫描/空白页可能没有可提取文字；没有 OCR。截断或禁止文字复制会保留限制信息；加密锁定、损坏、无页面等情况明确失败。没有密码输入或 PDF 回写能力。[实现与完整限制](../../Sources/CrossDiff/PDFComparisonDocument.swift)
+从 0.12.2 宿主与 PDF 0.2.0 插件开始，payload 还可附带 `"alignment": {"strategy": "smart", "reliablePairs": 2}`，或 `"alignment": {"strategy": "pageNumber", "reason": "insufficientEvidence", "reliablePairs": 0}`。回退原因可以是 `insufficientEvidence` 或 `ambiguousEvidence`；`smart` 不携带回退原因。`reliablePairs` 表示可靠的顺序锚点数，不是所有配对的置信率，不能超过实际双侧配对数量。没有这项元数据的旧插件仍可使用按页码与手动选页；新宿主在智能模式下保守回退。旧宿主可读取原 `pairs`，但不会因此获得新控件。
+
+宿主默认按原始页码比较，也提供智能匹配和手动左右独立选页。PDF 0.2.0 使用唯一预览或有信息量文字寻找顺序一致的锚点；多页文档至少需要两个锚点并覆盖较短文档半数。低信息量单页不能仅靠预览指纹移位；短标题、重复或截断文字不作为充分文字证据。证据不足时按页码回退；有锚点但缺少明确对应证据的间隔按相对顺序对照，仍需人工核对。单侧页不必然代表版本插删。
+
+`same` 表示文字与预览匹配，不代表 PDF 文件字节相同或全分辨率视觉相同。扫描/空白页可能没有可提取文字；没有 OCR 或语义理解。截断或禁止文字复制会保留限制信息；加密锁定、损坏、无页面等情况明确失败。没有密码输入或 PDF 回写能力。[实现与完整限制](../../Sources/CrossDiff/PDFComparisonDocument.swift)
 
 ### `crossdiff.archive-tree/1`
 
@@ -333,6 +337,7 @@ JSON 示例按解析后的值比较，忽略对象键顺序与空白；重复键
 bash scripts/tests/check-plugins-core.sh
 bash scripts/tests/check-plugin-runtime.sh
 bash scripts/tests/check-pdf.sh
+bash scripts/tests/check-pdf-workflow.sh
 bash scripts/tests/check-archive-plugin.sh
 bash scripts/tests/check-plugin-workflow.sh
 bash scripts/tests/check-api-import.sh

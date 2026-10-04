@@ -6,6 +6,10 @@ import PDFKit
 import CrossDiffCore
 
 private struct FixturePage { let text: String?; let shade: CGFloat }
+private actor ExecutionCounter {
+    private(set) var count = 0
+    func increment() { count += 1 }
+}
 
 @main
 struct PDFComparisonChecks {
@@ -47,15 +51,26 @@ struct PDFComparisonChecks {
         try check(documents.1.pages[1].text.isEmpty, "Synthetic scan remains no-text, not fabricated OCR")
         try check(documents.0.data == originalLeft && documents.1.data == originalRight, "Snapshots retain the exact source bytes")
 
+        let calls = ExecutionCounter()
         let execute: @Sendable ([PluginInput]) async throws -> PluginComparisonResult = { inputs in
-            try runJavaScript(script, inputs: inputs)
+            await calls.increment()
+            return try runJavaScript(script, inputs: inputs)
         }
         let model = PDFComparisonModel()
         await model.load(left: leftURL, right: rightURL, execute: execute)
-        try check(model.error == nil && model.pairs.count == 3, "Host loads and displays the real plugin's complete correspondence")
+        try check(model.error == nil && model.pairs.count == 3, "Host loads all pages from the real plugin")
+        try check(model.alignmentMode == .pageNumber && !model.isSmartFallback, "Default comparison uses stable page numbers")
+        try check(model.pairs[0].left == 0 && model.pairs[0].right == 0 && model.pairs[1].left == 1 && model.pairs[1].right == 1,
+                  "Default pages remain 1-to-1 and 2-to-2 even when the second PDF has an insertion")
+        try check(model.pairs[2].left == nil && model.pairs[2].right == 2, "Extra pages remain on their actual source side")
+        try check(!model.presentationTitle(for: model.pairs[2]).contains("Added") && !model.presentationTitle(for: model.pairs[2]).contains("新增"),
+                  "Page-number alignment does not claim that unrelated extra pages were added")
+        let beforeModes = await calls.count
+        model.selectAlignmentMode(.smart)
         try check(model.pairs[0].kind == .same && model.pairs[1].kind == .added && model.pairs[2].kind == .changed,
                   "Inserted scanned page does not misalign the later changed text page")
         try check(model.pairs[2].left == 1 && model.pairs[2].right == 2, "Page locations refer to the correct original inputs")
+        try check(!model.isSmartFallback, "Well-supported insertion remains smart-aligned")
         model.selectedIndex = 2
         for _ in 0..<100 where model.textDiff == nil { try await Task.sleep(nanoseconds: 10_000_000) }
         try check(model.textDiff?.hunks.isEmpty == false, "Selected pages provide real text differences")
@@ -65,6 +80,79 @@ struct PDFComparisonChecks {
         try check(model.leftText.isEmpty && model.rightText.isEmpty, "A scanned inserted page does not fabricate text")
         model.move(by: -1)
         try check(model.selectedIndex == 0, "Page navigation returns to the common page")
+
+        model.selectAlignmentMode(.manual)
+        model.selectManualPage(1, isLeft: true)
+        model.selectManualPage(2, isLeft: false)
+        try check(model.selectedPair?.left == 1 && model.selectedPair?.right == 2, "Manual selection preserves independent source page indices")
+        try check(model.leftText.contains("10") && model.rightText.contains("20"), "Manual comparison reviews the selected original pages")
+        for _ in 0..<100 where model.textDiff == nil { try await Task.sleep(nanoseconds: 10_000_000) }
+        try check(model.textDiff?.hunks.isEmpty == false, "Manual selection refreshes character differences")
+        model.selectManualPage(0, isLeft: false)
+        try check(model.selectedPair?.left == 1 && model.selectedPair?.right == 0, "Changing the right page never moves the left page")
+        model.selectAlignmentMode(.pageNumber)
+        model.selectAlignmentMode(.manual)
+        try check(model.manualLeftPage == 1 && model.manualRightPage == 0, "Manual source selections survive switching alignment modes")
+        for invalidNumber in [Int.min, Int.max, 0, -1, 99] {
+            model.selectManualPageNumber(invalidNumber, isLeft: true)
+            model.selectManualPageNumber(invalidNumber, isLeft: false)
+        }
+        try check(model.manualLeftPage == 1 && model.manualRightPage == 0, "Invalid or overflowing human page numbers never change the selected source or trap")
+        model.selectManualPageNumber(2, isLeft: true)
+        model.selectManualPageNumber(3, isLeft: false)
+        try check(model.manualLeftPage == 1 && model.manualRightPage == 2, "Valid human page numbers convert to their exact zero-based source locations")
+        model.selectManualPageNumber(1, isLeft: false)
+        await model.load(left: leftURL, right: rightURL, execute: execute)
+        try check(model.alignmentMode == .manual && model.selectedPair?.left == 1 && model.selectedPair?.right == 0,
+                  "Re-entering a loaded view preserves its alignment mode and manual pages")
+        let afterModes = await calls.count
+        try check(afterModes == beforeModes, "Changing page modes and remounting a loaded view do not re-read or re-run the plugin")
+
+        let unrelatedLeft = fixtures.appendingPathComponent("unrelated-left.pdf")
+        let unrelatedRight = fixtures.appendingPathComponent("unrelated-right.pdf")
+        try makePDF([FixturePage(text: "AAAA", shade: 0.1)]).write(to: unrelatedLeft)
+        try makePDF([FixturePage(text: "BBBB", shade: 0.3), FixturePage(text: "CCCC", shade: 0.6),
+                     FixturePage(text: "DDDD", shade: 0.8)]).write(to: unrelatedRight)
+        let unrelated = PDFComparisonModel()
+        await unrelated.load(left: unrelatedLeft, right: unrelatedRight, execute: execute)
+        try check(unrelated.selectedPair?.left == 0 && unrelated.selectedPair?.right == 0,
+                  "Reported regression: unrelated left page 1 opens beside right page 1, never page 3")
+        unrelated.selectAlignmentMode(.smart)
+        try check(unrelated.isSmartFallback && !unrelated.alignmentNotice.isEmpty, "Unrelated documents explain their safe page-number fallback")
+        try check(unrelated.pairs.count == 3 && unrelated.pairs[0].left == 0 && unrelated.pairs[0].right == 0,
+                  "Insufficient smart evidence cannot push page 1 to the end of a longer document")
+        unrelated.selectedIndex = 2
+        try check(unrelated.selectedPair?.left == nil && unrelated.selectedPair?.right == 2 && unrelated.rightText.contains("DDDD"),
+                  "Fallback navigation retains original page numbers and no fabricated left page")
+        try check(!unrelated.presentationTitle(for: unrelated.pairs[2]).contains("Added") && !unrelated.presentationTitle(for: unrelated.pairs[2]).contains("新增"),
+                  "Smart fallback also uses neutral single-sided page labels")
+
+        for unsupportedEvidence in [false, true] {
+            let contradictory: @Sendable ([PluginInput]) async throws -> PluginComparisonResult = { inputs in
+                let valid = try await execute(inputs)
+                var payload = valid.payload.objectValue!
+                var alignment: [String: PluginJSONValue] = ["strategy": .string("smart"), "reliablePairs": .number(2)]
+                if unsupportedEvidence {
+                    // Counts fit both documents but exceed all actual two-sided
+                    // correspondences, so a plugin must not authorize smart mode.
+                    payload["pairs"] = .array([
+                        .object(["left": .number(0), "right": .null, "kind": .string("removed")]),
+                        .object(["left": .number(1), "right": .null, "kind": .string("removed")]),
+                        .object(["left": .null, "right": .number(0), "kind": .string("added")]),
+                        .object(["left": .null, "right": .number(1), "kind": .string("added")]),
+                        .object(["left": .null, "right": .number(2), "kind": .string("added")])])
+                } else {
+                    alignment["reason"] = .string("ambiguousEvidence")
+                }
+                payload["alignment"] = .object(alignment)
+                return PluginComparisonResult(runID: valid.runID, schema: valid.schema, summary: valid.summary, payload: .object(payload))
+            }
+            let inconsistent = PDFComparisonModel()
+            await inconsistent.load(left: leftURL, right: rightURL, execute: contradictory)
+            inconsistent.selectAlignmentMode(.smart)
+            try check(inconsistent.error == nil && inconsistent.isSmartFallback && inconsistent.pairs.count == 3,
+                      unsupportedEvidence ? "Claimed reliability cannot exceed actual two-sided pairs" : "Ambiguous evidence cannot be declared reliable by a contradictory plugin strategy")
+        }
 
         let scannedURL = fixtures.appendingPathComponent("scan.pdf")
         try makePDF([scan]).write(to: scannedURL)

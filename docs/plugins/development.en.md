@@ -212,7 +212,11 @@ Example result payload:
 
 Kind is `same`, `changed`, `added`, `removed` or `unknown`. Added pages have only a right index; removed pages have only a left index. Other kinds require both indices. Indices must refer to extracted pages, and every extracted page on each side must appear exactly once. The host validates mappings before rendering.
 
-The official algorithm aligns pages using text and preview fingerprints. `same` means those representations match, not PDF byte identity or full-resolution visual identity. Scanned or blank pages may have no extractable text; OCR is not included. Truncated or copy-restricted extraction retains its limitations. Locked, corrupt or empty documents fail explicitly. Password entry and PDF write-back are unsupported. See [the decoder and limits](../../Sources/CrossDiff/PDFComparisonDocument.swift).
+Starting with host 0.12.2 and PDF plugin 0.2.0, payload may also contain `"alignment": {"strategy": "smart", "reliablePairs": 2}`, or `"alignment": {"strategy": "pageNumber", "reason": "insufficientEvidence", "reliablePairs": 0}`. Fallback reasons are `insufficientEvidence` and `ambiguousEvidence`; `smart` has no fallback reason. `reliablePairs` counts reliable ordered anchors, not confidence in every displayed pair, and must not exceed the number of two-sided pairs. Legacy plugins without this metadata remain usable by page number or manual selection; the new host falls back conservatively in Smart Match. Older hosts can read the original `pairs` but do not gain the new controls.
+
+The host defaults to original page order and also offers smart matching and independent manual page selection. PDF 0.2.0 finds consistent ordered anchors using unique previews or informative text. Multi-page inputs require at least two anchors covering half of the shorter document. A single low-information page cannot shift based only on its preview fingerprint; short headings, repeated or truncated text are insufficient text evidence. Insufficient evidence falls back to page order. Gaps without decisive correspondence between anchors are compared in relative order and require review. A one-sided page is not necessarily a version insertion or deletion.
+
+`same` means the text and preview representations match, not PDF byte identity or full-resolution visual identity. Scanned or blank pages may have no extractable text; OCR and semantic analysis are not included. Truncated or copy-restricted extraction retains its limitations. Locked, corrupt or empty documents fail explicitly. Password entry and PDF write-back are unsupported. See [the decoder and limits](../../Sources/CrossDiff/PDFComparisonDocument.swift).
 
 ### `crossdiff.archive-tree/1`
 
@@ -347,6 +351,7 @@ A running task captures its validated package version; management changes invali
 bash scripts/tests/check-plugins-core.sh
 bash scripts/tests/check-plugin-runtime.sh
 bash scripts/tests/check-pdf.sh
+bash scripts/tests/check-pdf-workflow.sh
 bash scripts/tests/check-archive-plugin.sh
 bash scripts/tests/check-plugin-workflow.sh
 bash scripts/tests/check-api-import.sh

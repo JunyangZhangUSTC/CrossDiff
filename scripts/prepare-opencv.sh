@@ -7,7 +7,7 @@ photo_deps="$photo_project_root/.build/photo-deps"
 photo_arch="${CROSSDIFF_ARCH:-$(uname -m)}"
 case "$photo_arch" in arm64|x86_64) ;; *) echo "Unsupported OpenCV architecture: $photo_arch" >&2; exit 1;; esac
 photo_install="$photo_deps/install-$photo_arch"
-photo_stamp="opencv-4.12.0-core-imgproc-v3-macos14-$photo_arch"
+photo_stamp="opencv-4.12.0-image-matching-v4-macos14-$photo_arch"
 if [[ -f "$photo_install/.crossdiff-build" ]] && [[ "$(cat "$photo_install/.crossdiff-build")" == "$photo_stamp" ]]; then
   exit 0
 fi
@@ -43,7 +43,7 @@ fi
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$photo_install" \
   -DCMAKE_EXPORT_NO_PACKAGE_REGISTRY=ON -DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF \
   -DCMAKE_OSX_ARCHITECTURES="$photo_arch" -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
-  -DBUILD_LIST=core,imgproc -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF \
+  -DBUILD_LIST=core,imgproc,features2d,calib3d,flann -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF \
   -DBUILD_EXAMPLES=OFF -DBUILD_opencv_apps=OFF -DBUILD_JAVA=OFF -DBUILD_opencv_python2=OFF \
   -DBUILD_opencv_python3=OFF -DWITH_IPP=OFF -DWITH_ITT=OFF -DWITH_OPENCL=OFF \
   -DWITH_LAPACK=OFF -DWITH_EIGEN=OFF -DWITH_TBB=OFF -DWITH_OPENMP=OFF \
@@ -76,7 +76,7 @@ import subprocess
 import sys
 install = Path(sys.argv[1])
 project = sys.argv[2].encode()
-for library in ("libopencv_core.a", "libopencv_imgproc.a"):
+for library in ("libopencv_core.a", "libopencv_imgproc.a", "libopencv_features2d.a", "libopencv_calib3d.a", "libopencv_flann.a"):
     strings = subprocess.check_output(["/usr/bin/strings", str(install / "lib" / library)])
     if project in strings:
         raise SystemExit("OpenCV build still contains a project path: " + library)

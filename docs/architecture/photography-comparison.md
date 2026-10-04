@@ -35,7 +35,7 @@
 | 处理曲线 | ImageIO 解析实际 Adobe CRS XMP 控制点；同时支持内嵌记录和用户显式选择的旁路 XMP，选定旁路时以其记录为准 |
 | 图表与说明 | 宿主绘制库输出的分布；受限 JavaScript 插件计算占比差值和双语说明，不实现底层摄影算法 |
 
-OpenCV 只构建 `core`／`imgproc` 静态模块，由 Base／Full 宿主共同提供。源码和必要 CMake 工具以固定摘要下载，依赖、工具和产物均在项目 `.build/photo-deps/` 内；无全局安装。固定来源、版权和许可见 [ThirdParty/OpenCV](../../ThirdParty/OpenCV/)。不把自行编写的像素循环包装成“采用专业库”。
+摄影使用 OpenCV `core`／`imgproc` 静态模块，由 Base／Full 宿主共同提供；0.13.0 图片智能对齐另增加 `features2d`／`calib3d`／`flann`。源码和必要 CMake 工具以固定摘要下载，依赖、工具和产物均在项目 `.build/photo-deps/` 内；无全局安装。固定来源、版权和许可见 [ThirdParty/OpenCV](../../ThirdParty/OpenCV/)。不把自行编写的像素循环包装成“采用专业库”。
 
 ### 统计定义与边界
 

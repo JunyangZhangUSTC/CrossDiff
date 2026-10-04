@@ -80,9 +80,9 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 | **Text & code** | Paste text or open files; inspect character or line changes; align rows; edit either side; merge blocks; find and replace; undo independently. Works with text formats such as TXT, Markdown, HTML, JSON, XML, and YAML. |
 | **Local folders** | Show clear differences before verifying contents, with scan progress, custom ignore rules and results retained across tab switches; preview and revalidate selected copies. |
 | **Archives** | Treat ZIP, TAR, and common compressed TAR formats as virtual folders. Compare an archive with another archive or a local folder, verify contents, and find identical files across paths without extracting to disk. Bundled with Base. |
-| **Images** | Side-by-side, overlay, wipe, and pixel-difference views. Scale, rotate, flip, drag to align, resize from corners, or compare only the overlapping area. |
+| **Images** | Side-by-side, overlay, wipe, and pixel differences. The 0.13.0 source preview adds offline Smart Align for rotated, scaled and cropped versions, with match points, manual refinement and one-click restore. |
 | **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |
-| **PDF documents** | Page matching, inserted/deleted-page navigation, native page previews, and extracted-text differences. Included in Full; available as an official plugin for Base. |
+| **PDF documents** | Native page previews and extractable text differences. The 0.12.2 source preview adds page order, evidence-based matching and manual page selection, with safe fallback for unrelated documents. Bundled with Full; available as an official plugin for Base. |
 | **Office documents** | Word paragraphs and tables, Excel rows matched across positions or by key columns, and PowerPoint slide content. Character highlights, formulas and saved results, plus original previews. Read-only DOCX/XLSX/PPTX support. [Office guide](docs/usage.md#office) |
 | **API** | Compare locally saved requests and responses as structured fields to investigate changes. |
 | **Audio** | Compare recordings and edited versions on paired timelines, with a closer look at selected passages. |
@@ -92,7 +92,7 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 <summary><b>The details make a difference</b></summary>
 
 - **See removals as well as additions.** Turn on Show Deletions to display removed text as red strikethroughs on the right. This read-only review never writes markup into your source. Standard copy includes original text only; revision copy is an explicit action.
-- **Find a common view for your images.** Drag a corner to resize with the aspect ratio locked by default, or unlock it to stretch width and height independently. Size and rotation also accept numeric values. Changes affect the preview only. [Image alignment guide](docs/usage.md#compare-images)
+- **Find a common view for your images.** Use Smart Align to find shared content, or drag a corner to resize with the aspect ratio locked by default, or unlock it to stretch width and height independently. Size and rotation also accept numeric values. Changes affect the preview only. [Image alignment guide](docs/usage.md#compare-images)
 - **Make byte changes readable.** Hex keeps independent source offsets, aligns insertion/deletion gaps, and supports 8 or 16 bytes per row. Inputs can be up to 8 GiB each; complex regions are explicitly marked as approximately aligned. [Hex guide](docs/usage.md#binary-hex)
 - **Skip the extraction folder.** Compare ZIP, TAR, TAR.GZ/TGZ, TAR.BZ2, and TAR.XZ. By Path reveals directory changes; Same Content finds matching files across paths. Read-only streaming never extracts files to disk. [Archive guide](docs/usage.md#archives)
 
@@ -196,7 +196,7 @@ bash scripts/build-app.sh
 bash scripts/open-dev-app.command
 ```
 
-The first build downloads SHA-256-pinned OpenCV 4.12.0 source and compiles only `core` and `imgproc`. If CMake is missing, it is prepared inside the project too. Dependencies, tools, and caches stay under `.build/photo-deps/`; nothing is installed globally.
+The first build downloads SHA-256-pinned OpenCV 4.12.0 source and compiles only `core`, `imgproc`, `features2d`, `calib3d` and `flann`. If CMake is missing, it is prepared inside the project too. Dependencies, tools, and caches stay under `.build/photo-deps/`; nothing is installed globally.
 
 The project uses Swift 5 language mode and builds for your Mac's architecture. The app is created at `dist/CrossDiff.app`. The development launcher keeps sessions, preferences, and caches inside the checkout; it installs nothing globally or into `/Applications`. See the [release guide](docs/releasing.md) for edition packaging and publishing.
 

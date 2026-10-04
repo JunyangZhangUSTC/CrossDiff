@@ -15,7 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "JunyangZhangUSTC/CrossDiff"
 APP_LICENSE_FILES = ("LICENSE", "NOTICE", "ThirdParty/OpenCV/LICENSE",
                      "ThirdParty/OpenCV/COPYRIGHT", "ThirdParty/OpenCV/NOTICE.md",
-                     "ThirdParty/OpenCV/NOTICE-SOURCE.txt", "ThirdParty/OpenCV/SoftFloat-COPYING.txt",
+                     "ThirdParty/OpenCV/NOTICE-SOURCE.txt", "ThirdParty/OpenCV/NOTICE-MATCHING-SOURCE.txt",
+                     "ThirdParty/OpenCV/SoftFloat-COPYING.txt",
                      "ThirdParty/AudioMatching/LICENSE-Olaf.txt", "ThirdParty/AudioMatching/LICENSE-LMDB.txt",
                      "ThirdParty/AudioMatching/NOTICE-pffft.c.txt", "ThirdParty/AudioMatching/NOTICE-hash-table.c.txt",
                      "ThirdParty/AudioMatching/NOTICE-midl.c.txt", "ThirdParty/AudioMatching/NOTICE-mdb.c.txt",

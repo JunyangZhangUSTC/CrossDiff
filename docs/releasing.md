@@ -4,7 +4,7 @@
 
 普通 `main` 推送运行检查，不发布版本；推送版本标签才会生成 Release 草稿。所有版本均免费，无需注册。两个发行版使用同一套本地比较引擎与会话格式，没有付费功能区别。
 
-当前源码版本为 **0.12.1**（构建号 25），正在准备发布；已公开预览版为 **0.12.0**。以下清单与命令说明如何准备 0.12.1，不代表构建已通过或附件已公开。
+当前源码版本为 **0.12.2**（构建号 26），正在准备发布；已有版本及公开附件以 GitHub Releases 为准。以下清单与命令说明如何准备 0.12.2，不代表构建已通过或附件已公开。
 
 ## 版本包含什么
 
@@ -22,7 +22,7 @@
 ## 创建本次 Release
 
 1. 完成受影响的核心与原生窗口验证，并记录未验证场景。CI 的 `--build-only` 只证明原生检查程序能够编译，不能替代真实窗口验收。
-2. 更新 `Resources/Info.plist` 的版本和递增构建号、`CHANGELOG.md`、中英文 README，以及 `docs/releases/<版本>.md` 双语发布说明。当前版本为 **0.12.1**（构建号 25）。README 默认推荐 **Full 完整版**。下载链接可以提前指向待发布版本，但必须注明草稿发布后可用，并保留 GitHub Releases 入口供下载现有版本。发布说明开头用一句话推荐 Full，完整包名用固定版本的下载超链接，点包名即可下载；Base 放在后面的可选说明。发布说明应可直接公开，草稿状态由 GitHub 标记，避免公开后仍写着“尚未发布”。
+2. 更新 `Resources/Info.plist` 的版本和递增构建号、`CHANGELOG.md`、中英文 README，以及 `docs/releases/<版本>.md` 双语发布说明。当前版本为 **0.12.2**（构建号 26）。README 默认推荐 **Full 完整版**。下载链接可以提前指向待发布版本，但必须注明草稿发布后可用，并保留 GitHub Releases 入口供下载现有版本。发布说明开头用一句话推荐 Full，完整包名用固定版本的下载超链接，点包名即可下载；Base 放在后面的可选说明。发布说明应可直接公开，草稿状态由 GitHub 标记，避免公开后仍写着“尚未发布”。
 3. 如果插件的代码或 manifest 有变化，递增该插件的 `version`。应用版本和插件版本独立；不要在同一插件版本下替换已经公开的包。
 4. 提交并推送精确的发行状态到 `main`。发行脚本拒绝脏工作区、未跟踪文件以及 `assume-unchanged` / `skip-worktree` 隐藏修改。
 5. 版本与发布说明一致后，从项目根目录的 Bash 运行：
@@ -31,8 +31,8 @@
 source scripts/project-env.sh
 git switch main
 git push origin main
-git tag -a v0.12.1 -m "CrossDiff 0.12.1 preview"
-git push origin v0.12.1
+git tag -a v0.12.2 -m "CrossDiff 0.12.2 preview"
+git push origin v0.12.2
 ```
 
 标签必须等于 `v` 加 `CFBundleShortVersionString`，对应提交必须可从 `origin/main` 到达。以后发布时替换版本号；不要移动已公开的版本标签。
@@ -46,28 +46,28 @@ git push origin v0.12.1
 ## Release 的全部附件
 
 ```text
-CrossDiff-0.12.1-base-macOS-arm64.zip
-CrossDiff-0.12.1-full-macOS-arm64.zip
+CrossDiff-0.12.2-base-macOS-arm64.zip
+CrossDiff-0.12.2-full-macOS-arm64.zip
 CrossDiff-Plugin-Archive-0.1.0.crossdiffplugin
-CrossDiff-Plugin-PDF-0.1.0.crossdiffplugin
+CrossDiff-Plugin-PDF-0.2.0.crossdiffplugin
 CrossDiff-Plugin-Photography-0.1.0.crossdiffplugin
 CrossDiff-Plugin-API-0.1.0.crossdiffplugin
 CrossDiff-Plugin-Audio-0.1.0.crossdiffplugin
 CrossDiff-Plugin-Office-0.1.0.crossdiffplugin
 CrossDiff-Example-JSON-0.1.0.crossdiffplugin
-CrossDiff-0.12.1-source.tar.gz
+CrossDiff-0.12.2-source.tar.gz
 plugins.json
 BUILD-INFO.txt
 SHA256SUMS
 ```
 
-这里的插件版本来自各自的 manifest，后续独立递增。Photography、API、Audio 分别需要宿主提供 `photoAnalysis`、`httpExchange`、`audioAnalysis` 能力，最初在 0.9.0、0.10.0、0.11.0 源码中引入；Office 的 `officeDocument`/`officeDocuments` 在 0.12.0 加入。本次包配合 0.12.1 宿主使用；同为实验协议 v1 不表示旧版支持新增输入和视图，更新插件目录也不能补上旧宿主缺少的能力。所有附件都由脚本生成；不要手动重命名插件包或只上传应用 ZIP。`SHA256SUMS` 覆盖除自身之外的每一个附件。`BUILD-INFO.txt` 记录应用版本、构建号、完整源码提交、架构、两版应用文件名和签名状态，不包含开发者的本机路径。
+这里的插件版本来自各自的 manifest，后续独立递增。Photography、API、Audio 分别需要宿主提供 `photoAnalysis`、`httpExchange`、`audioAnalysis` 能力，最初在 0.9.0、0.10.0、0.11.0 源码中引入；Office 的 `officeDocument`/`officeDocuments` 在 0.12.0 加入。本次包配合 0.12.2 宿主使用；同为实验协议 v1 不表示旧版支持新增输入和视图，更新插件目录也不能补上旧宿主缺少的能力。所有附件都由脚本生成；不要手动重命名插件包或只上传应用 ZIP。`SHA256SUMS` 覆盖除自身之外的每一个附件。`BUILD-INFO.txt` 记录应用版本、构建号、完整源码提交、架构、两版应用文件名和签名状态，不包含开发者的本机路径。
 
 ## 官方插件目录与应用内安装
 
 [plugin_inventory.py](../scripts/plugin_inventory.py) 是打包清单的唯一来源，同时生成确定性的插件包与 `plugins.json`：
 
-- 目录格式为 `formatVersion: 1`，`releaseTag` 固定到本次应用版本，例如 `v0.12.1`。
+- 目录格式为 `formatVersion: 1`，`releaseTag` 固定到本次应用版本，例如 `v0.12.2`。
 - 每项包含 `id`、插件 `version`、中英文 `name` / `summary`、`asset`、`url`、**完整插件包字节**的 `sha256` 与 `size`。
 - 地址固定到本仓库 `releases/download/<releaseTag>/<asset>`；不用会随最新版本变化的地址。
 - 两版应用都内置**逐字节相同**的 `Contents/Resources/OfficialPlugins.json`，与 Release 的 `plugins.json` 相同。基础版因此可以离线展示尚未安装的官方插件。
@@ -101,7 +101,7 @@ bash scripts/package-release.sh
 
 打包脚本对每版核对插件清单、离线目录、元数据、许可证和签名，并审计产物；ZIP 去除扩展属性、资源分叉和本机用户 ID，再解压到项目内检查真实附件的签名。源码通过 `git archive` 从同一固定提交生成，不包含 `.git`、本机缓存或被忽略的开发资料。脚本拒绝覆盖同版本同提交的已有发行目录，不安装应用、不上传文件，也不修改 Git 历史。
 
-OpenCV 4.12.0 的 `core`／`imgproc` 在两个宿主中静态链接，不放入受限 JavaScript 摄影包。首次构建从固定 URL 下载、核验依赖源码与必要工具，所有缓存位于项目 `.build/photo-deps/`；发布构建不是无第三方依赖构建。应用随包保留 `Contents/Resources/ThirdParty/OpenCV/` 的许可证与来源说明；源码归档保留对应 `ThirdParty/OpenCV/` 文档和可复现依赖脚本，但不包含被忽略的依赖构建缓存。发布前核对这些声明和实际内容一致。
+OpenCV 4.12.0 的 `core`／`imgproc`／`features2d`／`calib3d`／`flann` 在两个宿主中静态链接，不放入受限 JavaScript 摄影包。首次构建从固定 URL 下载、核验依赖源码与必要工具，所有缓存位于项目 `.build/photo-deps/`；发布构建不是无第三方依赖构建。应用随包保留 `Contents/Resources/ThirdParty/OpenCV/` 的许可证与来源说明；源码归档保留对应 `ThirdParty/OpenCV/` 文档和可复现依赖脚本，但不包含被忽略的依赖构建缓存。发布前核对这些声明和实际内容一致。
 
 摄影回归包括引擎、XMP、真实插件和完整窗口检查。RAW 验证应记录实际样片、相机／编码和系统版本；不能仅凭被接收的后缀列表宣称支持所有机型。库和系统解码器的存在不等于该版本已通过验证。
 

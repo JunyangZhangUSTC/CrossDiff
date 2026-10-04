@@ -38,8 +38,10 @@ struct PDFComparisonView: View {
                     Button(L("重试", "Try Again")) { reload() }
                 }
             } else if let pair = model.selectedPair {
+                alignmentInformation
+                Divider()
                 HStack(spacing: 0) {
-                    if showsPageList { pageList; Divider() }
+                    if showsPageList && model.alignmentMode != .manual { pageList; Divider() }
                     pagePane(url: left, document: model.leftDocument, pageIndex: pair.left, isLeft: true)
                     Divider()
                     pagePane(url: right, document: model.rightDocument, pageIndex: pair.right, isLeft: false)
@@ -66,31 +68,35 @@ struct PDFComparisonView: View {
         HStack(spacing: 12) {
             Button { showsPageList.toggle() } label: { Image(systemName: "sidebar.left") }
                 .buttonStyle(.borderless)
+                .disabled(model.alignmentMode == .manual)
                 .help(L("显示或隐藏页面列表", "Show or Hide Page List"))
                 .accessibilityLabel(L("页面列表", "Page List"))
                 .accessibilityIdentifier("pdf.pageList.toggle")
             Picker(L("PDF 比较视图", "PDF Comparison View"), selection: $model.mode) {
                 ForEach(PDFComparisonMode.allCases) { Text($0.title).tag($0) }
             }
-            .labelsHidden().pickerStyle(.segmented).frame(maxWidth: 246).id(settings.language)
-            .accessibilityIdentifier("pdf.mode")
+            .labelsHidden().pickerStyle(.segmented).frame(maxWidth: 210).id(settings.language)
+                .accessibilityIdentifier("pdf.mode")
+            alignmentMenu
             Spacer(minLength: 4)
-            HStack(spacing: 8) {
-                Button { model.move(by: -1) } label: { Image(systemName: "chevron.left") }
-                    .disabled(model.selectedIndex <= 0)
-                    .help(L("上一组页面", "Previous Page Pair"))
-                    .accessibilityLabel(L("上一组页面", "Previous Page Pair"))
-                    .accessibilityIdentifier("pdf.previousPage")
-                Text(model.pairs.isEmpty ? "—" : "\(model.selectedIndex + 1) / \(model.pairs.count)")
-                    .font(.system(size: 12)).monospacedDigit().frame(minWidth: 48)
-                    .accessibilityIdentifier("pdf.pagePosition")
-                Button { model.move(by: 1) } label: { Image(systemName: "chevron.right") }
-                    .disabled(model.selectedIndex + 1 >= model.pairs.count)
-                    .help(L("下一组页面", "Next Page Pair"))
-                    .accessibilityLabel(L("下一组页面", "Next Page Pair"))
-                    .accessibilityIdentifier("pdf.nextPage")
+            if model.alignmentMode != .manual {
+                HStack(spacing: 8) {
+                    Button { model.move(by: -1) } label: { Image(systemName: "chevron.left") }
+                        .disabled(model.selectedIndex <= 0)
+                        .help(L("上一组页面", "Previous Page Pair"))
+                        .accessibilityLabel(L("上一组页面", "Previous Page Pair"))
+                        .accessibilityIdentifier("pdf.previousPage")
+                    Text(model.pairs.isEmpty ? "—" : L("第 \(model.selectedIndex + 1) / \(model.pairs.count) 组", "Pair \(model.selectedIndex + 1) / \(model.pairs.count)"))
+                        .font(.system(size: 12)).monospacedDigit().fixedSize()
+                        .accessibilityIdentifier("pdf.pagePosition")
+                    Button { model.move(by: 1) } label: { Image(systemName: "chevron.right") }
+                        .disabled(model.selectedIndex + 1 >= model.pairs.count)
+                        .help(L("下一组页面", "Next Page Pair"))
+                        .accessibilityLabel(L("下一组页面", "Next Page Pair"))
+                        .accessibilityIdentifier("pdf.nextPage")
+                }
+                .buttonStyle(.borderless)
             }
-            .buttonStyle(.borderless)
             if model.mode == .pages {
                 Menu {
                     ForEach(PDFComparisonZoom.allCases) { option in
@@ -110,7 +116,7 @@ struct PDFComparisonView: View {
                     .background(Color(nsColor: theme.canvas), in: RoundedRectangle(cornerRadius: 6))
                     .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: theme.separator), lineWidth: 0.5))
                 }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 140)
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 126)
                 .accessibilityLabel(L("页面缩放", "Page Zoom"))
                 .accessibilityIdentifier("pdf.zoom")
             }
@@ -123,6 +129,51 @@ struct PDFComparisonView: View {
         .padding(.horizontal, 18).padding(.vertical, 11)
         .background(Color(nsColor: theme.chrome))
         .disabled(model.isLoading)
+    }
+
+    private var alignmentMenu: some View {
+        Menu {
+            ForEach(PDFPageAlignmentMode.allCases) { option in
+                Button { model.selectAlignmentMode(option) } label: {
+                    if model.alignmentMode == option { Label(option.title, systemImage: "checkmark") }
+                    else { Text(option.title) }
+                }
+                .accessibilityIdentifier("pdf.alignment.\(option.rawValue)")
+            }
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: model.alignmentMode == .manual ? "hand.point.up.left" : "rectangle.split.2x1")
+                    .foregroundStyle(Color(nsColor: theme.secondaryText))
+                Text(model.alignmentMode.title).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.down").font(.system(size: 9, weight: .medium))
+            }
+            .foregroundStyle(Color(nsColor: theme.text))
+            .padding(.horizontal, 9).padding(.vertical, 5)
+            .background(Color(nsColor: theme.canvas), in: RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: theme.separator), lineWidth: 0.5))
+        }
+        .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 144)
+        .help(L("页面配对方式：按页码、智能匹配或手动配对", "Page pairing: page number, smart matching or manual pairing"))
+        .accessibilityLabel(L("页面配对方式", "Page Pairing"))
+        .accessibilityIdentifier("pdf.alignment.menu")
+    }
+
+    private var alignmentInformation: some View {
+        HStack(spacing: 7) {
+            Image(systemName: model.isSmartFallback ? "arrow.uturn.backward.circle" : "info.circle")
+            // NSHostingView measures minimum bounds with a zero-width proposal.
+            // Bound this status line so translated text cannot inflate the
+            // window's minimum height during that measurement.
+            Text(model.alignmentNotice).lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true).help(model.alignmentNotice)
+            Spacer(minLength: 0)
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(Color(nsColor: theme.secondaryText))
+        .padding(.horizontal, 18).padding(.vertical, 8)
+        .background(Color(nsColor: theme.chrome))
+        .accessibilityIdentifier("pdf.alignment.notice")
     }
 
     private var pageList: some View {
@@ -145,9 +196,9 @@ struct PDFComparisonView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .help(pair.title)
-                        .accessibilityLabel(L("左页 \(pair.left.map { String($0 + 1) } ?? "无")，右页 \(pair.right.map { String($0 + 1) } ?? "无")，\(pair.title)",
-                                              "Left page \(pair.left.map { String($0 + 1) } ?? "none"), right page \(pair.right.map { String($0 + 1) } ?? "none"), \(pair.title)"))
+                        .help(model.presentationTitle(for: pair))
+                        .accessibilityLabel(L("左页 \(pair.left.map { String($0 + 1) } ?? "无")，右页 \(pair.right.map { String($0 + 1) } ?? "无")，\(model.presentationTitle(for: pair))",
+                                              "Left page \(pair.left.map { String($0 + 1) } ?? "none"), right page \(pair.right.map { String($0 + 1) } ?? "none"), \(model.presentationTitle(for: pair))"))
                         .accessibilityIdentifier("pdf.pair.\(pair.id)")
                         .id(pair.id)
                     }
@@ -169,11 +220,15 @@ struct PDFComparisonView: View {
                         .lineLimit(1).truncationMode(.middle).help(url.path)
                     Text(pageIndex.map { L("第 \($0 + 1) 页，共 \(document?.totalPageCount ?? 0) 页", "Page \($0 + 1) of \(document?.totalPageCount ?? 0)") } ?? L("此侧无对应页面", "No Corresponding Page"))
                         .font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
+                        .accessibilityIdentifier(isLeft ? "pdf.left.sourcePage" : "pdf.right.sourcePage")
                 }
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 14).padding(.vertical, 11)
             .background(Color(nsColor: theme.chrome))
+            if model.alignmentMode == .manual, let document {
+                manualPageControls(document: document, isLeft: isLeft)
+            }
             Divider()
             if let pageIndex, let document {
                 if model.mode == .pages {
@@ -186,7 +241,9 @@ struct PDFComparisonView: View {
                 VStack(spacing: 10) {
                     Image(systemName: isLeft ? "plus.rectangle.on.rectangle" : "minus.rectangle")
                         .font(.system(size: 24, weight: .light))
-                    Text(isLeft ? L("右侧新增了此页", "This Page Was Added on the Right") : L("右侧删除了此页", "This Page Was Removed on the Right"))
+                    Text(model.alignmentMode == .smart && !model.isSmartFallback
+                         ? (isLeft ? L("此页仅在右侧找到", "This Page Was Found Only on the Right") : L("此页仅在左侧找到", "This Page Was Found Only on the Left"))
+                         : L("此侧没有这个页码的页面", "There Is No Page at This Number on This Side"))
                         .font(.system(size: 12)).multilineTextAlignment(.center)
                 }
                 .foregroundStyle(Color(nsColor: theme.secondaryText))
@@ -194,6 +251,29 @@ struct PDFComparisonView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func manualPageControls(document: PDFComparisonDocument, isLeft: Bool) -> some View {
+        let current = (isLeft ? model.manualLeftPage : model.manualRightPage) ?? 0
+        let prefix = isLeft ? "pdf.left" : "pdf.right"
+        return HStack(spacing: 8) {
+            Text(L("页码", "Page")).font(.system(size: 11)).foregroundStyle(Color(nsColor: theme.secondaryText))
+            PDFPageNumberEntry(number: current + 1, count: document.pages.count,
+                               label: isLeft ? L("左侧页码", "Left Page Number") : L("右侧页码", "Right Page Number"),
+                               identifier: "\(prefix).pageNumber") { model.selectManualPageNumber($0, isLeft: isLeft) }
+            Text("/ \(document.pages.count)").font(.system(size: 11)).monospacedDigit()
+                .foregroundStyle(Color(nsColor: theme.secondaryText))
+            Spacer(minLength: 8)
+            Button { model.selectManualPage(current - 1, isLeft: isLeft) } label: { Image(systemName: "chevron.left") }
+                .disabled(current == 0).accessibilityIdentifier("\(prefix).previousPage")
+                .help(L("上一页", "Previous Page"))
+            Button { model.selectManualPage(current + 1, isLeft: isLeft) } label: { Image(systemName: "chevron.right") }
+                .disabled(current >= document.pages.count - 1).accessibilityIdentifier("\(prefix).nextPage")
+                .help(L("下一页", "Next Page"))
+        }
+        .buttonStyle(.borderless)
+        .padding(.horizontal, 14).padding(.bottom, 10)
+        .background(Color(nsColor: theme.chrome))
     }
 
     @ViewBuilder
@@ -224,7 +304,7 @@ struct PDFComparisonView: View {
     private var informationBar: some View {
         HStack(spacing: 12) {
             if let pair = model.selectedPair {
-                Label(pair.title, systemImage: symbol(pair.kind))
+                Label(model.presentationTitle(for: pair), systemImage: symbol(pair.kind))
                     .foregroundStyle(pairColor(pair.kind))
             }
             Spacer(minLength: 8)
@@ -239,9 +319,12 @@ struct PDFComparisonView: View {
                 .popover(isPresented: $showsInformation) {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(pluginName).font(.headline)
-                        if let summary = model.result?.summary { Text(localized(summary)) }
-                        ForEach(Array((model.result?.diagnostics ?? []).enumerated()), id: \.offset) { _, diagnostic in
-                            Text(localized(diagnostic)).font(.system(size: 12))
+                        Text(model.alignmentNotice).font(.system(size: 12))
+                        if model.alignmentMode == .smart {
+                            if !model.isSmartFallback, let summary = model.result?.summary { Text(localized(summary)) }
+                            ForEach(Array((model.result?.diagnostics ?? []).enumerated()), id: \.offset) { _, diagnostic in
+                                Text(localized(diagnostic)).font(.system(size: 12))
+                            }
                         }
                         Text(L("每份文件最多读取 200 页、48 MB；每页最多 32,768 个 UTF-16 字符，每份文件文字预算 262,144。页面指纹来自最长边 384 像素的预览；源文件保持不变。",
                                "Reads up to 200 pages and 48 MB per file, with up to 32,768 UTF-16 units per page and 262,144 per file. Page fingerprints use previews with a 384-pixel longest edge. Source files are unchanged."))
@@ -249,15 +332,17 @@ struct PDFComparisonView: View {
                     }
                     .padding(18).frame(width: 370)
                 }
-            Divider().frame(height: 14)
-            Button { model.move(by: -1, differencesOnly: true) } label: { Image(systemName: "chevron.up") }
-                .buttonStyle(.borderless).help(L("上一处变化或待审阅页面", "Previous Change or Page to Review"))
-                .accessibilityLabel(L("上一处 PDF 差异", "Previous PDF Difference"))
-                .accessibilityIdentifier("pdf.previousDifference")
-            Button { model.move(by: 1, differencesOnly: true) } label: { Image(systemName: "chevron.down") }
-                .buttonStyle(.borderless).help(L("下一处变化或待审阅页面", "Next Change or Page to Review"))
-                .accessibilityLabel(L("下一处 PDF 差异", "Next PDF Difference"))
-                .accessibilityIdentifier("pdf.nextDifference")
+            if model.alignmentMode != .manual {
+                Divider().frame(height: 14)
+                Button { model.move(by: -1, differencesOnly: true) } label: { Image(systemName: "chevron.up") }
+                    .buttonStyle(.borderless).help(L("上一处变化或待审阅页面", "Previous Change or Page to Review"))
+                    .accessibilityLabel(L("上一处 PDF 差异", "Previous PDF Difference"))
+                    .accessibilityIdentifier("pdf.previousDifference")
+                Button { model.move(by: 1, differencesOnly: true) } label: { Image(systemName: "chevron.down") }
+                    .buttonStyle(.borderless).help(L("下一处变化或待审阅页面", "Next Change or Page to Review"))
+                    .accessibilityLabel(L("下一处 PDF 差异", "Next PDF Difference"))
+                    .accessibilityIdentifier("pdf.nextDifference")
+            }
         }
         .font(.system(size: 11)).padding(.horizontal, 16).padding(.vertical, 9)
         .background(Color(nsColor: theme.chrome))
@@ -275,6 +360,37 @@ struct PDFComparisonView: View {
         case .changed: return Color(nsColor: theme.accent)
         default: return Color(nsColor: theme.secondaryText)
         }
+    }
+}
+
+/// Commit page entry on Return or focus departure. Invalid/overflowing input is
+/// restored to the actual source page so the field never claims a false page.
+private struct PDFPageNumberEntry: View {
+    let number: Int
+    let count: Int
+    let label: String
+    let identifier: String
+    let select: (Int) -> Void
+    @State private var draft = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField("", text: $draft)
+            .textFieldStyle(.roundedBorder).font(.system(size: 12)).monospacedDigit()
+            .multilineTextAlignment(.center).frame(width: 50)
+            .focused($focused)
+            .accessibilityLabel(label).accessibilityIdentifier(identifier)
+            .onAppear { draft = String(number) }
+            .onChange(of: number) { _, value in draft = String(value) }
+            .onChange(of: focused) { _, value in if !value { commit() } }
+            .onSubmit(commit)
+    }
+    private func commit() {
+        guard let value = Int(draft.trimmingCharacters(in: .whitespacesAndNewlines)), value >= 1, value <= count else {
+            draft = String(number); return
+        }
+        draft = String(value)
+        select(value)
     }
 }
 

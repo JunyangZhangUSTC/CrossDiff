@@ -25,7 +25,8 @@ swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" -emit-mod
   "$compile_sources/core"/*.swift -emit-module-path "$check_build/CrossDiffCore.swiftmodule" -o "$check_build/libCrossDiffCore.dylib"
 swiftc "${crossdiff_photo_swift_flags[@]}" -swift-version 5 -D CROSSDIFF_UI_CHECKS -module-cache-path "$check_build/module-cache" \
   -I "$check_build" -L "$check_build" -lCrossDiffCore -Xlinker -rpath -Xlinker "$check_build" \
-  "$compile_sources/app"/*.swift "$project_root/scripts/tests/ImageTransformChecks.swift" -o "$check_build/image-workflow-checks"
+  "$compile_sources/app"/*.swift "$project_root/scripts/tests/ImageMatchingFixtures.swift" \
+  "$project_root/scripts/tests/ImageTransformChecks.swift" -o "$check_build/image-workflow-checks"
 if [[ "${1:-}" == "--build-only" ]]; then
   echo "Built: $check_build/image-workflow-checks"
   exit 0
@@ -34,7 +35,7 @@ CROSSDIFF_DATA_DIR="$check_build/data" CROSSDIFF_RENDER_DIR="$check_build/render
 /usr/bin/python3 - "$check_build/image-workflow-checks" <<'PY'
 import subprocess, sys
 try:
-    result = subprocess.run([sys.argv[1]], timeout=90)
+    result = subprocess.run([sys.argv[1]], timeout=120)
 except subprocess.TimeoutExpired:
     print('Native image checks timed out; AppKit may require access to native application services.', file=sys.stderr)
     sys.exit(3)

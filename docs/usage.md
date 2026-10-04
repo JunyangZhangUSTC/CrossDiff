@@ -1,6 +1,6 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio and Office plugins. This guide describes the 0.12.1 source preview; 0.12.0 is the current public preview, and 0.12.1 is being prepared for release. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio and Office plugins. This guide describes the 0.12.2 source preview; see GitHub Releases for published builds. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
@@ -79,6 +79,14 @@ There is no extraction, contained-file editing, merge, copy-back or export actio
 
 ## Compare images
 
+**0.13.0 源码预览：** 点击 **智能对齐**，以左侧原图为参照，自动调整右图的大小、旋转和位置。成功时，并排视图会切换到滑动对比；其他模式保留。可开启 **对应点** 查看少量带编号的验证点，继续手动微调，或点击 **恢复对齐前** 恢复此前两侧的变换、比例锁和比较模式。重新读取图片会清除旧的匹配证据与恢复记录，保留当前变换。
+
+匹配完全在本机使用 OpenCV SIFT 和稳健几何估计完成，无需下载模型。适用于具有足够细节的同源图片，包括旋转、等比缩放、裁剪及部分局部修改；细节不足、重复图案歧义或变换超限时保留当前对齐并说明原因。误差数字是验证点的中位配准误差，不是修改比例或置信度。对应点不能代表完整区域边界，未匹配区域也不等于被删除或遮挡。首版不自动处理透视、翻转、非等比拉伸或多个独立移动／拼接区域；可继续使用手动操作。
+
+**0.13.0 source preview:** Choose **Smart Align** to align the right image to the original left image using scale, rotation and position. A successful estimate switches Side by Side to Wipe; other modes remain unchanged. **Match Points** shows a small numbered sample of verified correspondences. Continue refining manually or use **Restore Alignment** to recover the previous transforms, aspect locks and comparison mode. Reload clears old match evidence and the restore snapshot while retaining the current transforms.
+
+Matching runs locally with OpenCV SIFT and robust geometry, without model downloads. It handles sufficiently detailed versions of the same image, including rotation, proportional resizing, crops and some local edits. Insufficient or ambiguous evidence and unsupported transforms leave your alignment unchanged. The reported error is the median registration residual, not the edited fraction or a confidence score. Points are not complete region boundaries, and unmatched areas do not establish deletion or occlusion. Automatic perspective, reflection, nonuniform scaling and independently moved/composited regions are outside this first version; manual controls remain available.
+
 Choose **Side by Side**, **Overlay**, **Wipe**, or **Pixel Difference**. Every mode uses the same aligned canvas and applies the same adjustments. **View Zoom** magnifies the whole comparison; it does not change either image’s relative size.
 
 Each image has its own size, rotation, and flip controls:
@@ -93,7 +101,7 @@ Each image has its own size, rotation, and flip controls:
 
 For an original image and a cropped version, start with **Overlay**. Adjust the cropped image’s Scale and Rotation if necessary, then drag it until recognizable features overlap. Switch to **Pixel Difference** and turn on **Compare Overlap Only** to exclude areas not covered by both images. This option is off by default; transparent pixels within the shared image area still participate. If the images do not overlap, CrossDiff displays a notice instead of presenting an empty overlap as a match. Without this option, differences include areas covered by only one image; blank canvas outside both images is excluded.
 
-All adjustments are manual and affect previews only; CrossDiff does not automatically register images, apply perspective or free-form warping, or write the transformed result to either source file. Alignment and viewing state survive switching comparison tabs in the current app session, but image alignment is not restored after restarting the app.
+All adjustments affect previews only; CrossDiff does not apply perspective or free-form warping, or write the transformed result to either source file. Alignment, match evidence and viewing state survive switching comparison tabs in the current app session, but image alignment is not restored after restarting the app.
 
 Comparison uses an 8-bit sRGB preview with a maximum 1600-pixel longest edge. Images are decoded at a shared scale, and an enlarged or rotated canvas is reduced again if needed. Zoom and difference counts refer to these previews, not to a full-resolution lossless analysis. Scaling, rotation, resampling, and source compression can leave small differences even after visual alignment. Only the first frame of animated images is compared.
 
@@ -186,7 +194,19 @@ When a search field is focused, editing commands operate on that field. When Set
 
 在“新建… → PDF 文档”分别选择两侧文件，也可从“文件 → 打开…”选入两个 PDF，或使用“比较 → PDF 比较…”。页面对照保留原版面，左侧列表显示页码对应关系；可切换到文字差异、逐处导航并缩放页面。扫描页和提取受限会明确提示，当前没有 OCR。此视图只读，不改原文件。
 
+0.12.2 源码预览提供三种页面配对方式：
+
+- **按页码（默认）：** 第 1 页对第 1 页，依次比较；多出页面显示为单侧页，不据此断言版本新增或删除。
+- **智能匹配：** 适合同一文档的不同版本。使用唯一预览或有信息量的文字寻找顺序一致的对应；证据不足、重复或歧义时明确提示并按页码比较。它不做 OCR 或语义理解，不能保证所有推断配对正确。
+- **手动配对：** 两侧分别输入页码或点击前后页，页面预览与文字差异都跟随所选原始页。当前标签保留选页，切换模式后可返回继续；不新增跨重启恢复手动设置的承诺。无效页码提交后恢复当前页。
+
+顶部“第 N / M 组”是比较组位置，两侧文件名下显示各自原始页码。匹配锚点之间缺少明确对应证据的页面仍按相对顺序展示，可用手动配对检查。手动选页限已读取的前 200 页。
+
 Choose each side through New… → PDF Documents, or open two PDFs through File → Open… or Compare → PDF Comparison…. Page view retains page layout and the sidebar shows corresponding pages. Switch to Text Differences for extracted text, navigate changes, or zoom the page. Scanned pages and extraction limits are indicated; OCR is not included. The view is read-only.
+
+The 0.12.2 source preview offers **By Page** (default), **Smart Match** and **Manual Pairing**. Page order compares the same original page numbers without inferring revision history. Smart Match uses unique preview or informative text evidence for related revisions; insufficient or ambiguous evidence falls back to page order with an explanation. It does not perform OCR or semantic analysis, and pages between reliable anchors may still be paired by relative order.
+
+Manual Pairing provides independent page-number fields and previous/next controls on each side. Page previews and text differences follow the selected source pages. Choices remain in the current tab when switching tabs or pairing modes; manual settings are not newly persisted across app restarts. Invalid entries revert to the current page. **Pair N / M** identifies the comparison group; source page numbers appear under the file names. Selection is limited to the pages read (at most 200 per side).
 
 在“CrossDiff → 插件…”管理扩展：选择／拖入 `.crossdiffplugin` 文件，或输入 HTTPS 链接点击“下载并检查”。检查名称、标识、版本、未验证发布者与运行权限后安装。任意链接下载需先检查再安装。重复安装同一个版本但内容不同会被拒绝；更新请使用新的版本号。
 

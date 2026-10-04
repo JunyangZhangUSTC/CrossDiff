@@ -18,6 +18,10 @@ struct ImageComparisonView: View {
         VStack(spacing: 0) {
             controls
             Divider()
+            if model.isMatching || model.matchingResult != nil || model.matchingNotice != nil {
+                matchingInformation
+                Divider()
+            }
             if let preview = model.preview {
                 imageAdjustments(preview)
                 Divider()
@@ -66,12 +70,26 @@ struct ImageComparisonView: View {
                 .accessibilityLabel(L("比较方式", "Comparison Mode"))
                 .id(settings.language)
                 .accessibilityIdentifier("image.mode")
-                .frame(maxWidth: 440)
+                .frame(maxWidth: 380)
                 Spacer(minLength: 8)
+                Button {
+                    if model.isMatching { model.cancelMatching() }
+                    else { model.alignAutomatically() }
+                } label: {
+                    Label(model.isMatching ? L("取消", "Cancel") : L("智能对齐", "Smart Align"),
+                          systemImage: model.isMatching ? "xmark" : "viewfinder")
+                        .fixedSize()
+                }
+                .buttonStyle(.bordered)
+                .tint(Color(nsColor: theme.accent))
+                .accessibilityIdentifier("image.smartAlign")
+                .help(L("以左图原始位置为参照，自动调整右图的大小、旋转和位置；可以恢复对齐前的状态。", "Align the right image to the original left image using scale, rotation and position. You can restore the previous alignment."))
                 Picker(L("视图缩放", "View Zoom"), selection: $model.zoom) {
                     ForEach(ImageComparisonZoom.allCases) { Text($0.title).tag($0) }
                 }
-                .frame(width: 205)
+                .labelsHidden()
+                .accessibilityLabel(L("视图缩放", "View Zoom"))
+                .frame(width: 130)
                 .id(settings.language)
                 .help(L("一起放大查看画布；要改变两图的相对大小，请使用各侧的大小滑块。", "Magnifies the entire canvas. Use each image’s Scale control to adjust its relative size."))
                 Button {
@@ -113,6 +131,71 @@ struct ImageComparisonView: View {
         .padding(.horizontal, 18).padding(.vertical, 11)
         .background(Color(nsColor: theme.chrome))
         .disabled(model.preview == nil)
+    }
+
+    private var matchingInformation: some View {
+        HStack(alignment: .center, spacing: 12) {
+            matchingSummary
+                .lineLimit(2)
+            Spacer(minLength: 8)
+            matchingActions
+        }
+        // NSHostingView probes its minimum width with a tiny proposal. An
+        // unconstrained vertically-fixed message then becomes hundreds of pixels
+        // tall and permanently raises the window's minimum height.
+        .frame(height: model.isMatching || (model.matchingNotice == nil && model.matchingResult?.status == .accepted) ? 20 : 32)
+        .font(.system(size: 11))
+        .foregroundStyle(Color(nsColor: theme.secondaryText))
+        .padding(.horizontal, 18).padding(.vertical, 9)
+        .background(Color(nsColor: theme.accent).opacity(appearance.isDark ? 0.09 : 0.045))
+    }
+
+    @ViewBuilder
+    private var matchingSummary: some View {
+        if model.isMatching {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.mini)
+                Text(L("正在寻找对应内容…", "Finding corresponding content…"))
+            }
+        } else if let notice = model.matchingNotice {
+            Label(notice.explanation, systemImage: "info.circle")
+        } else if let result = model.matchingResult {
+            if result.status == .accepted {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle").foregroundStyle(Color(nsColor: theme.accent))
+                    Text(model.matchingWasAdjusted ? L("已手动微调", "Manually adjusted") : L("已智能对齐", "Aligned"))
+                        .fontWeight(.medium).foregroundStyle(Color(nsColor: theme.text))
+                    Text(L("\(result.inlierCount) 个验证点 · 误差 \(String(format: "%.2f", result.medianResidual)) px",
+                           "\(result.inlierCount) verified points · error \(String(format: "%.2f", result.medianResidual)) px"))
+                        .monospacedDigit()
+                }
+                .help(L("误差是分析预览中验证点的中位配准误差，不是图片差异率或匹配正确率。\n未匹配区域不等于被删除或遮挡。", "Error is the median registration residual in analysis-preview pixels, not image difference or match accuracy.\nUnmatched areas do not imply deletion or occlusion."))
+                .accessibilityIdentifier("image.matchSummary")
+            } else {
+                Label(result.status.explanation, systemImage: "info.circle")
+                    .help(result.status.explanation)
+                    .accessibilityIdentifier("image.matchSummary")
+            }
+        }
+    }
+
+    private var matchingActions: some View {
+        HStack(spacing: 12) {
+            if model.matchingResult?.status == .accepted && !model.isMatching && model.matchingNotice == nil {
+                Toggle(L("对应点", "Match Points"), isOn: $model.showMatchPoints)
+                    .toggleStyle(.checkbox).controlSize(.small)
+                    .fixedSize()
+                    .accessibilityIdentifier("image.matchPoints")
+                    .help(L("显示部分验证点；相同编号为对应位置，不代表完整匹配区域。", "Shows a sample of verified matches. Equal numbers identify corresponding positions, not complete matching regions."))
+            }
+            if model.canRestoreAlignment {
+                Button(L("恢复对齐前", "Restore Alignment")) { model.restoreAlignment() }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(Color(nsColor: theme.accent))
+                    .fixedSize()
+                    .accessibilityIdentifier("image.restoreAlignment")
+            }
+        }
     }
 
     private func imageAdjustments(_ preview: ImageComparisonPreview) -> some View {
@@ -336,6 +419,23 @@ struct ImageComparisonView: View {
         let points = ImageTransformGeometry.corners(sourceSize: sourceSize, transform: model.transform(for: side))
             .map { reference.point($0, displayScale: scale) }
         return ZStack(alignment: .topLeading) {
+            if model.showMatchPoints, let result = model.matchingResult, result.status == .accepted {
+                let matrix = ImageTransformGeometry.affine(sourceSize: sourceSize, transform: model.transform(for: side))
+                let samples = visibleMatchSample(result, preview: preview, reference: reference, scale: scale)
+                ForEach(samples.indices, id: \.self) { index in
+                    let sample = samples[index]
+                    let source = side == .left ? sample.left : sample.right
+                    let point = reference.point(source.applying(matrix), displayScale: scale)
+                    Text("\(index + 1)")
+                        .font(.system(size: 9, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color(nsColor: theme.canvas))
+                        .frame(width: 22, height: 22)
+                        .background(Color(nsColor: theme.accent), in: Circle())
+                        .overlay(Circle().stroke(Color(nsColor: theme.canvas), lineWidth: 1.5))
+                        .position(point)
+                        .allowsHitTesting(false)
+                }
+            }
             Path { path in
                 path.addLines(points)
                 path.closeSubpath()
@@ -359,6 +459,34 @@ struct ImageComparisonView: View {
                     .accessibilityIdentifier("image.\(side.rawValue).corner.\(cornerIdentifier(corner))")
             }
         }
+    }
+
+    /// Display sampling only: spread labels across the evidence and keep them
+    /// apart on both sides, including at small fit-to-window scales.
+    private func visibleMatchSample(_ result: ImageMatchingResult, preview: ImageComparisonPreview,
+                                    reference: ImageCanvasReference, scale: CGFloat) -> [ImageMatchingResult.Correspondence] {
+        let leftMatrix = ImageTransformGeometry.affine(sourceSize: preview.leftSourceSize, transform: model.leftTransform)
+        let rightMatrix = ImageTransformGeometry.affine(sourceSize: preview.rightSourceSize, transform: model.rightTransform)
+        let leftPoints = result.points.map { reference.point($0.left.applying(leftMatrix), displayScale: scale) }
+        let rightPoints = result.points.map { reference.point($0.right.applying(rightMatrix), displayScale: scale) }
+        func squaredDistance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
+            let dx = a.x - b.x, dy = a.y - b.y
+            return dx * dx + dy * dy
+        }
+        var indices: [Int] = []
+        while indices.count < 16 {
+            var best: Int?
+            var bestDistance: CGFloat = -1
+            for index in result.points.indices where !indices.contains(index) {
+                let distance = indices.map {
+                    min(squaredDistance(leftPoints[index], leftPoints[$0]), squaredDistance(rightPoints[index], rightPoints[$0]))
+                }.min() ?? .greatestFiniteMagnitude
+                if distance > bestDistance { best = index; bestDistance = distance }
+            }
+            guard let index = best, bestDistance >= 28 * 28 else { break }
+            indices.append(index)
+        }
+        return indices.map { result.points[$0] }
     }
 
     private func cornerIdentifier(_ corner: ImageTransformCorner) -> String {

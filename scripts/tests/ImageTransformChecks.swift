@@ -26,6 +26,8 @@ enum ImageTransformChecks {
             }
             let success = ProcessInfo.processInfo.environment["CROSSDIFF_CORNER_CHECK_ONLY"] == "1"
                     ? "PASS: targeted native corner transitions and mouse-up completion"
+                    : ProcessInfo.processInfo.environment["CROSSDIFF_SMART_CHECK_ONLY"] == "1"
+                    ? "PASS: targeted native smart alignment, evidence, restore, failure, tab retention and light/dark/bilingual/860px windows"
                     : "PASS: native image scale/rotation, four-corner resize, aspect locking, horizontal/vertical flip, independent edits, alignment, mode/tab retention, reset, newest render, immutable files, Chinese/English and light/dark/wide/860px full-window renders"
             let verdict = failures.isEmpty
                 ? success
@@ -63,6 +65,10 @@ enum ImageTransformChecks {
         log("Loaded immutable image pair in actual native workspace")
         if ProcessInfo.processInfo.environment["CROSSDIFF_CORNER_CHECK_ONLY"] == "1" {
             try await checkCornerTransitions(model)
+            return
+        }
+        if ProcessInfo.processInfo.environment["CROSSDIFF_SMART_CHECK_ONLY"] == "1" {
+            try await checkSmartAlignment(fixtures: fixtures)
             return
         }
 
@@ -201,6 +207,86 @@ enum ImageTransformChecks {
               "every transform, preview, reset, and tab switch leaves both original files byte-for-byte intact")
         check(!session.dirty && session.left.path == left.path && session.right.path == right.path,
               "preview transforms never mark source files edited or change file associations")
+        try await checkSmartAlignment(fixtures: fixtures)
+    }
+
+    private static func checkSmartAlignment(fixtures: URL) async throws {
+        let original = ImageMatchingFixtures.image()
+        let cropped = original.cropping(to: CGRect(x: 103, y: 71, width: 540, height: 390))!
+        let lhs = fixtures.appendingPathComponent("Composition.png")
+        let rhs = fixtures.appendingPathComponent("Cropped detail.png")
+        try ImageMatchingFixtures.write(original, to: lhs)
+        try ImageMatchingFixtures.write(cropped, to: rhs)
+        let bytes = [try Data(contentsOf: lhs), try Data(contentsOf: rhs)]
+        let session = ComparisonSession(kind: .image, left: .init(path: lhs.path), right: .init(path: rhs.path))
+        WorkspaceStore.shared.sessions = [session]
+        WorkspaceStore.shared.selectedID = session.id
+        let model = session.imageComparisonModel
+        try await settled(model)
+        model.leftTransform = .init(scale: 1.1, rotationDegrees: 12)
+        model.rightTransform = .init(offsetX: -20, offsetY: 40)
+        model.leftAspectLocked = false
+        let previousLeft = model.leftTransform, previousRight = model.rightTransform
+        try await settled(model)
+        try await press("image.smartAlign")
+        try await wait("smart alignment result") { !model.isMatching && model.matchingResult != nil }
+        try await settled(model)
+        check(model.matchingResult?.status == .accepted && model.canRestoreAlignment && model.mode == .wipe,
+              "native smart-align button applies verified registration and opens wipe mode")
+        check(model.leftTransform.isIdentity && abs(model.rightTransform.offsetX - 103) < 0.5 && abs(model.rightTransform.offsetY - 71) < 0.5,
+              "native alignment maps a crop into the original image")
+        for (name, width, height, dark, language) in [
+            ("image-smart-zh-light", 1220.0, 790.0, false, AppLanguage.simplifiedChinese),
+            ("image-smart-zh-dark", 1220.0, 790.0, true, AppLanguage.simplifiedChinese),
+            ("image-smart-zh-light-860", 860.0, 640.0, false, AppLanguage.simplifiedChinese),
+            ("image-smart-en-dark-860", 860.0, 640.0, true, AppLanguage.english)
+        ] {
+            try await stage(name, width: width, height: height, dark: dark, language: language)
+            _ = try control("image.smartAlign")
+            _ = try control("image.restoreAlignment")
+            _ = try control("image.matchPoints")
+            let alignFrame = try accessibilityFrame(try control("image.smartAlign"))
+            let restoreFrame = try accessibilityFrame(try control("image.restoreAlignment"))
+            check(window.frame.contains(alignFrame) && window.frame.contains(restoreFrame),
+                  "smart alignment and restore controls remain inside the window")
+        }
+        try await press("image.matchPoints")
+        check(model.showMatchPoints, "native match-points toggle reveals the evidence sample")
+        model.mode = .sideBySide
+        try await stage("image-smart-points-en-light", width: 1220, height: 790, dark: false, language: .english)
+        try await stage("image-smart-points-zh-dark-860", width: 860, height: 580, dark: true, language: .simplifiedChinese)
+        let other = ComparisonSession(left: .init(text: "sample"), right: .init(text: "example"))
+        WorkspaceStore.shared.sessions.append(other)
+        WorkspaceStore.shared.selectedID = other.id
+        try await pause()
+        WorkspaceStore.shared.selectedID = session.id
+        try await pause()
+        check(model.matchingResult?.status == .accepted && model.showMatchPoints && model.canRestoreAlignment,
+              "switching tabs preserves automatic alignment, evidence and restore snapshot")
+        try await press("image.restoreAlignment")
+        try await settled(model)
+        check(model.leftTransform == previousLeft && model.rightTransform == previousRight && !model.leftAspectLocked,
+              "native restore recovers the complete previous manual alignment")
+        check(model.matchingResult == nil && !model.showMatchPoints && !model.canRestoreAlignment,
+              "restore removes stale alignment evidence")
+
+        let blank = fixtures.appendingPathComponent("No detail.png")
+        try ImageMatchingFixtures.write(ImageMatchingFixtures.solid(), to: blank)
+        let unmatchable = ComparisonSession(kind: .image, left: .init(path: lhs.path), right: .init(path: blank.path))
+        WorkspaceStore.shared.sessions = [unmatchable]
+        WorkspaceStore.shared.selectedID = unmatchable.id
+        let rejected = unmatchable.imageComparisonModel
+        try await settled(rejected)
+        rejected.rightTransform = .init(offsetX: 25)
+        try await press("image.smartAlign")
+        try await wait("insufficient detail result") { !rejected.isMatching && rejected.matchingResult != nil }
+        try await settled(rejected)
+        check(rejected.matchingResult?.status == .insufficientFeatures && rejected.rightTransform.offsetX == 25,
+              "native failure preserves manual alignment and reports insufficient evidence")
+        try await stage("image-smart-rejected-en-light-860", width: 860, height: 640, dark: false, language: .english)
+        check(try Data(contentsOf: lhs) == bytes[0] && Data(contentsOf: rhs) == bytes[1] && !session.dirty,
+              "smart alignment, points, restore and failure never write the sources")
+        log("PASS: native smart alignment, match evidence, restore, tab retention, failure and source immutability")
     }
 
     private static func inspectImageColors(_ name: String, model: ImageComparisonModel) throws {
@@ -640,7 +726,7 @@ enum ImageTransformChecks {
         try tree.write(to: output.appendingPathComponent(name + "-accessibility.txt"), atomically: true, encoding: .utf8)
         check(window.frame.width == width && window.frame.height == height && bitmap.pixelsWide > 0 && bitmap.pixelsHigh > 0,
               "\(name) captures the complete real window at the requested size")
-        log("Rendered \(name)")
+        log("Rendered \(name): frame=\(window.frame.size)")
     }
 
     private static func writeFixture(_ url: URL, crop: Bool) throws {

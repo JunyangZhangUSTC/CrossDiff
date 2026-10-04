@@ -2,6 +2,9 @@
 
 CrossDiff's photography analysis uses the upstream OpenCV `core` and `imgproc`
 modules for `cvtColor(COLOR_RGB2HLS)`, `calcHist`, sample validation, and masking.
+Image smart alignment additionally links `features2d`, `calib3d`, and their `flann`
+dependency for SIFT features, mutual descriptor matching, and robust similarity
+estimation. It does not download or bundle learned model weights.
 The C interface in `Sources/PhotoCVBridge` is CrossDiff integration code. OpenCV's
 upstream algorithm source is not modified. Before compilation, CrossDiff replaces
 the local project prefix with `<PROJECT>` in three CMake-generated metadata files
@@ -16,7 +19,7 @@ image codecs, IPP, or contributed modules are linked.
 - Archive SHA-256: `44c106d5bb47efec04e531fd93008b3fcd1d27138985c5baf4eafac0e1ec9e9d`
 - License: Apache License 2.0 (`LICENSE`), with original copyright attribution
   (`COPYRIGHT`) and retained component notices (`NOTICE-SOURCE.txt`,
-  `SoftFloat-COPYING.txt`).
+  `NOTICE-MATCHING-SOURCE.txt`, `SoftFloat-COPYING.txt`).
 
 Run `bash scripts/prepare-opencv.sh` to reproduce the static libraries. Sources,
 build tools, caches, and libraries remain under the project's `.build/photo-deps`.

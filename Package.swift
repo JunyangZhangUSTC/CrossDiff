@@ -27,6 +27,7 @@ let package = Package(
             cxxSettings: [.unsafeFlags(["-I", photoInstall + "/include/opencv4",
                 "-ffile-prefix-map=" + projectRoot + "=.", "-fdebug-prefix-map=" + projectRoot + "=."])],
             linkerSettings: [.unsafeFlags(["-L", photoInstall + "/lib"]),
+                .linkedLibrary("opencv_calib3d"), .linkedLibrary("opencv_features2d"), .linkedLibrary("opencv_flann"),
                 .linkedLibrary("opencv_imgproc"), .linkedLibrary("opencv_core"), .linkedLibrary("c++"), .linkedLibrary("z")]),
         .executableTarget(name: "CrossDiff", dependencies: ["CrossDiffCore", "PhotoCVBridge"]),
         .executableTarget(name: "CrossDiffPluginHost", linkerSettings: [.linkedFramework("JavaScriptCore")]),
