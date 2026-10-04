@@ -12,7 +12,8 @@ FITNESS FOR A PARTICULAR PURPOSE. See LICENSE for the complete terms.
 The original CrossDiff source code, documentation, and brand artwork are
 covered by this license.
 
-CrossDiff includes statically linked OpenCV core and imgproc modules.
+CrossDiff includes statically linked OpenCV core, imgproc, features2d,
+calib3d and flann modules.
 Their licenses and retained third-party notices are in ThirdParty/OpenCV
 (Contents/Resources/ThirdParty/OpenCV in the application bundle).
 

@@ -117,10 +117,18 @@ bash scripts/tests/check-bundled-helpers.sh
 
 初次旧应用构建记录仍保留，但最终交付只以上述重新构建及 `distribution-final-results.json` 为准。没有安装到系统应用目录，没有创建标签或上传 Release。
 
-## GitHub 状态与尚未覆盖的范围
+## 初次集成验收时的 GitHub 状态与尚未覆盖的范围
 
 集成代码已推送至 `zhangjy/integration-20261004`；远端 main 未由本轮更新。PR 尚未创建，须通过 [集成比较页](https://github.com/JunyangZhangUSTC/CrossDiff/compare/main...zhangjy/integration-20261004?expand=1) 完成审查和主线合并。
 
 GitHub macOS 15 CI 已触发，最终提交的完整结果仍待完成，**不计为已通过**。此前因文件夹检查时序失败的运行保留；修正后的文件夹、归档及其他已完成步骤可在 Actions 中核验。最新状态以 [集成分支 Actions](https://github.com/JunyangZhangUSTC/CrossDiff/actions?query=branch%3Azhangjy%2Fintegration-20261004) 为准。本地实际 GUI 通过不能替代云端最终提交状态，CI 的 `--build-only` 也不能当作 GUI 运行。
 
 本轮未完成 macOS 14 实机、Intel 硬件及真实输入法候选交互验收。系统归档库、视频解码与 RAW 支持不能从单台机器外推；实际超大归档的每个时间／峰值内存边界也未穷举。上述范围应在扩大发行平台前补充，不宣称已全面覆盖。
+
+## 后续 PR 与发布交付
+
+GitHub 授权恢复后，已创建 [集成 PR #1](https://github.com/JunyangZhangUSTC/CrossDiff/pull/1)。上述初次验收状态保留为历史记录；最终合并、检查和发布状态分别以 PR、[检查工作流](https://github.com/JunyangZhangUSTC/CrossDiff/actions/workflows/check.yml)及 [Release 工作流](https://github.com/JunyangZhangUSTC/CrossDiff/actions/workflows/release.yml)为准。
+
+后续交付更新了双语 README 的 0.14.0 Full 下载入口、构建号 30、Archive 0.1.1 附件名和 OpenCV 模块声明，未改变已验收的应用运行时代码。发布流程增加固定提交中的版本公开意图：缺省仍为草稿；本次显式选择公开预览版，只有全部附件下载回读 SHA-256 一致并复核远端标签后才公开。发布保护 31 项、插件库存 10 项离线检查通过；公开版本重试只读验证，不覆盖附件。
+
+[0.14.0 发布说明](../releases/0.14.0.md) · [发布机制与复现入口](../releasing.md) · [版本下载页](https://github.com/JunyangZhangUSTC/CrossDiff/releases/tag/v0.14.0)

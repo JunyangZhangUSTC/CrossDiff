@@ -1,10 +1,10 @@
 # 发布 CrossDiff
 
-[Release 工作流](../.github/workflows/release.yml) 为同一个源码提交构建 **基础版（Base）**、**完整版（Full）**和独立插件包，上传到 [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases)，下载回读并校验后保留为草稿预览版。维护者点击 **Publish release** 后，用户就能下载应用，基础版也能从应用内下载并安装本版本的官方插件。
+[Release 工作流](../.github/workflows/release.yml) 为同一个源码提交构建 **基础版（Base）**、**完整版（Full）**和独立插件包，先上传到 [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases) 草稿，再下载回读全部附件并核对 SHA-256。默认保留草稿；只有标签对应的固定提交明确记录自动公开意图，验证完成并再次确认远端标签仍指向该提交后，才公开发布。公开后，用户可以下载应用，基础版也能从应用内下载并安装本版本的官方插件。
 
-普通 `main` 推送运行检查，不发布版本；推送版本标签才会生成 Release 草稿。所有版本均免费，无需注册。两个发行版使用同一套本地比较引擎与会话格式，没有付费功能区别。
+普通 `main` 推送运行检查，不发布版本；推送版本标签才会触发发行流程。没有显式公开意图的标签仍只生成草稿。所有版本均免费，无需注册。两个发行版使用同一套本地比较引擎与会话格式，没有付费功能区别。
 
-当前源码版本为 **0.14.0**（构建号 28），为开发预览；已有版本及公开附件以 GitHub Releases 为准。以下清单与命令说明如何准备 0.14.0，不代表构建已通过或附件已公开。
+当前源码版本为 **0.14.0**（构建号 30），为开发预览；已有版本及公开附件以 GitHub Releases 为准。以下清单与命令说明如何准备 0.14.0，不代表构建已通过或附件已公开。
 
 ## 版本包含什么
 
@@ -22,10 +22,23 @@
 ## 创建本次 Release
 
 1. 完成受影响的核心与原生窗口验证，并记录未验证场景。CI 的 `--build-only` 只证明原生检查程序能够编译，不能替代真实窗口验收。
-2. 更新 `Resources/Info.plist` 的版本和递增构建号、`CHANGELOG.md`、中英文 README，以及 `docs/releases/<版本>.md` 双语发布说明。当前版本为 **0.14.0**（构建号 28）。README 默认推荐 **Full 完整版**。下载链接可以提前指向待发布版本，但必须注明草稿发布后可用，并保留 GitHub Releases 入口供下载现有版本。发布说明开头用一句话推荐 Full，完整包名用固定版本的下载超链接，点包名即可下载；Base 放在后面的可选说明。发布说明应可直接公开，草稿状态由 GitHub 标记，避免公开后仍写着“尚未发布”。
+2. 更新 `Resources/Info.plist` 的版本和递增构建号、`CHANGELOG.md`、中英文 README，以及 `docs/releases/<版本>.md` 双语发布说明。当前版本为 **0.14.0**（构建号 30）。README 默认推荐 **Full 完整版**。下载链接可以提前指向待发布版本，但必须注明草稿发布后可用，并保留 GitHub Releases 入口供下载现有版本。发布说明开头用一句话推荐 Full，完整包名用固定版本的下载超链接，点包名即可下载；Base 放在后面的可选说明。发布说明应可直接公开，草稿状态由 GitHub 标记，避免公开后仍写着“尚未发布”。
 3. 如果插件的代码或 manifest 有变化，递增该插件的 `version`。应用版本和插件版本独立；不要在同一插件版本下替换已经公开的包。
-4. 提交并推送精确的发行状态到 `main`。发行脚本拒绝脏工作区、未跟踪文件以及 `assume-unchanged` / `skip-worktree` 隐藏修改。
-5. 版本与发布说明一致后，从项目根目录的 Bash 运行：
+4. 决定本版保留草稿还是在验证后自动公开。默认无需额外文件，工作流保留草稿；自动公开必须将 `docs/releases/<版本>.json` 一起提交并审查。该文件只接受 `formatVersion`、`version`、`publish`、`prerelease` 四个字段：格式版本固定为整数 `1`，应用版本是与标签一致的字符串，后两项是 JSON 布尔值。本次 `docs/releases/0.14.0.json` 为：
+
+   ```json
+   {
+     "formatVersion": 1,
+     "version": "0.14.0",
+     "publish": true,
+     "prerelease": true
+   }
+   ```
+
+   `publish: true` 表示附件全部核验后公开，`prerelease: true` 表示公开预览版。没有文件或 `publish: false` 均保留草稿。上传器从标签所指的固定提交读取此文件，不采用工作区中未提交的修改或其他分支的配置；非法字段、类型或版本会中止发布。自动公开不会将此版本设置为 Latest。
+
+5. 提交并推送精确的发行状态到 `main`。发行脚本拒绝脏工作区、未跟踪文件以及 `assume-unchanged` / `skip-worktree` 隐藏修改。
+6. 版本、发布说明与公开意图一致后，从项目根目录的 Bash 运行：
 
 ```sh
 source scripts/project-env.sh
@@ -39,16 +52,16 @@ git push origin v0.14.0
 
 推送标签后，打开 [Actions → Release](https://github.com/JunyangZhangUSTC/CrossDiff/actions/workflows/release.yml)。也可以使用 **Run workflow** 并填写一个已经存在的远端标签。手动运行不会创建或移动标签。
 
-工作流验证标签、版本、源码提交与发布说明，运行检查，构建两个发行版，审计源码和构建产物，创建草稿，并逐一下载已上传附件核对 SHA-256。构建任务只有只读仓库权限，上传任务才有 `contents: write`。Apple 芯片运行环境为 GitHub 的 `macos-15` 标准 runner，构建时还会检查真实架构。[GitHub runner 文档](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+工作流验证标签、版本、源码提交、发布说明与公开意图，运行检查，构建两个发行版，审计源码和构建产物，创建草稿，并逐一下载已上传附件核对 SHA-256。所有附件验证成功后，再复核远端标签与源码提交；只有此时才可按已提交意图将草稿转为公开版本。构建任务只有只读仓库权限，上传任务才有 `contents: write`；使用 Actions 自带的 `GITHUB_TOKEN`，无需额外配置个人 Token。Apple 芯片运行环境为 GitHub 的 `macos-15` 标准 runner，构建时还会检查真实架构。[GitHub runner 文档](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 
-运行成功后，在 Releases 中检查草稿内容并点击 **Publish release**。预览阶段保留 **Pre-release** 标记。**草稿附件不能作为公开插件下载源，发布草稿后应用内下载才可用。** GitHub 也建议在启用不可变发布时先上传完整附件，再发布草稿。[GitHub 发布说明](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+本次 0.14.0 设置为自动公开的 **Pre-release**；工作流完成后核对实际公开状态与下载链接。保留草稿的版本则由维护者检查内容后点击 **Publish release**，预览阶段保持 **Pre-release** 标记。**草稿附件不能作为公开插件下载源，公开后应用内下载才可用。** 上传或校验失败不会自动公开草稿。GitHub 也建议在启用不可变发布时先上传完整附件，再发布草稿。[GitHub 发布说明](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
 
 ## Release 的全部附件
 
 ```text
 CrossDiff-0.14.0-base-macOS-arm64.zip
 CrossDiff-0.14.0-full-macOS-arm64.zip
-CrossDiff-Plugin-Archive-0.1.0.crossdiffplugin
+CrossDiff-Plugin-Archive-0.1.1.crossdiffplugin
 CrossDiff-Plugin-PDF-0.2.0.crossdiffplugin
 CrossDiff-Plugin-Photography-0.1.0.crossdiffplugin
 CrossDiff-Plugin-API-0.1.0.crossdiffplugin
@@ -121,7 +134,11 @@ python3 scripts/audit-publication.py --history --app dist/CrossDiff.app
 
 ## 重试与发布边界
 
-同一源码提交可以重试草稿上传。上传器校验本地标签、远端标签、提交中记录的插件来源、全部附件校验和、Base / Full 实际内置包、应用与 Release 目录的一致性，并下载回读确认上传结果。它不会覆盖已经公开或不可变的 Release，也不会把另一个提交的草稿改成本次版本。
+同一源码提交可以重试草稿上传。上传器校验本地标签、远端标签、提交中记录的插件来源与公开意图、全部附件校验和、Base / Full 实际内置包、应用与 Release 目录的一致性，并下载回读确认上传结果。它不会把另一个提交的草稿改成本次版本。若显式要求自动公开，最终公开前还会再次核对远端标签指向。
+
+如果上一次已完成公开，重试只读取并核验该 Release 的身份、源码提交与附件内容，不修改公开版本或替换附件；任何不一致都会报错。已公开或不可变版本不会被覆盖。这样的重试用于确认上次结果，不能用于替换同版本的应用或插件。
+
+重试上传任务应复用该次构建的 Actions artifact，选择重跑失败的上传任务；不要为了重试公开确认而重新构建全部任务。即使源码相同，重新构建的应用 ZIP 也可能因时间戳等产生不同字节，上传器会拒绝将其认作已公开附件。验证与公开期间不要手动编辑同版本草稿或附件。
 
 如果应用版本、插件代码或附件需修正，使用新的提交和版本；不要重新上传不同内容来替换已经公开的插件包。工作流定义已配置不等于远端运行已经通过，只有实际 Actions 结果与附件回读验证才是本次发布的证据。
 

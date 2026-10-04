@@ -201,7 +201,7 @@ jobs:
           compression-level: 0
 
   draft:
-    name: Create verified release draft
+    name: Upload, verify, and apply release publication intent
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -220,7 +220,7 @@ jobs:
           name: ${{ needs.build.outputs.artifact }}
           path: ${{ needs.build.outputs.directory }}
 
-      - name: Create draft and verify uploaded files
+      - name: Verify uploaded files and apply committed publication intent
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.build.outputs.tag }}
