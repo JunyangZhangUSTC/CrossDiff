@@ -96,6 +96,7 @@ jobs:
       - name: Archive comparison checks
         run: |
           bash scripts/tests/check-archives-core.sh
+          bash scripts/tests/check-archive-native.sh
           bash scripts/tests/check-archive-plugin.sh
           bash scripts/tests/check-archive-workflow.sh --build-only
 

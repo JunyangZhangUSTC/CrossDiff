@@ -1,11 +1,11 @@
 {
   "id": "org.crossdiff.archive",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "name": {"zhHans": "压缩包比较", "en": "Archive Comparison"},
   "summary": {"zhHans": "比较包内路径与完整内容摘要，并关联不同路径的相同内容。", "en": "Compare archive paths and complete content digests, and group identical content across paths."},
   "runtime": "restrictedJavaScript",
   "inputKind": "archiveCatalog",
-  "fileExtensions": ["zip", "tar", "tgz", "tbz", "tbz2", "txz", "gz", "bz2", "xz"],
+  "fileExtensions": ["zip", "tar", "tgz", "tbz", "tbz2", "txz", "gz", "bz2", "xz", "7z", "rar"],
   "resultView": "archiveTree",
   "supportedModes": ["pairwise"],
   "minHostProtocol": 1,
