@@ -1,6 +1,6 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio and Office plugins. This guide describes the 0.12.2 source preview; see GitHub Releases for published builds. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio and Office plugins. This guide includes the 0.13.1 folder-branch source preview; see GitHub Releases for published builds. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
@@ -46,7 +46,24 @@ Matching is literal: regular expressions and replacement backreferences are not 
 
 CrossDiff restores comparisons locally on the next launch. **Session → Clear Local Session History…** asks for confirmation, then closes all comparisons and removes saved temporary text. It leaves original files, language, and appearance preferences unchanged. Compared text and paths may be present in the local session file. See the [privacy details](../SECURITY.md#local-data-and-file-handling).
 
+<a id="compare-folders"></a>
 ## Compare folders / 文件夹比较
+
+**0.13.1 文件夹分支预览：** 左右相同路径始终在同一行，两边共享选择与滚动；不存在的一侧显示占位，读取失败时显示未知。默认“目录”模式折叠子目录，通过任意一侧箭头联动展开；双击目录进入该范围，“上一级”和“全部目录”返回上层或根。双击两边都有的普通文件打开比较。
+
+左右标题栏各有 **更换…** 按钮，可在当前标签中替换对应文件夹并立即重新比较，另一侧保持不变。取消或选择同一目录不会重扫；新目录会清空旧选择并返回根范围，保留搜索、筛选、排序、展示模式与忽略规则。扫描期间可以更换；复制核验、确认和执行期间暂时禁用。新路径随本机会话保存。
+
+点击名称、状态、任意一侧的大小表头排序，再次点击反转方向；列菜单可显示左右修改时间。目录模式只重排同级项目且目录优先；“列表”模式在当前范围内跨目录排序。文件大小按真实字节排序，缺失值置后；目录不显示误导性的自身大小。修改时间不同本身不表示内容不同。
+
+状态菜单可查看全部、需关注、内容改动、仅左侧、仅右侧、问题或待校验。搜索当前范围的相对路径，保留并临时展开命中项的祖先；清空搜索恢复原展开状态。目录摘要统计整个子树，折叠不改变数量；悬停可查看详细分类。选择排序后保留，筛选或折叠后隐藏的选择会清除。选择目录不会隐式递归复制。
+
+**0.13.1 folder-branch preview:** Both panes share rows, selection and scrolling. Missing items have placeholders; unreadable locations remain unknown. **Tree** starts with collapsed folders; either disclosure arrow expands both sides. Double-click a folder to browse within it, then use **Parent Folder** or **All Folders** to return. Double-click a pair of regular files to compare them.
+
+Use **Change…** in either folder header to replace that side and compare again in the same tab. The opposite side stays unchanged. Canceling or selecting the same directory does not rescan. A new folder clears old selections and returns to the root scope while retaining search, filter, sort, view and ignore preferences. Replacement is available during scans, but disabled during copy verification, confirmation and execution. New paths are saved in the local session.
+
+Click either name, status or size header to sort; click again to reverse. The columns menu reveals modification dates. Tree mode sorts siblings with folders first; **List** sorts across the current subtree. Sizes use actual bytes, missing values remain last, and folder sizes display a dash. Different timestamps alone do not imply different contents.
+
+Filter by All, To Review, Modified, Left Only, Right Only, Issues or Pending. Search relative paths within the current scope; matching ancestors expand temporarily, then restore when the query is cleared. Folder summaries count descendants without duplicating ancestors; hover for details. Sorting preserves selection. Filtering or collapsing clears hidden selections, and selecting a folder never recursively copies it.
 
 文件夹比较先递归检查路径、类型和大小，直接显示仅单侧存在、类型不同及大小不同的项目；同大小的普通文件随后使用 SHA-256 核验内容，默认最多两个文件比较任务并行。大小与时间戳相同不能证明内容相同。扫描期间可查看部分结果，上方显示发现数量、内容核验进度及实际读取量；尚未核验的项目标为“待校验”。取消后保留部分结果，但不能据此复制。
 
@@ -67,13 +84,27 @@ Select a regular file in a completed comparison to copy it in either direction. 
 
 Choose **Compare → Archive Comparison… / 比较 → 压缩包比较…**, then select two archives, or an archive and a local folder in either order. The normal **Open…** and drag-in pairing paths also recognize compatible archive/folder pairs. For more than two inputs, explicitly assign the pairs. The official archive plugin is included and enabled by default; it can be disabled in **CrossDiff → Plugins…**. An explicitly selected archive comparison also accepts two local folders under these read-only content-comparison rules.
 
-Supported formats: ZIP (stored/deflate), TAR, TAR.GZ/TGZ, TAR.BZ2/TBZ/TBZ2 and TAR.XZ/TXZ. Extension alone does not prove a valid format. Gzip, bzip2 and xz streams must contain TAR. RAR, 7z, encrypted archives, multi-volume archives and recursive expansion of nested archives are not supported. ZIP64, non-UTF-8 names and ZIP Unicode-path override extra fields are currently outside the supported ZIP subset. XZ accepts a single stream without trailing stream padding, with one LZMA2 filter per block and at most a 64 MiB dictionary. CRC32, CRC64 or SHA-256 checks are required; the index is capped at 1 MiB, with at most 10,000 blocks and 100,000 chunks.
+Supported formats: ZIP (stored/deflate), TAR, TAR.GZ/TGZ, TAR.BZ2/TBZ/TBZ2 and TAR.XZ/TXZ. Extension alone does not prove a valid format. Gzip, bzip2 and xz streams must contain TAR. The 0.13.0 source preview additionally accepts **unencrypted, single-volume 7z and a limited RAR subset**, described below. Passwords, multiple volumes, self-extracting executables and recursive expansion of nested archives are not supported. ZIP64, non-UTF-8 names and ZIP Unicode-path override extra fields are currently outside the supported ZIP subset. XZ accepts a single stream without trailing stream padding, with one LZMA2 filter per block and at most a 64 MiB dictionary. CRC32, CRC64 or SHA-256 checks are required; the index is capped at 1 MiB, with at most 10,000 blocks and 100,000 chunks.
+
+**7z / RAR source-preview compatibility:**
+
+| Format | Accepted subset | Explicit exclusions |
+| --- | --- | --- |
+| 7z | Copy, LZMA, LZMA2; solid and non-solid; one common BCJ or Delta filter; ordinary compressed headers | AES/passwords, BCJ2, PPMd, Deflate/BZip2/Zstd coders, complex coder graphs, external metadata and unsupported properties |
+| RAR4 | Stored files or version-29 compressed data, directories, stored symbolic links marked Unverified | Solid archives, old compressed codec versions, encryption, comments/recovery/service blocks; an explicit end marker is required |
+| RAR5 | Algorithm v0, ordinary and solid files, directories, time/owner metadata | RAR 7 algorithm v1/new dictionary encodings, BLAKE2sp, redirections, versioned files, comments/recovery/quick-open/service blocks |
+
+7z and RAR5 dictionaries are capped at **64 MiB**. Both the compressed and decoded 7z header are capped at **1 MiB**. Final acceptance also depends on the system libraries included with macOS; an extension alone is not a compatibility guarantee. Unsupported methods/features, passwords and missing volumes do not yield partial matches. Updating the Archive script alone does not add host decoders: use an application build containing this feature.
+
+**中文提示：** 本次源码预览新增无密码、单卷 7z 和受限 RAR，沿用原来的“按路径”和“相同内容”视图。7z 支持常见 LZMA／LZMA2 固实包；RAR4 不支持固实，RAR5 仅接受算法 v0。密码、分卷、恢复记录、注释等不受支持的特性会明确拒绝；并非所有 `.rar` 文件均可读取。
 
 **By Path / 按路径** presents an expandable native directory tree. A file is **Same** only when its length and SHA-256 digest match; timestamps and permissions are not compared. Directories summarize their descendants, preserving empty directories. Use the path filter and **Changes Only / 仅差异** to focus the tree; ancestors remain available. **Same Content / 相同内容** groups verified matching files at different paths across the two sources, keeping every member without generating a Cartesian list. This is evidence of identical contents, not an inferred rename or move.
 
 The operation is read-only: compressed contents are decoded as bounded streams in memory, **without extracting files to disk**. Nested archives are ordinary files. Symbolic links, hard links and special entries are never followed and remain **Unverified**; their targets are not considered equal. Corruption, encryption, unsafe paths, conflicting or duplicate entry paths, and reading limits stop the comparison rather than produce a misleading match. Source changes detected before publication or cached reuse invalidate the result; choose Reload to scan again. This is change detection, not an immutable filesystem snapshot.
 
 Each side allows up to **10,000 entries** including implicit directories, **512 MiB** of expanded data, **256 MiB** per file, and **2 GiB** per compressed archive. Paths are limited to **4096 UTF-8 bytes** and **128 components**. TAR has an additional **544 MiB** decoded-stream cap, allowing at most 32 MiB above the content budget for headers and padding. Local folder comparison through this plugin includes hidden files and uses the same content budgets; it does not inherit the normal folder comparison's ignore list. Path matching is case-sensitive and treats canonically equivalent Unicode names as the same path; ambiguous names in one archive are rejected.
+
+7z/RAR decoding runs in a bundled helper with a 60-second wall-clock deadline, a 60-second CPU limit, a 16 MiB metadata-response cap and a sampled 512 MiB resident-memory watchdog. Cancellation kills that reader. These are resource controls, **not a security sandbox or a hard peak-memory guarantee**. The parent validates the complete response and source identity before publishing a snapshot. No executable is downloaded and no archive entry is extracted.
 
 There is no extraction, contained-file editing, merge, copy-back or export action in this release. Saved sessions retain source paths and plugin identity, not expanded file bytes. For byte-level differences in the archive file itself, use **Binary Comparison…** instead.
 
@@ -83,9 +114,17 @@ There is no extraction, contained-file editing, merge, copy-back or export actio
 
 匹配完全在本机使用 OpenCV SIFT 和稳健几何估计完成，无需下载模型。适用于具有足够细节的同源图片，包括旋转、等比缩放、裁剪及部分局部修改；细节不足、重复图案歧义或变换超限时保留当前对齐并说明原因。误差数字是验证点的中位配准误差，不是修改比例或置信度。对应点不能代表完整区域边界，未匹配区域也不等于被删除或遮挡。首版不自动处理透视、翻转、非等比拉伸或多个独立移动／拼接区域；可继续使用手动操作。
 
+**0.13.2 相似区域：** 智能对齐成功后，点击 **相似区域**，后台核验后，虚线标出两图的完整几何对应范围，低透明度填色标出核验后的相似内容。范围内仍可能有修改，虚线本身不表示全部相同。此开关默认关闭，开启后持续显示；点击编号或前后箭头可联动强调左右对应部分。并排视图适合同时核对两边；滑动对比的标注随分界显示各侧，叠加和像素差异视图跟随当前“拖动哪张图片”的选择显示该侧证据。关闭即可恢复原图显示，已完成结果会在当前标签缓存；重新对齐、读取图片或恢复对齐前状态会清除旧结果。
+
+相似区域表示**预览中局部纹理与颜色差异较小的近似范围**，允许小幅中性亮度偏移，不保证像素完全相同。可靠对齐后，相同的平坦背景也会接入有纹理证据支持的连续区域，纯裁剪不再只显示零散细节。低纹理部分使用严格的绝对颜色检查，不单独推断匹配。标注保留已检测修改处的孔洞；透明、未通过核验和零碎证据可能不标注，最多显示 12 个较大区域，**未标注不等于不同**。更细的修改请结合滑动对比或像素差异查看。标注只影响显示，不写入图片，也不会改变手动对齐参数。[区域分析设计](architecture/image-similarity-regions.md)
+
 **0.13.0 source preview:** Choose **Smart Align** to align the right image to the original left image using scale, rotation and position. A successful estimate switches Side by Side to Wipe; other modes remain unchanged. **Match Points** shows a small numbered sample of verified correspondences. Continue refining manually or use **Restore Alignment** to recover the previous transforms, aspect locks and comparison mode. Reload clears old match evidence and the restore snapshot while retaining the current transforms.
 
 Matching runs locally with OpenCV SIFT and robust geometry, without model downloads. It handles sufficiently detailed versions of the same image, including rotation, proportional resizing, crops and some local edits. Insufficient or ambiguous evidence and unsupported transforms leave your alignment unchanged. The reported error is the median registration residual, not the edited fraction or a confidence score. Points are not complete region boundaries, and unmatched areas do not establish deletion or occlusion. Automatic perspective, reflection, nonuniform scaling and independently moved/composited regions are outside this first version; manual controls remain available.
+
+**0.13.2 Similar Regions:** After successful alignment, choose **Similar Regions** to see a dashed outline of the full geometric correspondence and translucent fills for verified similar content. The dashed outline does not claim that all content inside is the same. The toggle defaults off and stays on until hidden. Click a numbered region or use the previous/next arrows to highlight both counterparts. Side by Side shows both; Wipe clips each side's evidence at the divider; Overlay and Pixel Difference show the evidence for the selected Image to Move. Completed results are cached in the tab; a new alignment, reload or Restore Alignment clears them.
+
+These are approximate preview regions with similar texture and small color differences, allowing modest neutral brightness shifts, **not proof of identical pixels**. After reliable alignment, strictly color-verified flat backgrounds can join texture-supported regions, keeping an unedited crop continuous. Flat patches cannot establish a match independently and receive no local brightness compensation. Detected holes remain unfilled. Transparent, unverified or fragmented evidence may remain unmarked; up to 12 larger regions are displayed. **Unmarked does not mean different.** Use Wipe or Pixel Difference to inspect fine edits. The overlay never writes source files or changes manual transforms. See the [analysis design](architecture/image-similarity-regions.md).
 
 Choose **Side by Side**, **Overlay**, **Wipe**, or **Pixel Difference**. Every mode uses the same aligned canvas and applies the same adjustments. **View Zoom** magnifies the whole comparison; it does not change either image’s relative size.
 
@@ -108,17 +147,21 @@ Comparison uses an 8-bit sRGB preview with a maximum 1600-pixel longest edge. Im
 <a id="photography"></a>
 ## Photography / 摄影对比
 
-**摄影插件 Photography 0.1.0。** 当前公开的 0.12.0 与待发布的 0.12.1 Full 均预装；同版本 Base 可安装独立摄影包。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
+**摄影插件 Photography 0.1.0。** Full 预装，同版本 Base 可安装独立摄影包。以下包含当前源码中的摄影分析增强，公开安装包的能力以对应 Release 为准。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
 
-**Photography 0.1.0.** The public 0.12.0 and upcoming 0.12.1 Full editions both bundle this plugin; a matching Base host can install its standalone package. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
+**Photography 0.1.0.** Full bundles this plugin; a matching Base host can install its standalone package. This guide includes photography analysis enhancements in the current source; published packages follow their own Release notes. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
 
-默认以双图为主，显示同刻度的 RGB 与 **HSL 明度 L** 直方图，以及低明度、高明度、高饱和区域占比的简短对比。**专业图表**展开 HSL、处理曲线、拍摄与分析信息。HSL L 不是物理亮度或曝光值，图表描述所选画面的分布，不给作品评分，也不反推调色滑块。快门、光圈、ISO、焦距等仅显示实际文件记录，缺失不猜测。
+默认以双图和 **Lab 感知明度 L*** 直方图为主。摘要显示 L* 中位数、P90−P10 明度跨度和低／高明度区域占比；这些数值描述当前选区，不代表曝光调整值或作品质量。**专业图表**保留 HSL、实际记录的处理曲线以及拍摄与分析信息。Lab L* 的范围是 0–100，与 HSL 明度 L 分开；两者均不是物理亮度或曝光值。
 
-The default view pairs the photographs with RGB and **HSL lightness L** histograms on shared scales and short comparisons of low-lightness, high-lightness and high-saturation shares. **More Analysis** reveals HSL distributions, recorded curves, and capture/analysis information. HSL L is not physical luminance or exposure. Charts describe selected image content, without quality scores or inferred editing sliders. Shutter speed, aperture, ISO and focal length come only from recorded metadata.
+The default view pairs the photographs with **Lab perceptual lightness L*** histograms. Summaries show median L*, the P90−P10 lightness span, and low/high-lightness shares for the current regions; they do not represent exposure adjustments or quality scores. **More Analysis** retains HSL distributions, recorded processing curves, and capture/analysis information. Lab L* uses a 0–100 scale and remains separate from HSL lightness L. Neither is physical luminance or exposure.
 
+- **照片显示通道 / Photo display channel:** 默认显示原图，也可把红、绿或蓝通道显示为灰度图；灰度表示该 sRGB 通道的强度。它与下方直方图通道独立，不重新计算区域统计。The original image is the default. Red, green, or blue can be shown as grayscale sRGB channel intensities, independently of the chart channel and without recalculating region statistics.
+- **直方图 / Histograms:** 选择感知明度、RGB 总览或单个 RGB 通道；RGB 总览分为红、绿、蓝三图。直方图默认分开显示两侧，点击“叠加”按钮后切换为叠加；分开、叠加和差值使用一致的横轴；A／左侧用蓝色实线，B／右侧用橙色虚线。差值图为右减左：蓝色表示 A 占比更高，橙色表示 B 占比更高，单位为百分点。悬停在同一分箱位置联动读取两侧占比。Select perceptual lightness, an RGB overview, or one RGB channel. The overview has separate red, green, and blue plots. Histograms show the two sides separately by default; click Overlay to combine them. Separated, overlay, and difference layouts share their horizontal scales. A/left is solid blue and B/right is dashed orange. The difference plot shows right minus left in percentage points: blue means a higher fraction in A, orange a higher fraction in B. Hover reads both sides at the same bin.
+- **图表高亮 / Chart highlight:** 在直方图中拖选一段范围，在当前照片选区内部高亮匹配的预览像素；点击“清除高亮”还原。高亮使用最长边 2048 的显示预览定位；源区域统计独立采样、最长边可达 4096，因此细小纹理或边缘的高亮覆盖可能与统计占比略有不同。高亮不改变框选、统计或源文件，也不随会话保存。Drag a histogram range to highlight matching preview pixels inside each active photo region. Clear Highlight restores the preview. Highlighting uses the display preview, capped at a 2048 px longest edge. Region statistics are sampled independently at up to a 4096 px longest edge, so highlight coverage on fine textures or edges can differ slightly from the reported fractions. Highlighting does not change regions, statistics, or source files, and is not saved with the session.
+- **拍摄参数 / Capture metadata:** 快门、光圈、ISO、焦距、镜头等按字段左右对照；未记录的值明确显示缺失，不根据像素推测。Shutter speed, aperture, ISO, focal length, lens, and other recorded fields are compared side by side. Missing records stay explicit rather than being inferred from pixels.
 - **框选区域 / Select regions:** 在照片上拖动矩形，松开后重新统计。左右默认独立，可在不同位置选择天空或肤色等可比内容；不修改源照片。Drag a rectangle and release to analyze it. Each side is independent by default, so matching subjects may occupy different positions.
 - **联动选区 / Link Regions:** 开启后，之后的框选在两图使用相同的归一化位置与比例；不是物体识别或自动配准。Future selections share normalized coordinates and proportions, without object recognition or registration.
-- **保存区域 / Save Region Pair:** 点击加号、命名，最多保存 32 组左右配对；通过“已存区域”切换或删除。区域与所选 XMP 路径随本机会话保存。Use the plus button to name up to 32 pairs, then switch or delete them in Saved Regions. Region pairs and selected XMP paths persist with the local session.
+- **保存区域 / Save Region Pair:** 点击加号、命名，最多保存 32 组左右配对；通过“已存区域”切换或删除。区域、所选 XMP 路径、照片显示通道与直方图通道／布局随本机会话保存。旧会话缺少显示偏好时默认恢复原图、感知明度与分开布局；已保存的布局按原选择恢复。Use the plus button to name up to 32 pairs, then switch or delete them in Saved Regions. Region pairs, selected XMP paths, photo display channel, and histogram channel/layout persist with the local session. Older sessions without display preferences default to the original image, perceptual lightness, and separated layout; saved layouts are restored as previously selected.
 - **全图 / Whole Image:** 清除当前框选并重新统计全图，不删除已存区域。Clears active selections without deleting saved pairs.
 - **处理曲线 / Recorded Curves:** 显示图片内嵌或手动选择的 Adobe CRS XMP 控制点；选择旁路 XMP 时以该记录为准。连线只作示意，不复现原软件插值、显影或调色效果。不存在记录时显示“未记录处理曲线”。Shows actual embedded or explicitly selected Adobe CRS XMP control points; a selected sidecar takes precedence. Lines are illustrative, not the original editor’s interpolation or rendering. Missing records remain missing.
 - **重新读取 / Reload:** 重新加载照片并分析。查看预览的缩放相对于显示预览像素，不能当作原图 100% 细节。Reloads photographs and statistics. Inspector zoom is relative to preview pixels, not 100% original-image detail.
@@ -127,13 +170,13 @@ Apple ImageIO／Core Image 读取普通图片和颜色配置，`CIRAWFilter` 以
 
 Apple ImageIO/Core Image reads ordinary images and color profiles; `CIRAWFilter` renders RAW with Apple defaults. Common RAW extensions include DNG, CR2/CR3, NEF, ARW, RAF, RW2 and ORF, but support depends on the **camera, encoding mode and macOS version**. An accepted extension is not a decoding guarantee. Unsupported RAW fails explicitly without substituting an embedded preview. Default rendering is neither raw sensor samples nor the creator’s final edit.
 
-分析使用统一的 **sRGB 浮点 SDR 0–1** 数据，OpenCV 4.12.0 提供 HSL 转换和直方图。超范围数值截至端点，不能以此判断 RAW 过曝；完全透明和非有限像素排除，其余有效像素等权，HSL 饱和度低于 2% 的像素单独记作中性色并排除出色相分布。直方图按有效像素占比归一化，不因选区大而自动更高。
+分析使用统一的 **sRGB 浮点 SDR 0–1** 数据，OpenCV 4.12.0 提供 Lab／HSL 转换和直方图。超范围数值截至端点，不能以此判断 RAW 过曝；完全透明和非有限像素排除，其余有效像素等权，HSL 饱和度低于 2% 的像素单独记作中性色并排除出色相分布。直方图按有效像素占比归一化，不因选区大而自动更高。
 
-Analysis uses **floating-point sRGB SDR values in 0–1**, with OpenCV 4.12.0 providing HSL conversion and histograms. Out-of-range values are clamped, not interpreted as RAW overexposure. Fully transparent and non-finite samples are excluded; other valid pixels receive equal weight. HSL saturation below 2% counts as neutral and is excluded from hue bins. Histograms show fractions of valid pixels, so larger selections do not automatically produce taller charts.
+Analysis uses **floating-point sRGB SDR values in 0–1**, with OpenCV 4.12.0 providing Lab/HSL conversion and histograms. Out-of-range values are clamped, not interpreted as RAW overexposure. Fully transparent and non-finite samples are excluded; other valid pixels receive equal weight. HSL saturation below 2% counts as neutral and is excluded from hue bins. Histograms show fractions of valid pixels, so larger selections do not automatically produce taller charts.
 
-每张照片上限 **256 MiB／6400 万像素**。显示预览最长边 **2048**；统计直接来自颜色管理后的源图选区，最长边超过 **4096** 时采用有界采样，并显示采样状态及尺寸。多帧文件只分析首帧。波形、矢量示波图、噪声／锐度评分、HDR 专业分析、图表点选反向高亮、报告导出和照片编辑不在此版范围内。
+每张照片上限 **256 MiB／6400 万像素**。显示预览最长边 **2048**；统计直接来自颜色管理后的源图选区，最长边超过 **4096** 时采用有界采样，并显示采样状态及尺寸。多帧文件只分析首帧。波形、RGB Parade、矢量示波图、噪声／锐度评分、HDR 专业分析、报告导出和照片编辑不在此版范围内。
 
-Each photograph is limited to **256 MiB and 64 megapixels**. Display previews have a **2048 px** longest edge. Statistics use the color-managed source region, with bounded resampling above a **4096 px** longest edge and an explicit sample indicator/dimensions. Only the first frame is analyzed. Waveforms, vectorscopes, noise/sharpness scores, professional HDR analysis, reverse highlighting from chart selections, report export and photo editing are not included.
+Each photograph is limited to **256 MiB and 64 megapixels**. Display previews have a **2048 px** longest edge. Statistics use the color-managed source region, with bounded resampling above a **4096 px** longest edge and an explicit sample indicator/dimensions. Only the first frame is analyzed. Waveforms, RGB parade, vectorscopes, noise/sharpness scores, professional HDR analysis, report export and photo editing are not included.
 
 <a id="api"></a>
 ## API 对比 / API Compare
@@ -303,3 +346,22 @@ Word shows paragraph/table content with character highlights. Excel matches exac
 Original row numbers, changes and reorder markers remain separate. Click a center symbol for matching evidence, complete cell values, types, formulas and saved results. Search covers content and formulas. Wide sheets provide column groups and horizontal scrolling. The eye button opens the current file in system Quick Look, whose support depends on macOS; it is not a synchronized page renderer. Reload explicitly refreshes the imported snapshot.
 
 Results cover the selected sections, not complete visual or file identity. Formatting, charts, images and embedded objects are not fully compared. Formulas are never evaluated; saved results may be missing or stale. Numeric/date records preserve source precision, without emulating Excel formatting. Parsing stays local and read-only with bounded ZIP/XML resources, no macro execution, external-relationship fetch or external entities. Unsupported, damaged and oversized inputs report errors. See [implementation boundaries](architecture/office-comparison.md).
+
+<a id="video"></a>
+
+## 视频对比 / Video Compare
+
+0.14.0 源码预览支持 Video 插件：Full 预装，同版 Base 可在插件页安装 `Video.crossdiffplugin`。从 **新建… → 视频** 选择两个本地 MOV、MP4 或 M4V 文件；格式能否播放由 macOS 实际解码能力决定。
+
+- 默认双画面、双时间线；点击时间线定位。点击画面后，用 **空格** 播放／暂停，**← / →** 逐帧；A/B 选择逐帧的基准侧。对应命令也在“比较”菜单中。
+- 默认按同时间联动，这不代表内容已匹配。关闭联动分别找对应画面，然后在 **时间对齐… → 将当前两帧设为对应** 配对。也可输入偏移：`B 时间 = A 时间 + 偏移`。调整支持撤销／重做。
+- 默认静音；选择 A 或 B 只试听一侧。联动时可设置两侧有效重叠范围内的循环片段。
+- **滑动**和**差异**在暂停帧上工作；播放自动回到并排。差异图要求两侧明确标记为 Rec.709 SDR，且缩略解码画面或所选区域尺寸相同。它是视觉预览，不是编码质量评分；HDR、色彩标记缺失或尺寸不同可继续视觉对照。
+- 暂停后用框选按钮分别选择区域；在旁边菜单启用区域联动或保存命名区域，最多 32 组。点击恢复按钮回到全图。框选不会裁剪或修改原视频。
+- 信息按钮显示源时长、尺寸、标称帧率、编码、音轨与色彩标签，并提供重新读取。逐帧使用真实样本时间；无法确认精确帧时会明确提示。
+
+位置、偏移和区域在本机会话中恢复；切换标签或关闭比较会停止播放。原视频始终只读。首版不含自动剪辑匹配、视频导出或实时播放差异。
+
+**English.** In the 0.14.0 source preview, choose **New… → Video** and select two local MOV, MP4 or M4V files. Full includes the Video plugin; Base can install it locally. Click either timeline to seek, then focus a frame to use **Space** and the **Left/Right arrows**. A/B chooses the reference for frame stepping. Unlink to find corresponding frames independently, then use **Time Alignment… → Pair Current Frames**, or enter `B time = A time + offset`. Undo/redo restores viewing adjustments.
+
+Playback starts muted; choose A or B to hear only that source. Looping requires linked browsing and a range that exists in both videos. Wipe and difference inspect paused frames; playing returns to side-by-side. The difference preview requires explicit Rec.709 SDR tags and equal decoded/cropped dimensions. It is not a codec-quality score. Pause to select independent or linked regions and save up to 32 named pairs. Positions and viewing choices stay in the local session; switching tabs stops playback. Original media is never modified. Automatic edit matching and video export are not part of this milestone.

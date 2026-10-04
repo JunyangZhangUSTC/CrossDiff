@@ -44,11 +44,14 @@ extension WorkflowChecks {
         let status = scan.entries.first { $0.path == "left-only.txt" }!.status
         let error: Error = FolderComparisonError.stale("options.swift")
         let folder = ComparisonSession(kind: .folder, left: .init(path: leftFolder.path), right: .init(path: rightFolder.path))
+        let folderModel = folder.folderComparisonModel
         store.sessions = [folder]; store.selectedID = folder.id; store.message = nil
         try await prepareSurfaceWindow()
         try await D.wait("folder table loads isolated content") {
-            nativeSurfaceViews().compactMap { $0 as? NSTableView }.contains { $0.numberOfRows >= 3 }
+            folderModel.result?.isComplete == true && !folderModel.scanning && !folderModel.filtering &&
+                nativeSurfaceViews().compactMap { $0 as? NSTableView }.contains { $0.numberOfRows == 3 }
         }
+        let scanCount = folderModel.scanCount, completedAt = folderModel.completedAt
         for language in [AppLanguage.english, .simplifiedChinese] {
             AppSettings.shared.language = language
             try await D.pause()
@@ -57,8 +60,35 @@ extension WorkflowChecks {
             D.check(localizedErrorDescription(error).contains(english ? "Compare again" : "请重新比较"), "existing folder error follows the selected language")
             D.check(scan.ignoredCount == 1 && scan.entries.count == 4, "folder fixture includes changed, one-sided, identical, and ignored items")
             let text = surfaceAccessibilityText()
-            let expected = english ? ["Relative Path", "Differences Only", "Compare Again"] : ["相对路径", "仅显示差异", "重新比较"]
-            D.check(expected.allSatisfy { text.contains($0) }, "folder view exposes all controls in \(language.rawValue)")
+            // Tree mode now has paired Name columns and a richer To Review
+            // filter. Relative Path belongs to List mode, not this default view.
+            let expected = english
+                ? ["Left · left", "Right · right", "Change Left Folder", "Change Right Folder", "Folder View", "Tree", "List", "To Review", "Compare Again"]
+                : ["左侧 · left", "右侧 · right", "更换左侧文件夹", "更换右侧文件夹", "目录展示", "目录", "列表", "需关注", "重新比较"]
+            let labels = Set(text.components(separatedBy: "\n"))
+            D.check(expected.allSatisfy(labels.contains), "paired folder controls and source titles are fully localized in \(language.rawValue)")
+            let identifiers = Set(surfaceAccessibilityText(attributes: ["accessibilityIdentifier"]).components(separatedBy: "\n"))
+            let controls = ["folders.replace-left", "folders.replace-right", "folders.mode", "folders.filter", "folders.status-filter", "folders.reload", "folders.paired-table"]
+            D.check(controls.allSatisfy(identifiers.contains), "localized folder labels belong to the actual input, mode, filter and reload controls")
+            let tables = nativeSurfaceViews().compactMap { $0 as? NSTableView }
+            D.check(tables.count == 1 && tables.first?.numberOfRows == 3, "both folder sides share one visible paired table in \(language.rawValue)")
+            if let table = tables.first {
+                let columns = table.tableColumns.filter { !$0.isHidden }
+                D.check(columns.map { $0.identifier.rawValue } == ["leftName", "leftSize", "status", "rightName", "rightSize"],
+                        "default folder columns retain both names and sizes around the shared status")
+                let expectedHeaders = english ? ["Name", "Size", "Status", "Name", "Size"] : ["名称", "大小", "状态", "名称", "大小"]
+                D.check(columns.map { $0.headerCell.stringValue } == expectedHeaders,
+                        "actual AppKit folder headers refresh in \(language.rawValue)")
+            }
+            D.check(nativeSurfaceViews().compactMap { $0 as? NSTextField }.contains {
+                $0.isEditable && $0.placeholderString == (english ? "Search relative paths" : "搜索相对路径")
+            }, "folder path search placeholder is localized in \(language.rawValue)")
+            D.check(folderModel.browserMode == .tree && folderModel.statusFilter == .differences &&
+                    folderModel.scanCount == scanCount && folderModel.completedAt == completedAt,
+                    "language switching keeps the current tree/filter and completed comparison without rescanning")
+            D.check(folder.left.path == leftFolder.path && folder.right.path == rightFolder.path &&
+                    folderModel.result?.leftRoot.path == leftFolder.path && folderModel.result?.rightRoot.path == rightFolder.path,
+                    "language switching preserves both folder input associations and result roots")
             try captureSurface("folder-" + (english ? "en" : "zh"), accessibilityText: text)
         }
 
@@ -108,12 +138,12 @@ extension WorkflowChecks {
     /// Read this process's accessibility objects directly. SwiftUI exposes some
     /// controls as virtual children, so NSView.subviews alone misses their labels.
     /// Check only our expected labels; file names and OS-supplied strings are data.
-    private static func surfaceAccessibilityText() -> String {
+    private static func surfaceAccessibilityText(attributes: [String] = ["accessibilityLabel", "accessibilityValue", "title", "stringValue"]) -> String {
         var seen = Set<ObjectIdentifier>()
         var strings: [String] = []
         func descend(_ object: NSObject, depth: Int) {
             guard depth < 40, seen.insert(ObjectIdentifier(object)).inserted else { return }
-            for name in ["accessibilityLabel", "accessibilityValue", "title", "stringValue"] {
+            for name in attributes {
                 let selector = NSSelectorFromString(name)
                 if object.responds(to: selector), let value = object.perform(selector)?.takeUnretainedValue() as? String, !value.isEmpty {
                     strings.append(value)

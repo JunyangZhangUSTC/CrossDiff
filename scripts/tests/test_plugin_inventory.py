@@ -4,10 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 import plistlib
+import stat
 import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -28,12 +30,61 @@ class InventoryTests(unittest.TestCase):
         subprocess.run([sys.executable, "scripts/plugin_inventory.py", *map(str, arguments)],
                        cwd=ROOT, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+    def write_app(self, edition, missing=None, changed=None):
+        path = self.directory / (edition + ".zip")
+        metadata = plistlib.loads((ROOT / "Resources/Info.plist").read_bytes())
+        with zipfile.ZipFile(path, "w") as archive:
+            prefix = "CrossDiff.app/Contents/"
+            archive.writestr(prefix + "Info.plist", plistlib.dumps(metadata))
+            for name in inventory.APP_EXECUTABLE_FILES:
+                if name == missing:
+                    continue
+                mode, contents = stat.S_IFREG | 0o755, b"\xcf\xfa\xed\xfe" + bytes(28)
+                if changed and name == changed[0]:
+                    mode, contents = changed[1:]
+                entry = zipfile.ZipInfo(prefix + name)
+                entry.create_system = 3
+                entry.external_attr = mode << 16
+                archive.writestr(entry, contents)
+            for notice in inventory.APP_LICENSE_FILES:
+                archive.writestr(prefix + "Resources/" + notice, "notice fixture")
+            archive.writestr(prefix + "Resources/OfficialPlugins.json", self.catalog)
+            for name, data in inventory.bundle_inventory(edition, self.packages).items():
+                archive.writestr(prefix + "Resources/Plugins/" + name, data)
+        return path, metadata
+
+    def test_complete_base_and_full_archives_pass_executable_and_resource_validation(self):
+        for edition in ("base", "full"):
+            with self.subTest(edition=edition):
+                path, metadata = self.write_app(edition)
+                inventory.validate_app_archive(path, edition, self.catalog, self.packages, metadata)
+
+    def test_each_required_executable_is_mandatory_in_both_editions(self):
+        for edition in ("base", "full"):
+            for name in inventory.APP_EXECUTABLE_FILES:
+                with self.subTest(edition=edition, name=name):
+                    path, metadata = self.write_app(edition, missing=name)
+                    with self.assertRaisesRegex(ValueError, "Missing required application executable"):
+                        inventory.validate_app_archive(path, edition, self.catalog, self.packages, metadata)
+
+    def test_required_executables_reject_wrong_file_type_permissions_or_payload(self):
+        header = b"\xcf\xfa\xed\xfe" + bytes(28)
+        for mode, contents in ((stat.S_IFREG | 0o644, header), (stat.S_IFLNK | 0o777, header),
+                               (stat.S_IFDIR | 0o755, header), (stat.S_IFREG | 0o755, b""),
+                               (stat.S_IFREG | 0o755, header[:4]),
+                               (stat.S_IFREG | 0o755, b"not a Mach-O executable" * 2)):
+            for name in inventory.APP_EXECUTABLE_FILES:
+                with self.subTest(name=name, mode=mode, size=len(contents)):
+                    path, metadata = self.write_app("base", changed=(name, mode, contents))
+                    with self.assertRaisesRegex(ValueError, "Application executable"):
+                        inventory.validate_app_archive(path, "base", self.catalog, self.packages, metadata)
+
     def test_catalog_contains_only_official_packages_with_exact_hash_size_and_release_url(self):
         catalog = json.loads(self.catalog)
         self.assertEqual(catalog["releaseTag"], f"v{self.version}")
         self.assertEqual(catalog["formatVersion"], 1)
-        self.assertEqual([p["id"] for p in catalog["plugins"]], ["org.crossdiff.archive", "org.crossdiff.pdf", "org.crossdiff.photography", "org.crossdiff.api", "org.crossdiff.audio", "org.crossdiff.office"])
-        self.assertEqual(len(self.packages), 7)
+        self.assertEqual([p["id"] for p in catalog["plugins"]], ["org.crossdiff.archive", "org.crossdiff.pdf", "org.crossdiff.photography", "org.crossdiff.api", "org.crossdiff.audio", "org.crossdiff.office", "org.crossdiff.video"])
+        self.assertEqual(len(self.packages), 8)
         self.assertTrue(any(name.startswith("CrossDiff-Example-JSON-") for name in self.packages))
         for plugin in catalog["plugins"]:
             contents = self.packages[plugin["asset"]]
@@ -47,7 +98,7 @@ class InventoryTests(unittest.TestCase):
     def test_full_to_base_rebuild_removes_optional_plugins_and_keeps_identical_offline_catalog(self):
         resources, release_dir = self.directory / "Resources", self.directory / "release"
         self.run_inventory("--bundle-resources", resources, "--edition", "full")
-        self.assertEqual(len(list((resources / "Plugins").iterdir())), 6)
+        self.assertEqual(len(list((resources / "Plugins").iterdir())), 7)
         (resources / "Plugins/stale.crossdiffplugin").write_text("previous build")
         self.run_inventory("--bundle-resources", resources, "--edition", "base")
         self.assertEqual([p.name for p in (resources / "Plugins").iterdir()], ["dev.crossdiff.archive.crossdiffplugin"])
@@ -58,7 +109,7 @@ class InventoryTests(unittest.TestCase):
         inventory.validate_catalog((release_dir / "plugins.json").read_bytes(), self.packages, self.version)
 
     def test_standalone_official_packagers_match_release_payload_bytes(self):
-        for label, script in (("Archive", "package-archive-plugin.py"), ("PDF", "package-pdf-plugin.py"), ("Photography", "package-photography-plugin.py"), ("API", "package-api-plugin.py"), ("Audio", "package-audio-plugin.py"), ("Office", "package-office-plugin.py")):
+        for label, script in (("Archive", "package-archive-plugin.py"), ("PDF", "package-pdf-plugin.py"), ("Photography", "package-photography-plugin.py"), ("API", "package-api-plugin.py"), ("Audio", "package-audio-plugin.py"), ("Office", "package-office-plugin.py"), ("Video", "package-video-plugin.py")):
             target = self.directory / (label + ".crossdiffplugin")
             subprocess.run([sys.executable, "scripts/" + script, "--output", str(target)], cwd=ROOT,
                            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

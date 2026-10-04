@@ -4,6 +4,11 @@ These records describe checks performed for specific development previews, inclu
 
 | Preview | Record |
 | --- | --- |
+| 0.14.0 integration | [Combined branches, regression checks and distribution validation](integration-2026-10-04.md) |
+| 0.13.0 archives | [Native 7z/RAR reader and resource limits](archive-7z-rar.md) |
+| 0.13.2 | [Complete crop extent, continuous content and native workflow](image-crop-regions-0.13.2.md) |
+| 0.13.1 | [Image similarity regions, linked inspection and native workflow](image-similar-regions-0.13.1.md) |
+| 0.13.1 | [Photography channels, comparative histograms and capture metadata](photography-enhancements-0.13.1.md) |
 | 0.13.0 | [Image smart alignment, source coordinates and native workflow](image-smart-alignment-0.13.0.md) |
 | 0.12.0 | [Office import, row matching and native workflow](office-0.12.0.md) |
 | 0.11.0 | [Audio workbench and native workflow](audio-0.11.0.md) · [Matching engine experiments](audio-matching-m0.md) |

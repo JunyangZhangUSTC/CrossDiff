@@ -14,11 +14,11 @@ Local processing. Native interaction. No sign-up. Ready when you are. Extend it 
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[Download Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
+[Download Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
 
 </div>
 
-> 🌟 **Not sure which edition to choose? Download Full: [CrossDiff-0.12.1-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip).**
+> 🌟 **Not sure which edition to choose? Download Full: [CrossDiff-0.14.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip).**
 >
 > For Apple silicon Macs running macOS 14+. Every official plugin for this version is preinstalled and ready to use. Choose Base only if you need the essentials.
 >
@@ -45,7 +45,11 @@ From a quick text paste to code directories, archives, images, and research PDFs
 | **Free and open source**<br>AGPL v3 source you can inspect, build, and modify. No subscriptions, trial clocks, or feature paywalls. | **No sign-up. Ready to use.**<br>No account, login, or activation. Open the app, choose the two inputs, and start comparing. |
 | **Precise differences, deliberate edits**<br>Character highlights, aligned rows, block merging, independent undo, and explicit saving. Comparing never overwrites your source files. | **Considered design, room to grow**<br>Light and dark themes, English and Simplified Chinese, tabs, and synchronized scrolling. Add plugins when you need more. |
 
-**0.12.1** improves large folder comparisons, plugin removal and wrapped text rendering. Full includes PDF, Photography, API, Audio and Office. See [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases) for published versions and available assets.
+**0.14.0** brings aligned folder panes, more archive formats, smart image alignment, deeper photography analysis and more reliable PDF pairing, plus the new Video plugin. [What’s new](docs/releases/0.14.0.md)
+
+**Review video versions together.** Inspect edited, graded, captioned or compressed versions of the same material with paired pictures and timelines, shared playback, frame stepping and manual time alignment. Pause for a wipe or difference view, and save local regions for later inspection. Native, local and read-only, with no additional large decoder or model download. [Video guide](docs/usage.md#video) · [Capabilities and limits](docs/architecture/video-comparison.md#video-m1)
+
+Video is bundled with Full and separately installable on matching Base hosts. This first version supports manual comparison; automatic correspondence across edits remains planned.
 
 ## See changes in sound
 
@@ -78,15 +82,16 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 | Compare | Available today |
 | :--- | :--- |
 | **Text & code** | Paste text or open files; inspect character or line changes; align rows; edit either side; merge blocks; find and replace; undo independently. Works with text formats such as TXT, Markdown, HTML, JSON, XML, and YAML. |
-| **Local folders** | Show clear differences before verifying contents, with scan progress, custom ignore rules and results retained across tab switches; preview and revalidate selected copies. |
-| **Archives** | Treat ZIP, TAR, and common compressed TAR formats as virtual folders. Compare an archive with another archive or a local folder, verify contents, and find identical files across paths without extracting to disk. Bundled with Base. |
-| **Images** | Side-by-side, overlay, wipe, and pixel differences. The 0.13.0 source preview adds offline Smart Align for rotated, scaled and cropped versions, with match points, manual refinement and one-click restore. |
+| **Local folders** | Aligned panes, linked expansion, sortable headers and status filters. See clear differences before content verification; preview and revalidate selected copies. [Folder guide](docs/usage.md#compare-folders) |
+| **Archives** | Treat ZIP, TAR, and common compressed TAR formats as virtual folders. Also supports unencrypted, single-volume 7z and a limited RAR subset. Compare an archive with another archive or a local folder, verify contents, and find identical files across paths without extracting to disk. Bundled with Base. |
+| **Images** | Side-by-side, overlay, wipe, and pixel differences. Offline Smart Align for rotated, scaled and cropped versions. Shows a crop’s full corresponding extent and continuous similar content, with linked selection, match points, manual refinement and one-click restore. |
 | **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |
-| **PDF documents** | Native page previews and extractable text differences. The 0.12.2 source preview adds page order, evidence-based matching and manual page selection, with safe fallback for unrelated documents. Bundled with Full; available as an official plugin for Base. |
+| **PDF documents** | Native page previews and extractable text differences. Supports page order, evidence-based matching and manual page selection, with safe fallback for unrelated documents. Bundled with Full; available as an official plugin for Base. |
 | **Office documents** | Word paragraphs and tables, Excel rows matched across positions or by key columns, and PowerPoint slide content. Character highlights, formulas and saved results, plus original previews. Read-only DOCX/XLSX/PPTX support. [Office guide](docs/usage.md#office) |
 | **API** | Compare locally saved requests and responses as structured fields to investigate changes. |
 | **Audio** | Compare recordings and edited versions on paired timelines, with a closer look at selected passages. |
-| **Photography** | Read-only paired photographs, RGB/HSL histograms, named region pairs, capture metadata, and recorded processing curves. Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
+| **Video** | Native MOV/MP4/M4V side-by-side viewing, source-time frame stepping, manual offset, mute or A/B audio, looped passages and saved local regions. Wipe and difference views pause playback; differences require equal pixel dimensions and explicit Rec.709 SDR tags. |
+| **Photography** | Read-only paired photographs, named region pairs, HSL, and recorded curves. RGB channel grayscale previews, Lab L*/RGB histograms with region highlighting, and side-by-side capture metadata. Uses Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
 
 <details>
 <summary><b>The details make a difference</b></summary>
@@ -94,7 +99,7 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 - **See removals as well as additions.** Turn on Show Deletions to display removed text as red strikethroughs on the right. This read-only review never writes markup into your source. Standard copy includes original text only; revision copy is an explicit action.
 - **Find a common view for your images.** Use Smart Align to find shared content, or drag a corner to resize with the aspect ratio locked by default, or unlock it to stretch width and height independently. Size and rotation also accept numeric values. Changes affect the preview only. [Image alignment guide](docs/usage.md#compare-images)
 - **Make byte changes readable.** Hex keeps independent source offsets, aligns insertion/deletion gaps, and supports 8 or 16 bytes per row. Inputs can be up to 8 GiB each; complex regions are explicitly marked as approximately aligned. [Hex guide](docs/usage.md#binary-hex)
-- **Skip the extraction folder.** Compare ZIP, TAR, TAR.GZ/TGZ, TAR.BZ2, and TAR.XZ. By Path reveals directory changes; Same Content finds matching files across paths. Read-only streaming never extracts files to disk. [Archive guide](docs/usage.md#archives)
+- **Skip the extraction folder.** Compare ZIP, TAR, TAR.GZ/TGZ, TAR.BZ2, and TAR.XZ, plus unencrypted, single-volume 7z and a limited RAR subset. By Path reveals directory changes; Same Content finds matching files across paths. Read-only streaming never extracts files to disk. [Archive guide](docs/usage.md#archives)
 
 <table>
 <tr><td>
@@ -109,9 +114,11 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 
 ## Choose your edition
 
-**Version covered here: 0.12.1 · macOS 14+ · Apple silicon (arm64)**
+**Download above: 0.14.0 · macOS 14+ · Apple silicon (arm64)**
 
-**Full is recommended: all core features and every official plugin for the version, ready to use.** Archive, PDF, Photography, API, Audio and Office comparison are all included.
+See the [release notes](docs/releases/0.14.0.md) for capabilities and limits, and the [validation record](docs/validation/integration-2026-10-04.md) for integration checks and local test coverage.
+
+**Full is recommended: all core features and every official plugin for the version, ready to use.** All seven official plugins—Archive, PDF, Photography, API, Audio, Office and Video—are included.
 
 Choose Base if you only need text, folders, images, Hex and archives. Both editions are free, open source, and account-free.
 
@@ -149,7 +156,7 @@ Base features such as Archive also ship as plugins, keeping different domains in
 
 ## Get started
 
-Download [Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
+Download [Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
 
 1. Click **New…** (⌘N), then choose text, folders, archives, images, binary files, or an installed plugin.
 2. Prepare the left and right inputs and click **Compare**. For text, paste directly or select a file.
@@ -214,11 +221,11 @@ Our direction is **“Compare everything. Make every comparison count.”** Star
 
 | Available today | Next to explore |
 | :--- | :--- |
-| Text, folders, images, Hex, archives, PDF, Photography, API, Audio and Office | Remote folder sources, three-way text merging, and multi-object comparison |
-| A native workspace, plugin management, Base and Full editions | Legacy Office and full visual comparison, network packets, databases, advanced photography analysis, video, model structures, and tensor plugins; automatic audio tempo/pitch recognition |
+| Text, folders, images, Hex, archives, PDF, Photography, API, Audio and Office; manual video comparison | Remote folder sources, three-way text merging, and multi-object comparison |
+| A native workspace, plugin management, Base and Full editions | Legacy Office and full visual comparison, network packets, databases, advanced photography analysis, model structures, and tensor plugins; automatic audio tempo/pitch recognition and video segment correspondence |
 | English and Simplified Chinese, light and dark themes, local session restoration | Plugin bundles for photographers, media professionals, and developers |
 
-The right column is **planned work**. Current views provide two-way comparison. PDF has no OCR yet; archives do not support RAR, 7z, or encryption; folders do not provide full synchronization. See the [roadmap](docs/roadmap.md) and [implementation limits](docs/development.md#current-implementation-limits) for file limits, RAW compatibility, and analysis boundaries.
+The right column is **planned work**. Current views provide two-way comparison. PDF has no OCR yet; archives do not support encryption, multiple volumes, or every 7z/RAR feature; folders do not provide full synchronization. See the [roadmap](docs/roadmap.md) and [implementation limits](docs/development.md#current-implementation-limits) for file limits, RAW compatibility, and analysis boundaries.
 
 Share bugs and ideas in [Issues](https://github.com/JunyangZhangUSTC/CrossDiff/issues), and help make comparisons better. [Contributing](CONTRIBUTING.md) · [Development](docs/development.md) · [Product direction](docs/product-vision.md) · [Changelog](CHANGELOG.md)
 

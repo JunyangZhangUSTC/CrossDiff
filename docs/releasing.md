@@ -1,73 +1,87 @@
 # 发布 CrossDiff
 
-[Release 工作流](../.github/workflows/release.yml) 为同一个源码提交构建 **基础版（Base）**、**完整版（Full）**和独立插件包，上传到 [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases)，下载回读并校验后保留为草稿预览版。维护者点击 **Publish release** 后，用户就能下载应用，基础版也能从应用内下载并安装本版本的官方插件。
+[Release 工作流](../.github/workflows/release.yml) 为同一个源码提交构建 **基础版（Base）**、**完整版（Full）**和独立插件包，先上传到 [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases) 草稿，再下载回读全部附件并核对 SHA-256。默认保留草稿；只有标签对应的固定提交明确记录自动公开意图，验证完成并再次确认远端标签仍指向该提交后，才公开发布。公开后，用户可以下载应用，基础版也能从应用内下载并安装本版本的官方插件。
 
-普通 `main` 推送运行检查，不发布版本；推送版本标签才会生成 Release 草稿。所有版本均免费，无需注册。两个发行版使用同一套本地比较引擎与会话格式，没有付费功能区别。
+普通 `main` 推送运行检查，不发布版本；推送版本标签才会触发发行流程。没有显式公开意图的标签仍只生成草稿。所有版本均免费，无需注册。两个发行版使用同一套本地比较引擎与会话格式，没有付费功能区别。
 
-当前源码版本为 **0.12.2**（构建号 26），正在准备发布；已有版本及公开附件以 GitHub Releases 为准。以下清单与命令说明如何准备 0.12.2，不代表构建已通过或附件已公开。
+当前源码版本为 **0.14.0**（构建号 30），为开发预览；已有版本及公开附件以 GitHub Releases 为准。以下清单与命令说明如何准备 0.14.0，不代表构建已通过或附件已公开。
 
 ## 版本包含什么
 
 | 发行内容 | 当前包含 |
 | --- | --- |
 | **Base 基础版** | 文本与文本文件、文件夹、图片、二进制 / Hex，以及官方压缩包插件。 |
-| **Full 完整版** | 基础版的全部内容，加上 PDF、Photography、API、Audio 与 Office 插件，即当前源码的全部官方插件。 |
-| **独立官方插件** | 压缩包、PDF、Photography、API、Audio、Office 各自的 `.crossdiffplugin` 包；同版本基础版可单独安装 PDF／摄影／API／音频／办公，当前内置插件随应用升级。 |
+| **Full 完整版** | 基础版的全部内容，加上 PDF、Photography、API、Audio、Office 与 Video 插件，即当前源码的全部官方插件。 |
+| **独立官方插件** | 压缩包、PDF、Photography、API、Audio、Office、Video 各自的 `.crossdiffplugin` 包；同版本基础版可单独安装 PDF／摄影／API／音频／办公／视频，当前内置插件随应用升级。 |
 | **开发示例** | 独立的 JSON 示例插件；文件名明确标记 `Example`，不预装进 Full，也不进入官方插件目录。 |
 
-“完整版”指本版本所有已实现的官方插件，**不包含路线图里尚未实现的视频或模型插件，也不代表音频自动变速／变调识别已经实现**。添加新插件时，在 [plugin_inventory.py](../scripts/plugin_inventory.py) 的显式清单中登记发行范围、身份和来源，避免把实验示例误装进正式版本。
+“完整版”指本版本所有已实现的官方插件，**不包含路线图里尚未实现的模型插件，也不代表音频自动变速／变调或视频自动剪辑片段匹配已经实现**。添加新插件时，在 [plugin_inventory.py](../scripts/plugin_inventory.py) 的显式清单中登记发行范围、身份和来源，避免把实验示例误装进正式版本。
 
 当前分发 **Apple 芯片 / arm64，macOS 14+**。本地可按宿主架构构建，但 Intel 发行尚未验证；没有提供 Universal 包。应用仅使用 ad-hoc 签名，尚无 Developer ID 签名或 Apple 公证。工作流使用仓库自带的短期 `GITHUB_TOKEN`，无须上传个人令牌、SSH 密钥或 Apple 证书。
 
 ## 创建本次 Release
 
 1. 完成受影响的核心与原生窗口验证，并记录未验证场景。CI 的 `--build-only` 只证明原生检查程序能够编译，不能替代真实窗口验收。
-2. 更新 `Resources/Info.plist` 的版本和递增构建号、`CHANGELOG.md`、中英文 README，以及 `docs/releases/<版本>.md` 双语发布说明。当前版本为 **0.12.2**（构建号 26）。README 默认推荐 **Full 完整版**。下载链接可以提前指向待发布版本，但必须注明草稿发布后可用，并保留 GitHub Releases 入口供下载现有版本。发布说明开头用一句话推荐 Full，完整包名用固定版本的下载超链接，点包名即可下载；Base 放在后面的可选说明。发布说明应可直接公开，草稿状态由 GitHub 标记，避免公开后仍写着“尚未发布”。
+2. 更新 `Resources/Info.plist` 的版本和递增构建号、`CHANGELOG.md`、中英文 README，以及 `docs/releases/<版本>.md` 双语发布说明。当前版本为 **0.14.0**（构建号 30）。README 默认推荐 **Full 完整版**。下载链接可以提前指向待发布版本，但必须注明草稿发布后可用，并保留 GitHub Releases 入口供下载现有版本。发布说明开头用一句话推荐 Full，完整包名用固定版本的下载超链接，点包名即可下载；Base 放在后面的可选说明。发布说明应可直接公开，草稿状态由 GitHub 标记，避免公开后仍写着“尚未发布”。
 3. 如果插件的代码或 manifest 有变化，递增该插件的 `version`。应用版本和插件版本独立；不要在同一插件版本下替换已经公开的包。
-4. 提交并推送精确的发行状态到 `main`。发行脚本拒绝脏工作区、未跟踪文件以及 `assume-unchanged` / `skip-worktree` 隐藏修改。
-5. 版本与发布说明一致后，从项目根目录的 Bash 运行：
+4. 决定本版保留草稿还是在验证后自动公开。默认无需额外文件，工作流保留草稿；自动公开必须将 `docs/releases/<版本>.json` 一起提交并审查。该文件只接受 `formatVersion`、`version`、`publish`、`prerelease` 四个字段：格式版本固定为整数 `1`，应用版本是与标签一致的字符串，后两项是 JSON 布尔值。本次 `docs/releases/0.14.0.json` 为：
+
+   ```json
+   {
+     "formatVersion": 1,
+     "version": "0.14.0",
+     "publish": true,
+     "prerelease": true
+   }
+   ```
+
+   `publish: true` 表示附件全部核验后公开，`prerelease: true` 表示公开预览版。没有文件或 `publish: false` 均保留草稿。上传器从标签所指的固定提交读取此文件，不采用工作区中未提交的修改或其他分支的配置；非法字段、类型或版本会中止发布。自动公开不会将此版本设置为 Latest。
+
+5. 提交并推送精确的发行状态到 `main`。发行脚本拒绝脏工作区、未跟踪文件以及 `assume-unchanged` / `skip-worktree` 隐藏修改。
+6. 版本、发布说明与公开意图一致后，从项目根目录的 Bash 运行：
 
 ```sh
 source scripts/project-env.sh
 git switch main
 git push origin main
-git tag -a v0.12.2 -m "CrossDiff 0.12.2 preview"
-git push origin v0.12.2
+git tag -a v0.14.0 -m "CrossDiff 0.14.0 preview"
+git push origin v0.14.0
 ```
 
 标签必须等于 `v` 加 `CFBundleShortVersionString`，对应提交必须可从 `origin/main` 到达。以后发布时替换版本号；不要移动已公开的版本标签。
 
 推送标签后，打开 [Actions → Release](https://github.com/JunyangZhangUSTC/CrossDiff/actions/workflows/release.yml)。也可以使用 **Run workflow** 并填写一个已经存在的远端标签。手动运行不会创建或移动标签。
 
-工作流验证标签、版本、源码提交与发布说明，运行检查，构建两个发行版，审计源码和构建产物，创建草稿，并逐一下载已上传附件核对 SHA-256。构建任务只有只读仓库权限，上传任务才有 `contents: write`。Apple 芯片运行环境为 GitHub 的 `macos-15` 标准 runner，构建时还会检查真实架构。[GitHub runner 文档](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+工作流验证标签、版本、源码提交、发布说明与公开意图，运行检查，构建两个发行版，审计源码和构建产物，创建草稿，并逐一下载已上传附件核对 SHA-256。所有附件验证成功后，再复核远端标签与源码提交；只有此时才可按已提交意图将草稿转为公开版本。构建任务只有只读仓库权限，上传任务才有 `contents: write`；使用 Actions 自带的 `GITHUB_TOKEN`，无需额外配置个人 Token。Apple 芯片运行环境为 GitHub 的 `macos-15` 标准 runner，构建时还会检查真实架构。[GitHub runner 文档](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 
-运行成功后，在 Releases 中检查草稿内容并点击 **Publish release**。预览阶段保留 **Pre-release** 标记。**草稿附件不能作为公开插件下载源，发布草稿后应用内下载才可用。** GitHub 也建议在启用不可变发布时先上传完整附件，再发布草稿。[GitHub 发布说明](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+本次 0.14.0 设置为自动公开的 **Pre-release**；工作流完成后核对实际公开状态与下载链接。保留草稿的版本则由维护者检查内容后点击 **Publish release**，预览阶段保持 **Pre-release** 标记。**草稿附件不能作为公开插件下载源，公开后应用内下载才可用。** 上传或校验失败不会自动公开草稿。GitHub 也建议在启用不可变发布时先上传完整附件，再发布草稿。[GitHub 发布说明](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
 
 ## Release 的全部附件
 
 ```text
-CrossDiff-0.12.2-base-macOS-arm64.zip
-CrossDiff-0.12.2-full-macOS-arm64.zip
-CrossDiff-Plugin-Archive-0.1.0.crossdiffplugin
+CrossDiff-0.14.0-base-macOS-arm64.zip
+CrossDiff-0.14.0-full-macOS-arm64.zip
+CrossDiff-Plugin-Archive-0.1.1.crossdiffplugin
 CrossDiff-Plugin-PDF-0.2.0.crossdiffplugin
 CrossDiff-Plugin-Photography-0.1.0.crossdiffplugin
 CrossDiff-Plugin-API-0.1.0.crossdiffplugin
 CrossDiff-Plugin-Audio-0.1.0.crossdiffplugin
 CrossDiff-Plugin-Office-0.1.0.crossdiffplugin
+CrossDiff-Plugin-Video-0.1.0.crossdiffplugin
 CrossDiff-Example-JSON-0.1.0.crossdiffplugin
-CrossDiff-0.12.2-source.tar.gz
+CrossDiff-0.14.0-source.tar.gz
 plugins.json
 BUILD-INFO.txt
 SHA256SUMS
 ```
 
-这里的插件版本来自各自的 manifest，后续独立递增。Photography、API、Audio 分别需要宿主提供 `photoAnalysis`、`httpExchange`、`audioAnalysis` 能力，最初在 0.9.0、0.10.0、0.11.0 源码中引入；Office 的 `officeDocument`/`officeDocuments` 在 0.12.0 加入。本次包配合 0.12.2 宿主使用；同为实验协议 v1 不表示旧版支持新增输入和视图，更新插件目录也不能补上旧宿主缺少的能力。所有附件都由脚本生成；不要手动重命名插件包或只上传应用 ZIP。`SHA256SUMS` 覆盖除自身之外的每一个附件。`BUILD-INFO.txt` 记录应用版本、构建号、完整源码提交、架构、两版应用文件名和签名状态，不包含开发者的本机路径。
+这里的插件版本来自各自的 manifest，后续独立递增。Photography、API、Audio 分别需要宿主提供 `photoAnalysis`、`httpExchange`、`audioAnalysis` 能力，最初在 0.9.0、0.10.0、0.11.0 源码中引入；Office 的 `officeDocument`/`officeDocuments` 在 0.12.0 加入；Video 的 `videoAnalysis`/`videoTimeline` 在 0.14.0 加入。本次包配合 0.14.0 宿主使用；同为实验协议 v1 不表示旧版支持新增输入和视图，更新插件目录也不能补上旧宿主缺少的能力。所有附件都由脚本生成；不要手动重命名插件包或只上传应用 ZIP。`SHA256SUMS` 覆盖除自身之外的每一个附件。`BUILD-INFO.txt` 记录应用版本、构建号、完整源码提交、架构、两版应用文件名和签名状态，不包含开发者的本机路径。
 
 ## 官方插件目录与应用内安装
 
 [plugin_inventory.py](../scripts/plugin_inventory.py) 是打包清单的唯一来源，同时生成确定性的插件包与 `plugins.json`：
 
-- 目录格式为 `formatVersion: 1`，`releaseTag` 固定到本次应用版本，例如 `v0.12.2`。
+- 目录格式为 `formatVersion: 1`，`releaseTag` 固定到本次应用版本，例如 `v0.14.0`。
 - 每项包含 `id`、插件 `version`、中英文 `name` / `summary`、`asset`、`url`、**完整插件包字节**的 `sha256` 与 `size`。
 - 地址固定到本仓库 `releases/download/<releaseTag>/<asset>`；不用会随最新版本变化的地址。
 - 两版应用都内置**逐字节相同**的 `Contents/Resources/OfficialPlugins.json`，与 Release 的 `plugins.json` 相同。基础版因此可以离线展示尚未安装的官方插件。
@@ -107,6 +121,8 @@ OpenCV 4.12.0 的 `core`／`imgproc`／`features2d`／`calib3d`／`flann` 在两
 
 音频的 Apple 分析／试听服务与原生 `CrossDiffAudioMatcher` helper 随两种宿主提供，受限 Audio 包只包含元数据与证据整理脚本。Olaf 及其依赖的固定 C 源码位于 `Sources/AudioMatchBridge/`，许可证和来源记录位于 `ThirdParty/AudioMatching/`，均随对应源码分发；应用不要求另装 Python、Java 或 FFmpeg。发布需验证 helper 签名、两版清单、音频引擎／离线试听／插件／缓存／实际匹配检查，并在本机完成真实窗口验收。离线渲染不替代听感和音频设备验证，详见[音频验证记录](validation/audio-0.11.0.md)。
 
+视频播放、精确帧读取与 Core Image 差异预览同样由两种宿主提供，Video 包仅整理有界元数据，完整版预装、基础版可安装。视频不新增 FFmpeg、独立解码器或模型下载；系统框架不打包进应用。发布前运行 `check-video-plugin.sh`、`check-video-source.sh`，并在本机运行完整的 `check-video-workflow.sh`；CI 中的 `--build-only` 不证明播放、声音设备或真实窗口验证通过。单侧时长上限 24 小时，差异预览限同像素尺寸且显式 Rec.709 SDR 标记的画面；不应把宿主可解码的所有容器或 HDR 视觉播放宣传为经过测量验证。详见[视频实现与边界](architecture/video-comparison.md#video-m1)。
+
 发布相关离线回归：
 
 ```sh
@@ -118,10 +134,18 @@ python3 scripts/audit-publication.py --history --app dist/CrossDiff.app
 
 ## 重试与发布边界
 
-同一源码提交可以重试草稿上传。上传器校验本地标签、远端标签、提交中记录的插件来源、全部附件校验和、Base / Full 实际内置包、应用与 Release 目录的一致性，并下载回读确认上传结果。它不会覆盖已经公开或不可变的 Release，也不会把另一个提交的草稿改成本次版本。
+同一源码提交可以重试草稿上传。上传器校验本地标签、远端标签、提交中记录的插件来源与公开意图、全部附件校验和、Base / Full 实际内置包、应用与 Release 目录的一致性，并下载回读确认上传结果。它不会把另一个提交的草稿改成本次版本。若显式要求自动公开，最终公开前还会再次核对远端标签指向。
+
+如果上一次已完成公开，重试只读取并核验该 Release 的身份、源码提交与附件内容，不修改公开版本或替换附件；任何不一致都会报错。已公开或不可变版本不会被覆盖。这样的重试用于确认上次结果，不能用于替换同版本的应用或插件。
+
+重试上传任务应复用该次构建的 Actions artifact，选择重跑失败的上传任务；不要为了重试公开确认而重新构建全部任务。即使源码相同，重新构建的应用 ZIP 也可能因时间戳等产生不同字节，上传器会拒绝将其认作已公开附件。验证与公开期间不要手动编辑同版本草稿或附件。
 
 如果应用版本、插件代码或附件需修正，使用新的提交和版本；不要重新上传不同内容来替换已经公开的插件包。工作流定义已配置不等于远端运行已经通过，只有实际 Actions 结果与附件回读验证才是本次发布的证据。
 
 应用尚未公证，ad-hoc 签名仅用于完整性验证，不证明发布者身份。首次打开方式见 [中文 README](../README.md#首次在-macos-上打开) 和 [English README](../README.en.md#first-launch-on-macos)。不要让用户全局关闭 macOS 安全保护。
 
 CrossDiff 使用 GNU AGPL v3。每个公开应用都附带同提交源码、`LICENSE` 和 `NOTICE`；保留这些文件，分发义务以许可证原文为准。自动敏感信息扫描只能减少遗漏，公开截图、示例和说明仍需人工检查。
+
+### 7z／RAR 读取组件
+
+`CrossDiffArchiveReader` 随 Base／Full 宿主放入 `Contents/Helpers/` 并独立签名，Archive 插件包仅提供清单与内容匹配脚本。新格式需要包含读取组件及预检代码的宿主，单独安装脚本不能升级旧宿主的解码能力。发布前运行 `check-archives-core.sh`、`check-archive-native.sh`、`check-archive-plugin.sh`、`check-office-import.sh`，在本机验证 `check-archive-workflow.sh`；检查完整应用及 helper 签名。兼容性受目标 macOS 系统 libarchive／liblzma 版本约束，未验证的系统版本不得宣称全格式支持。

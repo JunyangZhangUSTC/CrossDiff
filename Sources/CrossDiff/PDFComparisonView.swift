@@ -181,10 +181,11 @@ struct PDFComparisonView: View {
             ScrollView {
                 LazyVStack(spacing: 4) {
                     ForEach(model.pairs) { pair in
+                        let presentation = model.presentation(for: pair)
                         Button { model.selectedIndex = pair.id } label: {
                             HStack(spacing: 7) {
-                                Image(systemName: symbol(pair.kind)).font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(pairColor(pair.kind))
+                                Image(systemName: presentation.symbol).font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(pairColor(presentation))
                                 Text("\(pair.left.map { String($0 + 1) } ?? "—")  ·  \(pair.right.map { String($0 + 1) } ?? "—")")
                                     .font(.system(size: 12)).monospacedDigit()
                                 Spacer(minLength: 0)
@@ -196,9 +197,10 @@ struct PDFComparisonView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .help(model.presentationTitle(for: pair))
-                        .accessibilityLabel(L("左页 \(pair.left.map { String($0 + 1) } ?? "无")，右页 \(pair.right.map { String($0 + 1) } ?? "无")，\(model.presentationTitle(for: pair))",
-                                              "Left page \(pair.left.map { String($0 + 1) } ?? "none"), right page \(pair.right.map { String($0 + 1) } ?? "none"), \(model.presentationTitle(for: pair))"))
+                        .help(presentation.title)
+                        .accessibilityLabel(L("左页 \(pair.left.map { String($0 + 1) } ?? "无")，右页 \(pair.right.map { String($0 + 1) } ?? "无")",
+                                              "Left page \(pair.left.map { String($0 + 1) } ?? "none"), right page \(pair.right.map { String($0 + 1) } ?? "none")"))
+                        .accessibilityValue(presentation.title)
                         .accessibilityIdentifier("pdf.pair.\(pair.id)")
                         .id(pair.id)
                     }
@@ -238,16 +240,23 @@ struct PDFComparisonView: View {
                     textPane(document.pages[pageIndex], isLeft: isLeft)
                 }
             } else {
+                let presentation = model.selectedPair.map { model.presentation(for: $0) }
+                let inferredRevision = presentation == .comparison(.added) || presentation == .comparison(.removed)
+                let message = inferredRevision
+                    ? (isLeft ? L("此页仅在右侧找到", "This Page Was Found Only on the Right") : L("此页仅在左侧找到", "This Page Was Found Only on the Left"))
+                    : L("此侧没有这个页码的页面", "There Is No Page at This Number on This Side")
                 VStack(spacing: 10) {
-                    Image(systemName: isLeft ? "plus.rectangle.on.rectangle" : "minus.rectangle")
+                    Image(systemName: presentation?.emptyPageSymbol ?? "doc")
                         .font(.system(size: 24, weight: .light))
-                    Text(model.alignmentMode == .smart && !model.isSmartFallback
-                         ? (isLeft ? L("此页仅在右侧找到", "This Page Was Found Only on the Right") : L("此页仅在左侧找到", "This Page Was Found Only on the Left"))
-                         : L("此侧没有这个页码的页面", "There Is No Page at This Number on This Side"))
+                    Text(message)
                         .font(.system(size: 12)).multilineTextAlignment(.center)
                 }
                 .foregroundStyle(Color(nsColor: theme.secondaryText))
                 .padding().frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(message)
+                .accessibilityValue(presentation?.title ?? "")
+                .accessibilityIdentifier(isLeft ? "pdf.left.noPage" : "pdf.right.noPage")
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -304,8 +313,12 @@ struct PDFComparisonView: View {
     private var informationBar: some View {
         HStack(spacing: 12) {
             if let pair = model.selectedPair {
-                Label(model.presentationTitle(for: pair), systemImage: symbol(pair.kind))
-                    .foregroundStyle(pairColor(pair.kind))
+                let presentation = model.presentation(for: pair)
+                Label(presentation.title, systemImage: presentation.symbol)
+                    .foregroundStyle(pairColor(presentation))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(presentation.title)
+                    .accessibilityIdentifier("pdf.pair.status")
             }
             Spacer(minLength: 8)
             if model.result?.status == .partial {
@@ -350,11 +363,8 @@ struct PDFComparisonView: View {
 
     private func reload() { Task { await model.load(left: left, right: right, execute: execute, force: true, executionID: executionID) } }
     private func localized(_ text: PluginLocalizedText) -> String { L(text.zhHans, text.en) }
-    private func symbol(_ kind: PDFPagePair.Kind) -> String {
-        switch kind { case .same: return "equal"; case .changed: return "circle.lefthalf.filled"; case .added: return "plus"; case .removed: return "minus"; case .unknown: return "questionmark.circle" }
-    }
-    private func pairColor(_ kind: PDFPagePair.Kind) -> Color {
-        switch kind {
+    private func pairColor(_ presentation: PDFPagePresentation) -> Color {
+        switch presentation.tone {
         case .added: return Color(nsColor: theme.differenceForeground(isRemoval: false))
         case .removed: return Color(nsColor: theme.differenceForeground(isRemoval: true))
         case .changed: return Color(nsColor: theme.accent)

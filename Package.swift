@@ -17,6 +17,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .executable(name: "CrossDiff", targets: ["CrossDiff"]),
+        .executable(name: "CrossDiffArchiveReader", targets: ["CrossDiffArchiveReader"]),
         .executable(name: "CrossDiffPluginHost", targets: ["CrossDiffPluginHost"]),
         .executable(name: "CrossDiffAudioMatcher", targets: ["CrossDiffAudioMatcher"]),
         .executable(name: "CrossDiffChecks", targets: ["CrossDiffChecks"])
@@ -30,6 +31,7 @@ let package = Package(
                 .linkedLibrary("opencv_calib3d"), .linkedLibrary("opencv_features2d"), .linkedLibrary("opencv_flann"),
                 .linkedLibrary("opencv_imgproc"), .linkedLibrary("opencv_core"), .linkedLibrary("c++"), .linkedLibrary("z")]),
         .executableTarget(name: "CrossDiff", dependencies: ["CrossDiffCore", "PhotoCVBridge"]),
+        .executableTarget(name: "CrossDiffArchiveReader", dependencies: ["CrossDiffCore"]),
         .executableTarget(name: "CrossDiffPluginHost", linkerSettings: [.linkedFramework("JavaScriptCore")]),
         .executableTarget(name: "CrossDiffAudioMatcher", path: "Sources/AudioMatchBridge",
             cSettings: [.headerSearchPath("vendor"), .unsafeFlags([

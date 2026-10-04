@@ -14,11 +14,11 @@
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 [![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上) · [路线图](#对比一切持续向前)
+[下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上) · [路线图](#对比一切持续向前)
 
 </div>
 
-> 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.12.1-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip)。**
+> 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.14.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip)。**
 >
 > 适用于 macOS 14+ 的 Apple 芯片 Mac。已预装本版本全部官方插件，打开即可比较；只需基础功能时也可选择 Base。
 >
@@ -45,7 +45,11 @@
 | **免费开源，没有付费墙**<br>AGPL v3 开源，源码可审查、构建和修改。无订阅、试用倒计时或付费解锁。 | **无需注册，开箱即用**<br>没有账号、登录或激活步骤。打开应用、选好左右内容，就能开始比较。 |
 | **细致比较，修改可控**<br>字符级差异、行对齐、逐块合并、独立撤销与手动保存。只做比较，不会覆盖原文件。 | **优雅界面，按需扩展**<br>浅深色主题、中英文切换、多标签与同步滚动。安装插件，继续拓展比较能力。 |
 
-**0.12.1** 改善大文件夹比较、插件卸载与文本换行显示；Full 包含 PDF、摄影、API、音频与办公插件。公开版本与附件状态以 [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases) 为准。
+**0.14.0** 带来对齐的文件夹双栏、更多压缩包格式、图片智能对齐、摄影分析增强与更可靠的 PDF 配对，并新增视频插件。[本版更新](docs/releases/0.14.0.md)
+
+**把视频版本放在一起看。** 对照同一素材的剪辑、调色、字幕或压缩版本：双画面与双时间线、统一播放和逐帧、手动时间对齐；暂停后滑动对照或查看差异，局部区域可以保存复用。沿用原生界面、本地处理与只读方式，无需另装大型解码器或模型。[使用指南](docs/usage.md#video) · [能力与边界](docs/architecture/video-comparison.md#video-m1)
+
+视频入口随 Full 预装，同版 Base 可安装 Video 插件。首版为手动对照，自动寻找剪辑对应片段仍在后续计划中。
 
 ## 看见声音里的变化
 
@@ -78,15 +82,16 @@
 | 比较对象 | 当前能力 |
 | :--- | :--- |
 | **文本与代码** | 粘贴文本或打开文本文件，字符／整行差异、行对齐、左右编辑、逐块合并、查找替换与独立撤销。支持 TXT、Markdown、HTML、JSON、XML、YAML 等文本格式。 |
-| **本地文件夹** | 分阶段递归比较，先显示明确差异，再核验内容；扫描进度、自定义忽略规则、标签内结果保留，复制前预览与重新校验。 |
-| **压缩包** | 把 ZIP、TAR 及常见压缩 TAR 当作虚拟目录，与压缩包或本地文件夹互比。无需解压到磁盘，按内容校验，找出不同路径下的相同文件。基础版内置插件。 |
-| **图片** | 并排、叠加、滑动与像素差异；0.13.0 源码预览新增离线智能对齐，识别旋转、缩放和裁剪后的对应内容。保留手动微调、对应点查看与一键恢复。 |
+| **本地文件夹** | 提供左右对齐目录、联动展开、表头排序与状态筛选；先查看明确差异，再核验内容。复制前预览并重新校验。[文件夹指南](docs/usage.md#compare-folders) |
+| **压缩包** | 把 ZIP、TAR 及常见压缩 TAR 当作虚拟目录；提供无密码、单卷 7z 与受限 RAR 支持，与压缩包或本地文件夹互比。无需解压到磁盘，按内容校验，找出不同路径下的相同文件。基础版内置插件。 |
+| **图片** | 并排、叠加、滑动与像素差异；支持离线智能对齐，识别旋转、缩放和裁剪后的对应内容。可显示截图的完整对应轮廓及连续相似内容，支持左右联动查看，保留手动微调、对应点和一键恢复。 |
 | **二进制 / Hex** | 原生双栏十六进制与 ASCII，真实地址、插删对齐、差异导航、地址跳转和选中复制。按需读取，只读比较。 |
-| **PDF 文档** | 原生页面对照与可提取文字差异。0.12.2 源码预览新增按页码、智能匹配和手动选页；无关文档不再强行错页。完整版预装，基础版可安装官方 PDF 插件。 |
+| **PDF 文档** | 原生页面对照与可提取文字差异。支持按页码、智能匹配和手动选页；无关文档不再强行错页。完整版预装，基础版可安装官方 PDF 插件。 |
 | **办公文档** | Word 段落与表格、Excel 跨行匹配与关键列、PowerPoint 幻灯片内容；字符高亮、公式与保存的结果、原文件预览。支持 DOCX／XLSX／PPTX，只读比较。[办公指南](docs/usage.md#office) |
 | **API** | 结构化比较本地保存的请求与响应，排查字段变化。 |
 | **音频** | 用时间线对照录音与剪辑版本，深入比较局部声音。 |
-| **摄影** | 只读双图、RGB／HSL 直方图、局部框选与命名区域、拍摄信息、有记录的处理曲线；Apple 原生 RAW 解码与 OpenCV 专业统计。[摄影指南](docs/usage.md#photography) |
+| **视频** | MOV／MP4／M4V 原生双画面对照、源时间逐帧、手动偏移、静音或 A/B 声音、选段循环与保存局部区域。滑动和差异在暂停时使用；差异图要求同像素尺寸与明确的 Rec.709 SDR 标记。 |
+| **摄影** | 只读双图、命名区域、HSL 和有记录的处理曲线；提供 RGB 通道灰度预览、Lab L*／RGB 直方图与区域高亮、拍摄参数左右对照。使用 Apple RAW 解码与 OpenCV 统计。[摄影指南](docs/usage.md#photography) |
 
 <details>
 <summary><b>细节也值得认真对比</b></summary>
@@ -94,7 +99,7 @@
 - **看见删除，而不只看见新增。** 开启“显示删除”，右侧以红色删除线呈现被移除的文字。只读审阅不会把修订标记写入原文；普通复制仅含原文，含修订内容需显式选择。
 - **为图片找到共同视角。** 点击“智能对齐”自动寻找共同内容，也可拖动四角调整大小，默认锁定比例；解锁后可独立拉伸宽高。大小与旋转也可输入数值，所有变换仅影响预览。[图片对齐指南](docs/usage.md#compare-images)
 - **让字节变化可读。** Hex 两侧保留独立源偏移，插删空位对齐，支持 8／16 字节列宽。每个文件最多 8 GiB，复杂区域明确标注粗略对齐。[Hex 指南](docs/usage.md#binary-hex)
-- **不用先解压一地文件。** 支持 ZIP、TAR、TAR.GZ／TGZ、TAR.BZ2、TAR.XZ；“按路径”看目录差异，“相同内容”找跨路径重复。全程只读，流式解码，不写出解压文件。[压缩包指南](docs/usage.md#archives)
+- **不用先解压一地文件。** 支持 ZIP、TAR、TAR.GZ／TGZ、TAR.BZ2、TAR.XZ；也支持无密码、单卷 7z 与受限 RAR。“按路径”看目录差异，“相同内容”找跨路径重复。全程只读，流式解码，不写出解压文件。[压缩包指南](docs/usage.md#archives)
 
 <table>
 <tr><td>
@@ -109,9 +114,11 @@
 
 ## 选择适合你的版本
 
-**本页对应版本：0.12.1 · macOS 14+ · Apple 芯片（arm64）**
+**上方下载对应 0.14.0 · macOS 14+ · Apple 芯片（arm64）**
 
-**推荐完整版 Full：基础功能与本版本全部官方插件一次备齐。** 包含压缩包、PDF、摄影、API、音频与办公文档比较，下载后即可使用。
+本版功能与限制见[发布说明](docs/releases/0.14.0.md)，集成检查与本地验证范围见[验收记录](docs/validation/integration-2026-10-04.md)。
+
+**推荐完整版 Full：基础功能与本版本全部官方插件一次备齐。** 包含压缩包、PDF、摄影、API、音频、办公与视频七个官方插件，下载后即可使用。
 
 只需要文本、文件夹、图片、Hex 和压缩包比较时，可以选择基础版 Base。两版均免费、开源，无需账号。
 
@@ -149,7 +156,7 @@ Intel 构建尚未实测。当前为持续开发中的预览版本，也可按�
 
 ## 快速开始
 
-下载[完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.12.1/CrossDiff-0.12.1-full-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
+下载[完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
 
 1. 点击 **新建…**（⌘N），选择文本、文件夹、压缩包、图片、二进制或已安装的插件比较。
 2. 分别准备左右内容，点击 **开始比较**。文本可直接粘贴，也可选择文件。
@@ -214,11 +221,11 @@ bash scripts/open-dev-app.command
 
 | 已经可以使用 | 接下来探索 |
 | :--- | :--- |
-| 文本、文件夹、图片、Hex、压缩包、PDF、摄影、API、音频与办公文档 | 远程文件夹来源、文本三方合并、多对象比较 |
-| 原生工作台、插件安装管理、基础版与完整版 | 旧版 Office 与完整视觉比较、网络包、数据库、摄影高级分析、视频、模型结构与张量插件；音频自动变速／变调识别 |
+| 文本、文件夹、图片、Hex、压缩包、PDF、摄影、API、音频与办公文档；视频手动对照 | 远程文件夹来源、文本三方合并、多对象比较 |
+| 原生工作台、插件安装管理、基础版与完整版 | 旧版 Office 与完整视觉比较、网络包、数据库、摄影高级分析、模型结构与张量插件；音频自动变速／变调识别、视频自动片段对应 |
 | 中英文界面、浅深色主题、本机会话恢复 | 面向摄影师、媒体工作者与开发者的插件组合 |
 
-右侧为**未来规划**。当前提供两方比较；PDF 尚无 OCR，压缩包尚不支持 RAR／7z／加密包，文件夹尚不支持完整同步。文件上限、RAW 兼容性和各类分析边界见[路线图](docs/roadmap.md)与[实现说明](docs/development.md#current-implementation-limits)。
+右侧为**未来规划**。当前提供两方比较；PDF 尚无 OCR，压缩包尚不支持密码、分卷及部分 7z／RAR 特性，文件夹尚不支持完整同步。文件上限、RAW 兼容性和各类分析边界见[路线图](docs/roadmap.md)与[实现说明](docs/development.md#current-implementation-limits)。
 
 欢迎通过 [Issues](https://github.com/JunyangZhangUSTC/CrossDiff/issues) 反馈问题和建议，一起把比较体验打磨得更好。[贡献指南](CONTRIBUTING.md) · [开发指南](docs/development.md) · [产品方向](docs/product-vision.md) · [更新记录](CHANGELOG.md)
 

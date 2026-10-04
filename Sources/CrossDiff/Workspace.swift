@@ -151,6 +151,18 @@ final class ComparisonSession: ObservableObject, Identifiable {
         }
         return model
     }()
+    private var storedVideoState: VideoWorkspaceState?
+    private var hasCreatedVideoModel = false
+    lazy var videoComparisonModel: VideoComparisonModel = {
+        hasCreatedVideoModel = true
+        let model = VideoComparisonModel(state: storedVideoState ?? .init())
+        model.onStateChanged = { [weak self, weak model] in
+            guard let self, let model else { return }
+            self.storedVideoState = model.state
+            self.changed?()
+        }
+        return model
+    }()
     private var storedOfficeState: OfficeWorkspaceState?
     lazy var officeModel: OfficeComparisonModel = {
         let model = OfficeComparisonModel(state: storedOfficeState ?? .init())
@@ -169,12 +181,13 @@ final class ComparisonSession: ObservableObject, Identifiable {
     @Published private var clearedText: ClearedText?
     private var changingClearAction = false
 
-    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil, audioState: AudioWorkspaceState? = nil, officeState: OfficeWorkspaceState? = nil) {
+    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil, audioState: AudioWorkspaceState? = nil, officeState: OfficeWorkspaceState? = nil, videoState: VideoWorkspaceState? = nil) {
         self.id = id; self.kind = kind; self.left = left; self.right = right; self.pluginID = pluginID
         storedPhotoState = photoState?.isValid == true ? photoState : nil
         storedAPIState = apiState?.isValid == true ? apiState : nil
         storedAudioState = audioState?.isValid == true ? audioState : nil
         storedOfficeState = officeState?.isValid == true ? officeState : nil
+        storedVideoState = videoState?.isValid == true ? videoState : nil
         if kind == .text { compare() }
     }
     deinit {
@@ -191,7 +204,7 @@ final class ComparisonSession: ObservableObject, Identifiable {
         return l == nil && r == nil ? L("临时文本", "Untitled Comparison") : "\(l ?? unnamed) ↔ \(r ?? unnamed)"
     }
     var dirty: Bool { !left.text.utf16.elementsEqual(left.savedText.utf16) || !right.text.utf16.elementsEqual(right.savedText.utf16) }
-    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState, audioState: storedAudioState, officeState: storedOfficeState) }
+    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState, audioState: storedAudioState, officeState: storedOfficeState, videoState: hasCreatedVideoModel ? videoComparisonModel.persistedState : storedVideoState) }
     var canClearText: Bool { kind == .text && (!left.text.isEmpty || !right.text.isEmpty) }
     var canRestoreClearedText: Bool { clearedText != nil && left.text.isEmpty && right.text.isEmpty }
     func value(_ side: Side) -> StoredTextSide { side == .left ? left : right }
@@ -546,7 +559,7 @@ final class WorkspaceStore: ObservableObject {
         do {
             for record in try SessionFile.load(from: sessionURL) {
                 guard let kind = ComparisonKind(rawValue: record.kind) else { continue }
-                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState, audioState: record.audioState, officeState: record.officeState))
+                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState, audioState: record.audioState, officeState: record.officeState, videoState: record.videoState))
             }
         } catch {
             recoveryFailed = true
@@ -595,6 +608,9 @@ final class WorkspaceStore: ObservableObject {
         }
         if session.kind == .plugin, session.pluginID == "org.crossdiff.office" || PluginManager.shared.plugin(id: session.pluginID)?.package.manifest.inputKind == .officeDocument {
             session.officeModel.cancel()
+        }
+        if session.kind == .plugin, session.pluginID == "org.crossdiff.video" || PluginManager.shared.plugin(id: session.pluginID)?.package.manifest.inputKind == .videoAnalysis {
+            session.videoComparisonModel.cancel()
         }
         sessions.removeAll { $0.id == session.id }
         if selectedID == session.id { selectedID = sessions.last?.id }
@@ -677,6 +693,9 @@ final class WorkspaceStore: ObservableObject {
         if ArchiveComparisonModel.fileExtensions.contains(url.pathExtension.lowercased()) {
             return .init(url: url, kind: .plugin, pluginID: ArchiveComparisonModel.pluginID, acceptsFolders: true)
         }
+        if ["mov", "mp4", "m4v"].contains(url.pathExtension.lowercased()) {
+            return .init(url: url, kind: .plugin, pluginID: "org.crossdiff.video")
+        }
         let inferredKind: ComparisonKind
         if OfficeDocumentKind.from(fileExtension: url.pathExtension) != nil {
             return .init(url: url, kind: .plugin, pluginID: "org.crossdiff.office", isOfficeDocument: true)
@@ -727,6 +746,49 @@ final class WorkspaceStore: ObservableObject {
         }
     }
     func openPair(_ left: URL, _ right: URL) { accept([left, right]) }
+
+    func chooseFolder(for session: ComparisonSession, side: Side) {
+        guard session.kind == .folder, sessions.contains(where: { $0 === session }),
+              session.folderComparisonModel.canReplaceRoots else { return }
+        let parent = NativeMenuController.shared.comparisonWindow
+        guard parent?.attachedSheet == nil else { return }
+        let originalLeft = session.left.path, originalRight = session.right.path
+        let panel = NSOpenPanel()
+        panel.title = side == .left ? L("更换左侧文件夹", "Change Left Folder") : L("更换右侧文件夹", "Change Right Folder")
+        panel.prompt = L("选择", "Choose")
+        panel.canChooseFiles = false; panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false; panel.canCreateDirectories = false
+        panel.directoryURL = session.value(side).path.map { URL(fileURLWithPath: $0) }
+        let completion: (NSApplication.ModalResponse) -> Void = { [weak self, weak session] response in
+            guard let self, let session, response == .OK, let url = panel.url,
+                  session.left.path == originalLeft, session.right.path == originalRight else { return }
+            self.replaceFolder(url, for: session, side: side)
+        }
+        if let parent { panel.beginSheetModal(for: parent, completionHandler: completion) }
+        else { panel.begin(completionHandler: completion) }
+    }
+
+    @discardableResult
+    func replaceFolder(_ url: URL, for session: ComparisonSession, side: Side) -> Bool {
+        guard session.kind == .folder, sessions.contains(where: { $0 === session }),
+              session.folderComparisonModel.canReplaceRoots,
+              let oldLeft = session.left.path, let oldRight = session.right.path else { return false }
+        let folder = url.standardizedFileURL
+        guard folder.path != URL(fileURLWithPath: side == .left ? oldLeft : oldRight).standardizedFileURL.path else { return false }
+        do {
+            guard url.isFileURL else { throw PluginAppError(zh: "请选择本地文件夹。", en: "Choose a local folder.") }
+            let metadata = try folder.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
+            guard metadata.isDirectory == true, metadata.isPackage != true else {
+                throw PluginAppError(zh: "请选择本地文件夹。", en: "Choose a local folder.")
+            }
+            session.replace(.init(path: folder.path), side: side)
+            // Invalidate old selections and copy results before the next view update.
+            session.folderComparisonModel.loadIfNeeded(
+                left: URL(fileURLWithPath: side == .left ? folder.path : oldLeft),
+                right: URL(fileURLWithPath: side == .right ? folder.path : oldRight))
+            return true
+        } catch { session.folderComparisonModel.error = error; return false }
+    }
 
     func chooseTextFile(for session: ComparisonSession, side: Side) {
         let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.allowsMultipleSelection = false

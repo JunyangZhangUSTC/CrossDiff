@@ -26,4 +26,8 @@ swiftc "${crossdiff_photo_swift_flags[@]}" -swift-version 5 -D CROSSDIFF_UI_CHEC
   -I "$check_build" -L "$check_build" -lCrossDiffCore -Xlinker -rpath -Xlinker "$check_build" \
   "$compile_sources"/*.swift \
   "$project_root/scripts/tests/AlignmentChecks.swift" -o "$check_build/alignment-checks"
+if [[ "${1:-}" == "--build-only" ]]; then
+  echo "Built: $check_build/alignment-checks"
+  exit 0
+fi
 CROSSDIFF_DATA_DIR="$check_build/data" "$check_build/alignment-checks" "$@"

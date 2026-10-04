@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upload verified Base/Full arm64 previews and plugin packages to a GitHub draft. Never publishes it."""
+"""Upload verified releases; publish only with matching committed per-version intent."""
 
 from __future__ import annotations
 
@@ -139,7 +139,37 @@ def git_bytes(root: Path, *arguments: str) -> bytes:
     try:
         return subprocess.check_output(["git", "-C", str(root), *arguments], stderr=subprocess.PIPE)
     except subprocess.CalledProcessError:
-        raise ReleaseError("Could not read committed plugin package source.") from None
+        raise ReleaseError("Could not read committed release source.") from None
+
+
+def release_intent(root: Path, commit: str, version: str) -> dict:
+    """Only absence in the fixed commit defaults to a draft; invalid intent fails closed."""
+    path = f"docs/releases/{version}.json"
+    entry = git(root, "ls-tree", "-z", commit, "--", path)
+    defaults = {"formatVersion": 1, "version": version, "publish": False, "prerelease": True}
+    if not entry:
+        return defaults
+    if not re.fullmatch(r"100644 blob [a-f0-9]{40}\t" + re.escape(path) + r"\x00", entry):
+        raise ReleaseError("Release intent must be a regular committed JSON file.")
+
+    def unique_keys(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ReleaseError("Duplicate key in committed release intent.")
+            result[key] = value
+        return result
+
+    try:
+        intent = json.loads(git_bytes(root, "show", f"{commit}:{path}"), object_pairs_hook=unique_keys)
+    except (ValueError, UnicodeError):
+        raise ReleaseError("Invalid committed release intent JSON.") from None
+    if (not isinstance(intent, dict) or set(intent) != set(defaults)
+            or type(intent["formatVersion"]) is not int or intent["formatVersion"] != 1
+            or intent["version"] != version
+            or type(intent["publish"]) is not bool or type(intent["prerelease"]) is not bool):
+        raise ReleaseError("Release intent must have exact keys, schema 1, matching version and boolean flags.")
+    return intent
 
 
 def checksum(path: Path) -> str:
@@ -159,13 +189,13 @@ def validate_package(root: Path, tag: str, directory: Path) -> dict:
     commit = git(root, "rev-parse", "HEAD")
     if not re.fullmatch(r"[a-f0-9]{40}", commit) or git(root, "rev-parse", "--verify", f"refs/tags/{tag}^{{commit}}") != commit:
         raise ReleaseError("The local tag must point to HEAD.")
-    metadata = plistlib.loads(git(root, "show", "HEAD:Resources/Info.plist").encode("utf-8"))
+    metadata = plistlib.loads(git(root, "show", f"{commit}:Resources/Info.plist").encode("utf-8"))
     version, build = metadata["CFBundleShortVersionString"], metadata["CFBundleVersion"]
     if tag != f"v{version}" or not re.fullmatch(r"[0-9]+", build):
         raise ReleaseError("The tag and committed app version must agree.")
     base = f"CrossDiff-{version}-base-macOS-arm64.zip"
     full = f"CrossDiff-{version}-full-macOS-arm64.zip"
-    committed_read = lambda path: git_bytes(root, "show", f"HEAD:{path}")
+    committed_read = lambda path: git_bytes(root, "show", f"{commit}:{path}")
     catalog, plugins = plugin_inventory.build_inventory(version, committed_read)
     source = f"CrossDiff-{version}-source.tar.gz"
     names = [base, full, source, *plugins, "plugins.json", "BUILD-INFO.txt", "SHA256SUMS"]
@@ -200,11 +230,12 @@ def validate_package(root: Path, tag: str, directory: Path) -> dict:
             plugin_inventory.validate_app_archive(directory / name, edition, catalog, plugins, metadata)
     except (ValueError, KeyError, zipfile.BadZipFile) as error:
         raise ReleaseError(f"Release inventory validation failed: {error}") from None
-    notes = git(root, "show", f"HEAD:docs/releases/{version}.md")
+    notes = git(root, "show", f"{commit}:docs/releases/{version}.md")
     if not notes:
         raise ReleaseError("Committed release notes are empty.")
     return {"tag": tag, "version": version, "commit": commit, "directory": directory,
             "names": names, "hashes": {name: checksum(directory / name) for name in names},
+            "intent": release_intent(root, commit, version),
             "body": notes + f"\n\nSource commit / 源码提交：`{commit}`\n\n<!-- crossdiff-source-commit: {commit} -->\n"}
 
 
@@ -225,7 +256,59 @@ def assert_draft_assets(release: dict, package: dict):
         raise ReleaseError("Unexpected asset state; refusing to overwrite it.")
 
 
-def publish(github: GitHub, root: Path, package: dict) -> str:
+def assert_release_metadata(release: dict, package: dict):
+    expected = {"tag_name": package["tag"], "target_commitish": package["commit"],
+                "name": f"CrossDiff {package['tag']}", "body": package["body"],
+                "prerelease": package["intent"]["prerelease"]}
+    if any(release.get(key) != value for key, value in expected.items()):
+        raise ReleaseError("Release metadata does not match the committed source and intent.")
+    expected_url = f"https://github.com/{plugin_inventory.REPOSITORY}/releases/tag/{package['tag']}"
+    # Drafts can use a temporary untagged URL, but must remain in this repository.
+    if not isinstance(release.get("html_url"), str) or not release["html_url"].startswith(
+            f"https://github.com/{plugin_inventory.REPOSITORY}/releases/"):
+        raise ReleaseError("Unexpected release page URL.")
+    if release.get("draft") is False and release["html_url"] != expected_url:
+        raise ReleaseError("Unexpected published release page URL.")
+
+
+def assert_complete_assets(release: dict, package: dict):
+    assets = release["assets"]
+    if (len(assets) != len(package["names"])
+            or {asset["name"] for asset in assets} != set(package["names"])
+            or any(asset.get("state") != "uploaded" for asset in assets)
+            or any(type(asset.get("id")) is not int or asset["id"] <= 0 for asset in assets)
+            or len({asset["id"] for asset in assets}) != len(assets)):
+        raise ReleaseError("The release does not contain exactly the expected uploaded assets.")
+
+
+def asset_snapshot(release: dict) -> list:
+    return sorted((asset["id"], asset["name"], asset["state"], asset.get("size"),
+                   asset.get("updated_at"), asset.get("digest")) for asset in release["assets"])
+
+
+def verify_downloads(github: GitHub, root: Path, package: dict, release: dict):
+    assert_release_metadata(release, package)
+    assert_complete_assets(release, package)
+    verification = root / ".build" / "release-verification"
+    verification.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="github-", dir=verification) as temporary:
+        for asset in release["assets"]:
+            path = Path(temporary) / asset["name"]
+            github.download(asset["id"], path)
+            if checksum(path) != package["hashes"][asset["name"]]:
+                raise ReleaseError(f"Downloaded asset checksum mismatch: {asset['name']}.")
+    github.assert_remote_tag(package["tag"], package["commit"])
+    current = github.api("GET", f"/releases/{release['id']}")
+    assert_release_metadata(current, package)
+    assert_complete_assets(current, package)
+    if (asset_snapshot(current) != asset_snapshot(release)
+            or current.get("draft") != release.get("draft")
+            or current.get("published_at") != release.get("published_at")):
+        raise ReleaseError("Release or assets changed while downloads were being verified.")
+    return current
+
+
+def publish(github: GitHub, root: Path, package: dict) -> dict:
     if github.repository != plugin_inventory.REPOSITORY:
         raise ReleaseError("The upload repository must match the official plugin catalog repository.")
 
@@ -235,14 +318,19 @@ def publish(github: GitHub, root: Path, package: dict) -> str:
             raise ReleaseError(f"Artifact changed during publication: {name}.")
         return path
 
-    # Do not mutate an existing draft when a validated input was replaced locally.
     for name in package["names"]:
         unchanged(name)
     github.assert_remote_tag(package["tag"], package["commit"])
     release = github.find_release(package["tag"])
+    if release is not None and release.get("draft") is False:
+        if not release.get("published_at"):
+            raise ReleaseError("Published release has no publication timestamp; it will not be changed.")
+        # A retry after successful publication is strictly read-only, including immutable releases.
+        release = verify_downloads(github, root, package, release)
+        return {"url": release["html_url"], "published": True, "prerelease": release["prerelease"]}
     values = {"tag_name": package["tag"], "target_commitish": package["commit"],
               "name": f"CrossDiff {package['tag']}", "body": package["body"],
-              "draft": True, "prerelease": True, "make_latest": "false"}
+              "draft": True, "prerelease": package["intent"]["prerelease"], "make_latest": "false"}
     if release is None:
         release = github.api("POST", "/releases", values)
     else:
@@ -258,6 +346,7 @@ def publish(github: GitHub, root: Path, package: dict) -> str:
         current = github.api("GET", f"/releases/{release_id}")
         assert_draft(current, package)
         assert_draft_assets(current, package)
+        assert_release_metadata(current, package)
         return current
 
     for name in package["names"]:
@@ -265,32 +354,29 @@ def publish(github: GitHub, root: Path, package: dict) -> str:
         release = guarded_release()
         matches = [asset for asset in release["assets"] if asset["name"] == name]
         if matches:
-            asset = matches[0]
-            github.api("DELETE", f"/releases/assets/{asset['id']}")
+            github.api("DELETE", f"/releases/assets/{matches[0]['id']}")
             release = guarded_release()
-        # Recheck local input immediately before sending it to GitHub.
         path = unchanged(name)
         uploaded = github.upload(release, path)
         if uploaded.get("name") != name or uploaded.get("state") != "uploaded":
             raise ReleaseError("GitHub did not confirm a complete asset upload.")
 
-    release = guarded_release()
-    assets = release["assets"]
-    if len(assets) != len(package["names"]) or {asset["name"] for asset in assets} != set(package["names"]):
-        raise ReleaseError("The draft does not contain exactly the expected release assets.")
-    verification = root / ".build" / "release-verification"
-    verification.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="github-", dir=verification) as temporary:
-        for asset in assets:
-            path = Path(temporary) / asset["name"]
-            github.download(asset["id"], path)
-            if checksum(path) != package["hashes"][asset["name"]]:
-                raise ReleaseError(f"Downloaded asset checksum mismatch: {asset['name']}.")
-    release = guarded_release()
-    expected_prefix = f"https://github.com/{github.repository}/releases/"
-    if not release["html_url"].startswith(expected_prefix):
-        raise ReleaseError("Unexpected release page URL.")
-    return release["html_url"]
+    release = verify_downloads(github, root, package, guarded_release())
+    assert_draft(release, package)
+    if package["intent"]["publish"]:
+        # The only publication mutation comes after every uploaded byte has been read back.
+        github.assert_remote_tag(package["tag"], package["commit"])
+        published = github.api("PATCH", f"/releases/{release_id}",
+                               {"draft": False, "prerelease": package["intent"]["prerelease"],
+                                "make_latest": "false"})
+        assert_release_metadata(published, package)
+        assert_complete_assets(published, package)
+        if (published.get("draft") is not False or not published.get("published_at")
+                or asset_snapshot(published) != asset_snapshot(release)):
+            raise ReleaseError("GitHub did not confirm the verified release publication.")
+        release = published
+    return {"url": release["html_url"], "published": release["draft"] is False,
+            "prerelease": release["prerelease"]}
 
 
 def main() -> int:
@@ -303,14 +389,17 @@ def main() -> int:
         # Verify all local inputs before constructing an authenticated API client.
         package = validate_package(root, arguments.tag, arguments.directory)
         github = GitHub(os.environ.get("GITHUB_REPOSITORY", ""), os.environ.get("GH_TOKEN", ""))
-        url = publish(github, root, package)
-        print(f"Verified draft prerelease (not published): {url}")
+        result = publish(github, root, package)
+        url = result["url"]
+        visibility = "Published" if result["published"] else "Draft (not published)"
+        kind = "prerelease" if result["prerelease"] else "release"
+        print(f"Verified {visibility.lower()} {kind}: {url}")
         summary = os.environ.get("GITHUB_STEP_SUMMARY")
         if summary:
             with open(summary, "a", encoding="utf-8") as output:
-                output.write(f"### CrossDiff {package['tag']}\n\n[Open draft release]({url})\n\n"
-                             f"Source: `{package['commit']}`. All {len(package['names'])} uploaded assets were downloaded and SHA-256 verified.\n\n"
-                             "Draft prerelease only; Apple silicon, ad-hoc signed, not notarized.\n")
+                output.write(f"### CrossDiff {package['tag']}\n\n[Open release]({url})\n\n"
+                             f"Source: `{package['commit']}`. All {len(package['names'])} release assets were downloaded and SHA-256 verified.\n\n"
+                             f"{visibility} {kind}; Apple silicon, ad-hoc signed, not notarized.\n")
         return 0
     except (ReleaseError, OSError, ValueError, KeyError) as error:
         print(f"Release upload stopped: {error}", file=sys.stderr)

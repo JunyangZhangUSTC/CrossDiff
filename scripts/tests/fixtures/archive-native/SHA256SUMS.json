@@ -1,0 +1,23 @@
+{
+  "bcj.7z": "9aab495ebc82d71f695d547335a67c11eb9892b33df3709baebf3c962dd7accd",
+  "copy.7z": "7232455bf70e762303db409b45c7dc62874dbc07b15412252730ecc7c914b747",
+  "delta.7z": "c4e23046c355a351d3aaa2ec26e7a58d26f24cbf3a5686664256c692c40453fe",
+  "encrypted-data.7z": "65940d5cf0249e13549efe4273d3a02410b69dfba8e79c6ee671bc0ed17310cd",
+  "encrypted-header.7z": "146e4c7d2186c703325ef6627ef48238dc3a59d43aeaf44f35e0e889f9ce0bb6",
+  "header-compressed.7z": "ccc5341b5b35846bd596baea4cdc0dad7d7a94b61a331660da46948b55a36507",
+  "lzma1.7z": "71413e36b850dca41e226116cec2b0d67cbabf6399ef0508dcf2f3f2ae57a7e4",
+  "lzma2.7z": "652cbc1aebde81adc4937a863573a84a5c93df28e1359a378f58552bf88f72ce",
+  "solid.7z": "52f669d0edb28c87adca7aa88635b014acd528e6f55fdab73b9171cd9b720033",
+  "split.7z.001": "b520ba877375ded8523c4b610e93c380a4fc17ae2e40461a84453589f4e4c9df",
+  "test_read_format_rar.rar": "d421b86f6290aefad61b2a36737253b2b30fe27c156bd95abfc230f24fe0307e",
+  "test_read_format_rar4_encrypted.rar": "c30dc6d10e59aaab1c863afa469d188c644a22d67d6e50ac7ca887e520f5fc8b",
+  "test_read_format_rar4_encrypted_filenames.rar": "0201a8cd86c15c117c7541d841c36c0dbabb4824396f19889db5f7d5364e7ef9",
+  "test_read_format_rar5_compressed.rar": "68f9d7e2662cd5bc5607ba9c6bf1edbf121cf3b08011a7d8643091791750a7c8",
+  "test_read_format_rar5_encrypted_filenames.rar": "b2b98004c9cbf4f2a4000380ad47a16dea99f2d50835b1602c40d724eb82c300",
+  "test_read_format_rar5_multiarchive.part01.rar": "2f3894dc4b8a1bba90830ef1f89f457b0295b6f9030c70febd57283721bc2ce3",
+  "test_read_format_rar5_multiple_files_solid.rar": "0aa2c652c06304dedd93019663c1d52d5e85055d5fdb8045bfcc4345b90b4a0f",
+  "test_read_format_rar5_solid_encrypted.rar": "307de6b76f6b7cc3a221975e14b8a6d7a6b87a30fd1ee7a0e08e4333724e5657",
+  "test_read_format_rar5_stored.rar": "35d75e315d164d2e329afc28f7d844f013271b4fcffd4ddd78efcdd114a383a7",
+  "test_read_format_rar_compress_normal.rar": "7d32e2ef511d0ade372345440838165df828197eff4d7816880dafde690cce03",
+  "unsupported-bzip2.7z": "fb5e4904b6228838bbe662167861c06d5900ac2b941618e719355463f20211d1"
+}

@@ -47,6 +47,11 @@ final class ImageComparisonModel: ObservableObject {
     @Published private(set) var matchingNotice: ImageMatchingResult.Status?
     @Published private(set) var canRestoreAlignment = false
     @Published var showMatchPoints = false
+    @Published private(set) var showSimilarRegions = false
+    @Published private(set) var isAnalyzingSimilarity = false
+    @Published private(set) var similarityResult: ImageSimilarityResult?
+    @Published private(set) var similarityFailed = false
+    @Published private(set) var selectedSimilarityRegionID: Int?
     @Published var mode = ImageComparisonMode.sideBySide
     @Published var zoom = ImageComparisonZoom.fit
     @Published var opacity = 0.5
@@ -73,6 +78,8 @@ final class ImageComparisonModel: ObservableObject {
     private var interactiveRenderInFlight = false
     private var matchingID = UUID()
     private var matchingTask: Task<Void, Never>?
+    private var similarityID = UUID()
+    private var similarityTask: Task<Void, Never>?
     private var applyingAlignment = false
     private var previousAlignment: AlignmentSnapshot?
 
@@ -85,7 +92,7 @@ final class ImageComparisonModel: ObservableObject {
         let overlapOnly: Bool
     }
 
-    deinit { renderTask?.cancel(); matchingTask?.cancel() }
+    deinit { renderTask?.cancel(); matchingTask?.cancel(); similarityTask?.cancel() }
 
     var matchingWasAdjusted: Bool {
         guard let transform = matchingResult?.rightTransform else { return false }
@@ -96,6 +103,7 @@ final class ImageComparisonModel: ObservableObject {
     /// Failed or cancelled estimates leave every existing adjustment untouched.
     func alignAutomatically() {
         guard let sources, !isMatching, !isInteracting else { return }
+        clearSimilarity()
         let request = UUID()
         matchingID = request
         let previousTask = matchingTask
@@ -153,6 +161,7 @@ final class ImageComparisonModel: ObservableObject {
     func restoreAlignment() {
         guard let previous = previousAlignment else { return }
         cancelMatching()
+        clearSimilarity()
         applyingAlignment = true
         leftTransform = previous.left
         rightTransform = previous.right
@@ -167,6 +176,72 @@ final class ImageComparisonModel: ObservableObject {
         matchingNotice = nil
         showMatchPoints = false
         render()
+    }
+
+    /// Similarity belongs to the decoded sources and verified registration, not
+    /// the current display transforms. Looking at evidence never moves an image.
+    func toggleSimilarRegions() {
+        if showSimilarRegions {
+            showSimilarRegions = false
+            similarityID = UUID()
+            similarityTask?.cancel()
+            isAnalyzingSimilarity = false
+            return
+        }
+        guard let sources, let match = matchingResult, match.status == .accepted,
+              !isMatching, matchingNotice == nil else { return }
+        showSimilarRegions = true
+        similarityFailed = false
+        if similarityResult != nil { return }
+        let request = UUID()
+        similarityID = request
+        let previousTask = similarityTask
+        previousTask?.cancel()
+        isAnalyzingSimilarity = true
+        similarityTask = Task { [weak self] in
+            await previousTask?.value
+            guard !Task.isCancelled else { return }
+            let worker = Task.detached(priority: .userInitiated) {
+                try ImageMatchingEngine.similarity(sources: sources, match: match)
+            }
+            do {
+                let result = try await withTaskCancellationHandler {
+                    try await worker.value
+                } onCancel: { worker.cancel() }
+                guard !Task.isCancelled, let self, self.similarityID == request else { return }
+                self.similarityResult = result
+                self.selectedSimilarityRegionID = result.regions.first?.id
+                self.isAnalyzingSimilarity = false
+            } catch is CancellationError {
+                // The action that invalidated this request owns the display state.
+            } catch {
+                guard !Task.isCancelled, let self, self.similarityID == request else { return }
+                self.isAnalyzingSimilarity = false
+                self.similarityFailed = true
+            }
+        }
+    }
+
+    func selectSimilarityRegion(_ id: Int) {
+        guard showSimilarRegions, similarityResult?.regions.contains(where: { $0.id == id }) == true else { return }
+        selectedSimilarityRegionID = id
+    }
+
+    func navigateSimilarityRegion(_ delta: Int) {
+        guard showSimilarRegions, let regions = similarityResult?.regions, !regions.isEmpty else { return }
+        let index = regions.firstIndex { $0.id == selectedSimilarityRegionID } ?? 0
+        let next = ((index + delta % regions.count) % regions.count + regions.count) % regions.count
+        selectedSimilarityRegionID = regions[next].id
+    }
+
+    private func clearSimilarity() {
+        similarityID = UUID()
+        similarityTask?.cancel()
+        showSimilarRegions = false
+        isAnalyzingSimilarity = false
+        similarityResult = nil
+        similarityFailed = false
+        selectedSimilarityRegionID = nil
     }
 
     private func transformChanged() {
@@ -223,6 +298,7 @@ final class ImageComparisonModel: ObservableObject {
         let pair = [left, right]
         if !force, loadedPair == pair, sources != nil { return }
         cancelMatching()
+        clearSimilarity()
         matchingResult = nil
         matchingNotice = nil
         previousAlignment = nil

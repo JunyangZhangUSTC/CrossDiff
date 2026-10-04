@@ -9,7 +9,7 @@ permissions:
 jobs:
   macos:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -52,6 +52,8 @@ jobs:
 
       - name: Folder comparison checks
         run: |
+          bash scripts/tests/check-folder-browser.sh
+          bash scripts/tests/check-folder-model.sh
           bash scripts/tests/check-folder-performance.sh
           bash scripts/tests/check-folder-workflow.sh --build-only
 
@@ -61,6 +63,7 @@ jobs:
       - name: Archive comparison checks
         run: |
           bash scripts/tests/check-archives-core.sh
+          bash scripts/tests/check-archive-native.sh
           bash scripts/tests/check-archive-plugin.sh
           bash scripts/tests/check-archive-workflow.sh --build-only
 
@@ -94,8 +97,26 @@ jobs:
           bash scripts/tests/check-binary-detection.sh
           bash scripts/tests/check-binary-workflow.sh --build-only
 
+      - name: Video comparison checks
+        run: |
+          bash scripts/tests/check-video-plugin.sh
+          bash scripts/tests/check-video-source.sh
+          bash scripts/tests/check-video-workflow.sh --build-only
+
       - name: Compile native plugin workflow checks
         run: bash scripts/tests/check-plugin-workflow.sh --build-only
+
+      - name: Compile native editor checks
+        run: bash scripts/tests/check-editor.sh --build-only
+
+      - name: Compile native text alignment checks
+        run: bash scripts/tests/check-alignment.sh --build-only
+
+      - name: Compile native scroll geometry checks
+        run: bash scripts/tests/check-scroll-geometry.sh --build-only
+
+      - name: Compile native deletion preview checks
+        run: bash scripts/tests/check-deletion-preview.sh --build-only
 
       - name: Compile native workflow checks
         run: bash scripts/tests/check-workflow.sh --build-only
@@ -115,10 +136,15 @@ jobs:
           bash scripts/tests/check-photo-workflow.sh --build-only
       - name: Compile native image workflow checks
         run: bash scripts/tests/check-image-workflow.sh --build-only
+      - name: Compile cross-module integration workflow
+        run: bash scripts/tests/check-integration-workflow.sh --build-only
       - name: Build and verify local app
         run: |
           bash scripts/build-app.sh
+          bash scripts/build-app.sh --edition base --output dist/editions/base/CrossDiff.app
           codesign --verify --deep --strict dist/CrossDiff.app
+          codesign --verify --deep --strict dist/editions/base/CrossDiff.app
+          bash scripts/tests/check-bundled-helpers.sh
       - name: Audit application bundle
         run: |
           source scripts/project-env.sh

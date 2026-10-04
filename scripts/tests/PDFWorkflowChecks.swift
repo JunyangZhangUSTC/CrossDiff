@@ -16,7 +16,7 @@ import CrossDiffCore
         Task {
             do { try await run() } catch { D.failures.append("Interrupted: \(error)") }
             let verdict = D.failures.isEmpty
-                ? "PASS: PDF page-number default, smart insertion/fallback, manual native page controls, source mapping, retained tabs, Chinese/English, light/dark and 860-point windows"
+                ? "PASS: PDF page-number default, smart insertion/fallback, neutral single-page badges, manual native page controls, source mapping, retained tabs, Chinese/English, light/dark and 860-point windows"
                 : "FAIL: " + D.failures.joined(separator: "; ")
             D.log(verdict)
             try? D.report.joined(separator: "\n").write(to: D.output.appendingPathComponent("verdict.txt"), atomically: true, encoding: .utf8)
@@ -52,10 +52,16 @@ import CrossDiffCore
                 "native session defaults to source page 1 beside page 1")
         D.check(model.pairs[1].left == 1 && model.pairs[1].right == 1, "default pairing never guesses a shift from similar headings")
         D.check(has("pdf.alignment.menu") && has("pdf.pagePosition"), "alignment choice and explicit comparison-group navigation are exposed")
+        try await checkSinglePage(model, index: 3, expected: .onlyRight, name: "pdf-page-number-right-only")
+        try await press("pdf.pair.0")
         try await press("pdf.nextPage")
         D.check(model.selectedPair?.left == 1 && model.selectedPair?.right == 1, "actual native next-group action keeps both original page numbers")
         try await selectMode(.smart)
         D.check(!model.isSmartFallback && model.pairs.contains { $0.left == 1 && $0.right == 2 }, "native smart choice finds inserted appendix without losing source pages")
+        guard let insertion = model.pairs.firstIndex(where: { $0.kind == .added }) else {
+            throw D.CheckError(description: "Missing reliably matched PDF insertion")
+        }
+        try await checkSinglePage(model, index: insertion, expected: .comparison(.added), name: "pdf-smart-added")
         model.selectedIndex = model.pairs.firstIndex { $0.left == 2 && $0.right == 3 }!
         try await D.pause()
         D.check(model.leftText.contains("10") && model.rightText.contains("20"), "smart group content comes from the two original result pages")
@@ -120,11 +126,115 @@ import CrossDiffCore
         D.log("after switching to unrelated PDF: \(windowGeometry())")
         D.check(unrelated.pdfComparisonModel.selectedPair?.left == 0 && unrelated.pdfComparisonModel.selectedPair?.right == 0,
                 "reported bug is absent in the real app: unrelated left page 1 opens with right page 1")
+        try await checkSinglePage(unrelated.pdfComparisonModel, index: 2, expected: .onlyRight, name: "pdf-unrelated-page-number-right-only")
+        try await press("pdf.pair.0")
         try await selectMode(.smart)
         D.check(unrelated.pdfComparisonModel.isSmartFallback && unrelated.pdfComparisonModel.selectedPair?.right == 0,
                 "real smart-mode menu safely falls back for unrelated PDFs")
         try await render("pdf-unrelated-fallback-en-dark-860", width: 860, dark: true)
+        for index in [1, 2] {
+            try await checkSinglePage(unrelated.pdfComparisonModel, index: index, expected: .onlyRight, name: "pdf-fallback-right-only-\(index)")
+        }
+
+        let reversed = ComparisonSession(kind: .plugin, left: .init(path: unrelatedRight.path), right: .init(path: unrelatedLeft.path), pluginID: "org.crossdiff.pdf")
+        store.attach(reversed); store.selectedID = reversed.id
+        try await ready(reversed.pdfComparisonModel)
+        try await checkSinglePage(reversed.pdfComparisonModel, index: 2, expected: .onlyLeft, name: "pdf-page-number-left-only")
+        try await selectMode(.smart)
+        D.check(reversed.pdfComparisonModel.isSmartFallback, "swapped unrelated PDF inputs retain the safe page-number fallback")
+        try await checkSinglePage(reversed.pdfComparisonModel, index: 2, expected: .onlyLeft, name: "pdf-fallback-left-only")
+
+        let removal = ComparisonSession(kind: .plugin, left: .init(path: right.path), right: .init(path: left.path), pluginID: "org.crossdiff.pdf")
+        store.attach(removal); store.selectedID = removal.id
+        try await ready(removal.pdfComparisonModel)
+        try await selectMode(.smart)
+        guard !removal.pdfComparisonModel.isSmartFallback,
+              let removed = removal.pdfComparisonModel.pairs.firstIndex(where: { $0.kind == .removed }) else {
+            throw D.CheckError(description: "Missing reliably matched PDF removal after swapping inputs")
+        }
+        try await checkSinglePage(removal.pdfComparisonModel, index: removed, expected: .comparison(.removed), name: "pdf-smart-removed")
         D.check(try [Data(contentsOf: left), Data(contentsOf: right)] == originals, "all native PDF modes, page controls and tab changes preserve source bytes")
+    }
+
+    /// Exercise the visible row and inspect the composed window, not just the
+    /// model's wording. Green/red badges must disappear when correspondence is
+    /// positional while genuine smart insertions/removals remain recognizable.
+    static func checkSinglePage(_ model: PDFComparisonModel, index: Int, expected: PDFPagePresentation, name: String) async throws {
+        guard model.pairs.indices.contains(index) else { throw D.CheckError(description: "Missing PDF pair for \(name)") }
+        let pair = model.pairs[index]
+        let rowID = "pdf.pair.\(pair.id)"
+        try await press(rowID)
+        D.check(model.selectedPair?.left == pair.left && model.selectedPair?.right == pair.right,
+                "\(name): native row selection preserves exact source-page indices")
+        let row = try element(rowID), status = try element("pdf.pair.status")
+        D.check(string(row, "accessibilityValue") == expected.title && string(status, "accessibilityLabel") == expected.title,
+                "\(name): visible row and status bar expose the same revision or neutral meaning to VoiceOver")
+        let absentID = pair.left == nil ? "pdf.left.noPage" : "pdf.right.noPage"
+        let absent = try element(absentID)
+        let absenceMessage: String
+        switch expected {
+        case .onlyLeft, .onlyRight:
+            absenceMessage = L("此侧没有这个页码的页面", "There Is No Page at This Number on This Side")
+        case .comparison(.added):
+            absenceMessage = L("此页仅在右侧找到", "This Page Was Found Only on the Right")
+        case .comparison(.removed):
+            absenceMessage = L("此页仅在左侧找到", "This Page Was Found Only on the Left")
+        default: throw D.CheckError(description: "Expected a one-sided PDF pair for \(name)")
+        }
+        // A static SwiftUI group exposes its description as AXLabel. Unlike a
+        // row button, it need not also expose a separate AXValue. Check the
+        // actual explanation and source side, including smart insertions and
+        // removals, rather than accepting an arbitrary nonempty AX string.
+        D.log("\(name): empty pane AX role=\(string(absent, "accessibilityRole")), label=\(string(absent, "accessibilityLabel").debugDescription), value=\(string(absent, "accessibilityValue").debugDescription)")
+        D.check(string(absent, "accessibilityLabel") == absenceMessage,
+                "\(name): the empty source pane exposes the precise neutral or inferred page explanation")
+        D.check(!has(pair.left == nil ? "pdf.right.noPage" : "pdf.left.noPage"),
+                "\(name): only the missing source side exposes an empty-page explanation")
+        for (label, object) in [("row", row), ("status", status)] {
+            let colors = try badgePixels(object, name: name + "-" + label)
+            switch expected.tone {
+            case .neutral:
+                D.check(colors.red == 0 && colors.green == 0, "\(name): composed \(label) has no insertion/deletion color")
+            case .added:
+                D.check(colors.green > 2 && colors.red == 0, "\(name): composed \(label) preserves its green insertion mark")
+            case .removed:
+                D.check(colors.red > 2 && colors.green == 0, "\(name): composed \(label) preserves its red removal mark")
+            case .changed: break
+            }
+        }
+        _ = try badgePixels(absent, name: name + "-empty-source")
+    }
+
+    static func element(_ identifier: String) throws -> NSObject {
+        guard let value = objects().first(where: { string($0, "accessibilityIdentifier") == identifier }) else {
+            throw D.CheckError(description: "Missing visible PDF control: \(identifier)")
+        }
+        return value
+    }
+
+    static func badgePixels(_ object: NSObject, name: String) throws -> (red: Int, green: Int) {
+        guard let parent = D.window.contentView?.superview else { throw D.CheckError(description: "Missing PDF parent window") }
+        let screen: NSRect
+        if let element = object as? NSAccessibilityElement { screen = element.accessibilityFrame() }
+        else if let view = object as? NSView { screen = view.accessibilityFrame() }
+        else {
+            let selector = NSSelectorFromString("accessibilityFrame")
+            guard object.responds(to: selector) else { throw D.CheckError(description: "Missing PDF control frame: \(name)") }
+            typealias Frame = @convention(c) (AnyObject, Selector) -> NSRect
+            screen = unsafeBitCast(object.method(for: selector), to: Frame.self)(object, selector)
+        }
+        let rect = parent.convert(D.window.convertFromScreen(screen), from: nil).intersection(parent.bounds)
+        guard rect.width > 5 && rect.height > 5 else { throw D.CheckError(description: "PDF control is not visible: \(name)") }
+        let bitmap = try D.capture(parent, rect: rect, name: name)
+        var red = 0, green = 0
+        for y in 0..<bitmap.pixelsHigh {
+            for x in 0..<bitmap.pixelsWide {
+                guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { continue }
+                if color.redComponent > color.greenComponent + 0.08 && color.redComponent > color.blueComponent + 0.08 { red += 1 }
+                if color.greenComponent > color.redComponent + 0.08 && color.greenComponent > color.blueComponent + 0.08 { green += 1 }
+            }
+        }
+        return (red, green)
     }
 
     static func ready(_ model: PDFComparisonModel) async throws {

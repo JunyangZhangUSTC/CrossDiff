@@ -9,10 +9,14 @@ from pathlib import Path, PurePosixPath
 import plistlib
 import re
 import shutil
+import stat
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "JunyangZhangUSTC/CrossDiff"
+# Both editions contain native renderers/helpers, including those used by optional plugins.
+APP_EXECUTABLE_FILES = ("MacOS/CrossDiff", "Helpers/CrossDiffPluginHost",
+                        "Helpers/CrossDiffAudioMatcher", "Helpers/CrossDiffArchiveReader")
 APP_LICENSE_FILES = ("LICENSE", "NOTICE", "ThirdParty/OpenCV/LICENSE",
                      "ThirdParty/OpenCV/COPYRIGHT", "ThirdParty/OpenCV/NOTICE.md",
                      "ThirdParty/OpenCV/NOTICE-SOURCE.txt", "ThirdParty/OpenCV/NOTICE-MATCHING-SOURCE.txt",
@@ -36,6 +40,8 @@ PLUGINS = (
      "bundled": "dev.crossdiff.audio.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Official/Office", "id": "org.crossdiff.office", "label": "Office", "official": True,
      "bundled": "dev.crossdiff.office.crossdiffplugin", "editions": ("full",)},
+    {"source": "Plugins/Official/Video", "id": "org.crossdiff.video", "label": "Video", "official": True,
+     "bundled": "dev.crossdiff.video.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Examples/JSON", "id": "example.crossdiff.json-keys", "label": "JSON", "official": False,
      "bundled": None, "editions": ()},
 )
@@ -101,6 +107,17 @@ def bundle_inventory(edition: str, packages: dict[str, bytes]) -> dict[str, byte
     return result
 
 
+def validate_app_executable(name: str, mode: int, size: int, header: bytes):
+    """Check packaging shape; codesign verification remains a separate release check."""
+    if not stat.S_ISREG(mode) or not mode & 0o111:
+        raise ValueError(f"Application executable must be a regular executable file: {name}")
+    # Current supported targets are 64-bit Mach-O, optionally in a universal container.
+    if size < 32 or header[:4] not in (b"\xcf\xfa\xed\xfe", b"\xfe\xed\xfa\xcf",
+                                       b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca",
+                                       b"\xca\xfe\xba\xbf", b"\xbf\xba\xfe\xca"):
+        raise ValueError(f"Application executable is empty, truncated or not Mach-O: {name}")
+
+
 def validate_app_archive(path: Path, edition: str, catalog: bytes, packages: dict[str, bytes], metadata: dict):
     prefix = "CrossDiff.app/Contents/"
     with zipfile.ZipFile(path) as archive:
@@ -112,6 +129,12 @@ def validate_app_archive(path: Path, edition: str, catalog: bytes, packages: dic
             if (not entry.filename.startswith("CrossDiff.app/") or ".." in parts or "__MACOSX" in parts
                     or any(part.startswith("._") for part in parts) or entry.extra or entry.comment):
                 raise ValueError("Unsafe app archive entry or personal ZIP metadata.")
+        for name in APP_EXECUTABLE_FILES:
+            if prefix + name not in names:
+                raise ValueError(f"Missing required application executable: {name}")
+            entry = archive.getinfo(prefix + name)
+            with archive.open(entry) as contents:
+                validate_app_executable(name, entry.external_attr >> 16, entry.file_size, contents.read(32))
         if plistlib.loads(archive.read(prefix + "Info.plist")) != metadata:
             raise ValueError("Application metadata differs from the release source.")
         for notice in APP_LICENSE_FILES:

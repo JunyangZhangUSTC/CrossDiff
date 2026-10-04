@@ -37,20 +37,23 @@ enum PDFComparisonZoom: String, CaseIterable, Identifiable {
 }
 
 struct PDFPagePair: Identifiable, Sendable {
-    enum Kind: String, Sendable { case same, changed, added, removed, unknown }
+    enum Kind: String, Sendable {
+        case same, changed, added, removed, unknown
+        var title: String {
+            switch self {
+            case .same: return L("文字与预览匹配", "Text and Preview Match")
+            case .changed: return L("有变化", "Changed")
+            case .added: return L("新增页面", "Added Page")
+            case .removed: return L("删除页面", "Removed Page")
+            case .unknown: return L("需查看页面", "Review Page")
+            }
+        }
+    }
     let id: Int
     let left: Int?
     let right: Int?
     let kind: Kind
-    var title: String {
-        switch kind {
-        case .same: return L("文字与预览匹配", "Text and Preview Match")
-        case .changed: return L("有变化", "Changed")
-        case .added: return L("新增页面", "Added Page")
-        case .removed: return L("删除页面", "Removed Page")
-        case .unknown: return L("需查看页面", "Review Page")
-        }
-    }
+    var title: String { kind.title }
 
     /// Classification is separate from correspondence: choosing two pages does
     /// not establish that they are revisions of the same original page.
@@ -94,6 +97,46 @@ struct PDFPagePair: Identifiable, Sendable {
         }
         guard seenLeft.count == leftCount, seenRight.count == rightCount else { throw PDFComparisonFailure.invalidResult }
         return pairs
+    }
+}
+
+/// A one-sided position is not an inferred revision. Keep that distinction in
+/// one presentation value so labels, symbols and colors cannot disagree.
+enum PDFPagePresentation: Equatable {
+    case comparison(PDFPagePair.Kind), onlyLeft, onlyRight
+
+    enum Tone: Equatable { case neutral, changed, added, removed }
+    var title: String {
+        switch self {
+        case .onlyLeft: return L("仅左侧有此页", "Page Only on the Left")
+        case .onlyRight: return L("仅右侧有此页", "Page Only on the Right")
+        case .comparison(let kind): return kind.title
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .onlyLeft, .onlyRight: return "doc"
+        case .comparison(.same): return "equal"
+        case .comparison(.changed): return "circle.lefthalf.filled"
+        case .comparison(.added): return "plus"
+        case .comparison(.removed): return "minus"
+        case .comparison(.unknown): return "questionmark.circle"
+        }
+    }
+    var tone: Tone {
+        switch self {
+        case .comparison(.added): return .added
+        case .comparison(.removed): return .removed
+        case .comparison(.changed): return .changed
+        default: return .neutral
+        }
+    }
+    var emptyPageSymbol: String {
+        switch self {
+        case .comparison(.added): return "plus.rectangle.on.rectangle"
+        case .comparison(.removed): return "minus.rectangle"
+        default: return "doc"
+        }
     }
 }
 
@@ -169,13 +212,14 @@ final class PDFComparisonModel: ObservableObject {
         }
     }
 
-    func presentationTitle(for pair: PDFPagePair) -> String {
+    func presentation(for pair: PDFPagePair) -> PDFPagePresentation {
         if alignmentMode != .smart || isSmartFallback {
-            if pair.kind == .added { return L("仅右侧有此页", "Page Only on the Right") }
-            if pair.kind == .removed { return L("仅左侧有此页", "Page Only on the Left") }
+            if pair.kind == .added { return .onlyRight }
+            if pair.kind == .removed { return .onlyLeft }
         }
-        return pair.title
+        return .comparison(pair.kind)
     }
+    func presentationTitle(for pair: PDFPagePair) -> String { presentation(for: pair).title }
 
     func selectAlignmentMode(_ mode: PDFPageAlignmentMode) { alignmentMode = mode }
 

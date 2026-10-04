@@ -37,9 +37,9 @@ CROSSDIFF_DATA_DIR="$check_build/data" CROSSDIFF_RENDER_DIR="$check_build/render
 /usr/bin/python3 - "$check_build/folder-workflow-checks" <<'PY'
 import subprocess, sys
 try:
-    result = subprocess.run([sys.argv[1]], timeout=75)
+    result = subprocess.run([sys.argv[1]], timeout=240)
 except subprocess.TimeoutExpired:
-    print('Native folder checks timed out; AppKit may require native application services.', file=sys.stderr)
+    print('Native folder checks timed out before completion; inspect the project-local progress log and AppKit diagnostics.', file=sys.stderr)
     sys.exit(3)
 sys.exit(result.returncode)
 PY

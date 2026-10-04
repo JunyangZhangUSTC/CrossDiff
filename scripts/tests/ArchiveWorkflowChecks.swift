@@ -84,6 +84,40 @@ enum ArchiveWorkflowChecks {
         if let error = mixed.error { throw error }
         D.check(mixed.rows.first { $0.path == "docs/common.txt" }?.state == .same, "archive-to-local-folder uses identical content semantics")
         let execute = try manager.execution(for: pluginID)
+        let native = root.appendingPathComponent("fixtures/native")
+        let seven = native.appendingPathComponent("header-compressed.7z")
+        let rar = native.appendingPathComponent("test_read_format_rar5_stored.rar")
+        D.check(Set(manager.plugin(id: pluginID)?.package.manifest.fileExtensions ?? []).isSuperset(of: ["7z", "rar"]),
+                "bundled archive manifest advertises 7z and RAR input extensions")
+        D.check(Set(ArchiveComparisonModel.fileExtensions).isSuperset(of: ["7z", "rar"]),
+                "file-opening route recognizes 7z and RAR extensions")
+        let chooser = NewComparisonModel(store: store)
+        guard let archiveType = chooser.types.first(where: { $0.pluginID == pluginID }) else {
+            throw PluginValidationError.invalidField("archive chooser capability")
+        }
+        chooser.select(archiveType)
+        chooser.setInput(.file(seven), side: .left)
+        chooser.setInput(.file(rar), side: .right)
+        D.check(chooser.errorMessage == nil && chooser.canCreate && chooser.left == .file(seven) && chooser.right == .file(rar),
+                "New Comparison validates real 7z and RAR sources through the advertised capability")
+        let nativeFolder = native.appendingPathComponent("folder")
+        let previousNativeSession = store.selected?.id
+        store.accept([seven, nativeFolder])
+        try await D.wait("7z/folder routing") { store.selected?.id != previousNativeSession && store.selected?.pluginID == pluginID }
+        let nativeModel = store.selected!.archiveComparisonModel
+        try await D.wait("7z/folder real helper comparison") { nativeModel.result != nil || nativeModel.error != nil }
+        if let error = nativeModel.error { throw error }
+        D.check(nativeModel.result?.status == .completed && nativeModel.rows.count == 7 && nativeModel.rows.allSatisfy { $0.state == .same },
+                "real compressed-header 7z matches the local folder with fully verified equality")
+        let rarPair = ArchiveComparisonModel()
+        await rarPair.load(left: rar, right: rar, execute: { try await execute.compare($0) })
+        D.check(rarPair.error == nil && rarPair.result?.status == .completed && rarPair.rows.count == 1 && rarPair.rows.allSatisfy { $0.state == .same },
+                "real RAR/RAR model comparison uses the helper and publishes verified equality")
+        let badNative = ArchiveComparisonModel()
+        await badNative.load(left: native.appendingPathComponent("bad-payload-crc-copy.7z"), right: seven,
+                             execute: { try await execute.compare($0) })
+        D.check(badNative.error != nil && badNative.result == nil && badNative.rows.isEmpty,
+                "bad native CRC cannot become an empty or false-equal plugin result")
         let unicode = ArchiveComparisonModel()
         await unicode.load(left: root.appendingPathComponent("fixtures/unicode-left.tar"),
             right: root.appendingPathComponent("fixtures/unicode-right.tar"), execute: { try await execute.compare($0) })
