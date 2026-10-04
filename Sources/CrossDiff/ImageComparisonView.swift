@@ -10,6 +10,7 @@ struct ImageComparisonView: View {
     @ObservedObject var model: ImageComparisonModel
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var appearance = AppAppearance.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var drag: ImageAlignmentDrag?
     @State private var cornerDrag: ImageCornerDrag?
     private var theme: ComparisonTheme { appearance.colors }
@@ -182,6 +183,21 @@ struct ImageComparisonView: View {
     private var matchingActions: some View {
         HStack(spacing: 12) {
             if model.matchingResult?.status == .accepted && !model.isMatching && model.matchingNotice == nil {
+                Button { model.toggleSimilarRegions() } label: {
+                    Label(L("相似区域", "Similar Regions"), systemImage: "square.dashed.inset.filled")
+                        .fontWeight(model.showSimilarRegions ? .semibold : .regular)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .foregroundStyle(Color(nsColor: model.showSimilarRegions ? theme.accent : theme.text))
+                        .background(Color(nsColor: theme.accent).opacity(model.showSimilarRegions ? 0.13 : 0.035),
+                                    in: RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(nsColor: model.showSimilarRegions ? theme.accent : theme.separator).opacity(0.65)))
+                }
+                .buttonStyle(.plain).fixedSize()
+                .accessibilityIdentifier("image.similarRegions")
+                .accessibilityValue(model.showSimilarRegions ? L("已显示", "Shown") : L("已隐藏", "Hidden"))
+                .help(L("显示两图的对应范围与经核验的相似内容，再次点击隐藏。范围轮廓不表示内部全部相同。",
+                        "Show the corresponding extent and verified similar content until hidden. The extent does not mean everything inside is identical."))
                 Toggle(L("对应点", "Match Points"), isOn: $model.showMatchPoints)
                     .toggleStyle(.checkbox).controlSize(.small)
                     .fixedSize()
@@ -196,6 +212,53 @@ struct ImageComparisonView: View {
                     .accessibilityIdentifier("image.restoreAlignment")
             }
         }
+    }
+
+    private var similarityInformation: some View {
+        HStack(spacing: 10) {
+            if model.isAnalyzingSimilarity {
+                ProgressView().controlSize(.mini)
+                Text(L("正在核验相似区域…", "Checking similar regions…"))
+            } else if model.similarityFailed {
+                Label(L("未能完成区域分析，关闭后可重试。", "Region analysis failed. Hide and reopen to retry."), systemImage: "info.circle")
+            } else if let result = model.similarityResult {
+                if result.regions.isEmpty {
+                    Label(result.overlap.isEmpty
+                          ? L("暂无足够可靠的相似区域；未标注不代表不同。", "No sufficiently reliable regions; unmarked does not mean different.")
+                          : L("虚线显示对应范围；暂无足够可靠的相似内容。", "Dashed outline shows the extent; no sufficiently reliable similar content."),
+                          systemImage: "info.circle")
+                        .lineLimit(1).truncationMode(.tail)
+                } else {
+                    Circle().fill(Color(nsColor: theme.accent)).frame(width: 6, height: 6)
+                    Text(L("\(result.regions.count) 处相似区域",
+                           result.regions.count == 1 ? "1 similar region" : "\(result.regions.count) similar regions"))
+                        .fontWeight(.medium).foregroundStyle(Color(nsColor: theme.text)).fixedSize()
+                    Text(L("虚线：对应范围 · 填色：相似内容", "Dashed: corresponding extent · Filled: similar content"))
+                        .lineLimit(1).truncationMode(.tail)
+                    Spacer(minLength: 6)
+                    let index = result.regions.firstIndex { $0.id == model.selectedSimilarityRegionID } ?? 0
+                    Text("\(index + 1) / \(result.regions.count)").monospacedDigit().fixedSize()
+                    Button { model.navigateSimilarityRegion(-1) } label: { Image(systemName: "chevron.left") }
+                        .accessibilityLabel(L("上一处相似区域", "Previous Similar Region"))
+                        .accessibilityIdentifier("image.similarityPrevious")
+                        .disabled(result.regions.count < 2)
+                    Button { model.navigateSimilarityRegion(1) } label: { Image(systemName: "chevron.right") }
+                        .accessibilityLabel(L("下一处相似区域", "Next Similar Region"))
+                        .accessibilityIdentifier("image.similarityNext")
+                        .disabled(result.regions.count < 2)
+                }
+            }
+            if model.similarityResult?.regions.isEmpty != false { Spacer(minLength: 0) }
+        }
+        .font(.system(size: 11)).foregroundStyle(Color(nsColor: theme.secondaryText))
+        .buttonStyle(.bordered).controlSize(.mini)
+        .frame(height: 22)
+        .padding(.horizontal, 18).padding(.vertical, 5)
+        .background(Color(nsColor: theme.chrome))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("image.similaritySummary")
+        .help(L("虚线标出智能对齐后的几何对应范围，不表示范围内全部相同；填色表示经核验的近似内容，未填色不代表不同。点击编号或箭头联动查看，细节请配合滑动对比或像素差异。",
+                "The dashed outline marks the geometric extent after smart alignment, not identical content throughout. Filled areas are verified as similar; unfilled areas are inconclusive. Use numbers or arrows for linked inspection, and Wipe or Pixel Difference for detail."))
     }
 
     private func imageAdjustments(_ preview: ImageComparisonPreview) -> some View {
@@ -313,7 +376,10 @@ struct ImageComparisonView: View {
             let columns: CGFloat = model.mode == .sideBySide ? 2 : 1
             // Reserve space outside the raster so every corner has a full hit target.
             let width = max(1, (geometry.size.width - 32 - gap) / columns - 24)
-            let height = max(1, geometry.size.height - 56)
+            // Keep inspection controls inside the flexible canvas so toggling
+            // evidence cannot increase NSHostingView's window minimum height.
+            let inspectionHeight: CGFloat = model.showSimilarRegions ? 33 : 0
+            let height = max(1, geometry.size.height - 56 - inspectionHeight)
             let fit = min(1, width / reference.pixelSize.width, height / reference.pixelSize.height)
             let scale = cornerDrag?.displayScale ?? drag?.displayScale ?? model.zoom.scale ?? fit
             let size = CGSize(width: reference.pixelSize.width * scale, height: reference.pixelSize.height * scale)
@@ -333,9 +399,18 @@ struct ImageComparisonView: View {
                     }
                 }
                 .padding(16)
+                .padding(.top, inspectionHeight)
                 .frame(minWidth: reference.viewportSize.width, minHeight: reference.viewportSize.height)
             }
             .background(Color(nsColor: theme.canvas))
+            .overlay(alignment: .top) {
+                if model.showSimilarRegions {
+                    VStack(spacing: 0) {
+                        similarityInformation
+                        Divider()
+                    }
+                }
+            }
         }
     }
 
@@ -345,12 +420,13 @@ struct ImageComparisonView: View {
             ImageComparisonCheckerboard(isDark: appearance.isDark)
             mappedImage(side == .left ? preview.left.image : preview.right.image,
                         preview: preview, reference: reference, scale: scale)
+            similarityOverlay(side, preview: preview, reference: reference, size: size, scale: scale)
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
         .overlay(Rectangle().stroke(Color(nsColor: theme.separator), lineWidth: 1).allowsHitTesting(false))
         .contentShape(Rectangle())
         .gesture(alignmentGesture(side, reference: reference, scale: scale))
-        .accessibilityElement(children: .ignore)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(L("拖动图片调整对齐位置", "Drag the image to adjust alignment"))
         .accessibilityIdentifier("image.canvas.\(side.rawValue)")
         .overlay(alignment: .topLeading) {
@@ -378,15 +454,21 @@ struct ImageComparisonView: View {
             ImageComparisonCheckerboard(isDark: appearance.isDark)
             if model.mode == .difference {
                 mappedImage(preview.difference, preview: preview, reference: reference, scale: scale)
+                similarityOverlay(model.alignmentSide, preview: preview, reference: reference, size: size, scale: scale)
             } else if model.mode == .overlay {
                 mappedImage(preview.left.image, preview: preview, reference: reference, scale: scale)
                 mappedImage(preview.right.image, preview: preview, reference: reference, scale: scale).opacity(model.opacity)
+                similarityOverlay(model.alignmentSide, preview: preview, reference: reference, size: size, scale: scale)
             } else {
                 mappedImage(preview.left.image, preview: preview, reference: reference, scale: scale)
                     .frame(width: size.width, height: size.height, alignment: .topLeading)
                     .mask(alignment: .leading) { Rectangle().frame(width: size.width * model.wipePosition) }
                 mappedImage(preview.right.image, preview: preview, reference: reference, scale: scale)
                     .frame(width: size.width, height: size.height, alignment: .topLeading)
+                    .mask(alignment: .trailing) { Rectangle().frame(width: size.width * (1 - model.wipePosition)) }
+                similarityOverlay(.left, preview: preview, reference: reference, size: size, scale: scale)
+                    .mask(alignment: .leading) { Rectangle().frame(width: size.width * model.wipePosition) }
+                similarityOverlay(.right, preview: preview, reference: reference, size: size, scale: scale)
                     .mask(alignment: .trailing) { Rectangle().frame(width: size.width * (1 - model.wipePosition)) }
                 Rectangle().fill(.white).frame(width: 2, height: size.height)
                     .shadow(color: .black.opacity(0.5), radius: 1)
@@ -411,6 +493,76 @@ struct ImageComparisonView: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L("图片对比画布", "Image Comparison Canvas"))
+    }
+
+    @ViewBuilder
+    private func similarityOverlay(_ side: ImageComparisonSide, preview: ImageComparisonPreview,
+                                   reference: ImageCanvasReference, size: CGSize, scale: CGFloat) -> some View {
+        if model.showSimilarRegions, let result = model.similarityResult {
+            let sourceSize = side == .left ? preview.leftSourceSize : preview.rightSourceSize
+            let matrix = ImageTransformGeometry.affine(sourceSize: sourceSize, transform: model.transform(for: side))
+            let map: (CGPoint) -> CGPoint = { leftPoint in
+                let sourcePoint = side == .left ? leftPoint : leftPoint.applying(result.leftToRight)
+                return reference.point(sourcePoint.applying(matrix), displayScale: scale)
+            }
+            ZStack(alignment: .topLeading) {
+                Canvas { context, _ in
+                    for region in result.regions {
+                        let selected = region.id == model.selectedSimilarityRegionID
+                        var fill = Path()
+                        for cell in region.cells {
+                            fill.addLines([CGPoint(x: cell.minX, y: cell.minY), CGPoint(x: cell.maxX, y: cell.minY),
+                                           CGPoint(x: cell.maxX, y: cell.maxY), CGPoint(x: cell.minX, y: cell.maxY)].map(map))
+                            fill.closeSubpath()
+                        }
+                        context.fill(fill, with: .color(Color(nsColor: theme.accent).opacity(selected ? 0.17 : 0.065)))
+                        var outline = Path()
+                        for edge in region.boundary {
+                            outline.move(to: map(edge.start))
+                            outline.addLine(to: map(edge.end))
+                        }
+                        // The narrow neutral under-stroke keeps the contour legible
+                        // on both dark photographs and bright backgrounds.
+                        context.stroke(outline, with: .color(Color(nsColor: theme.canvas).opacity(0.65)),
+                                       lineWidth: selected ? 2 : 1.5)
+                        context.stroke(outline, with: .color(Color(nsColor: theme.accent).opacity(selected ? 1 : 0.65)),
+                                       lineWidth: selected ? 1 : 0.75)
+                    }
+                    // The full geometric extent remains distinct from the
+                    // verified fill, including edits and transparent holes.
+                    if result.overlap.count >= 3 {
+                        var extent = Path()
+                        extent.addLines(result.overlap.map(map))
+                        extent.closeSubpath()
+                        context.stroke(extent, with: .color(Color(nsColor: theme.canvas).opacity(0.65)), lineWidth: 1.8)
+                        context.stroke(extent, with: .color(Color(nsColor: theme.text).opacity(0.75)),
+                                       style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                    }
+                }
+                .allowsHitTesting(false).accessibilityHidden(true)
+                ForEach(result.regions) { region in
+                    let selected = region.id == model.selectedSimilarityRegionID
+                    Button { model.selectSimilarityRegion(region.id) } label: {
+                        Text("\(region.id)")
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color(nsColor: selected ? theme.canvas : theme.accent))
+                            .frame(width: 23, height: 23)
+                            .background(Color(nsColor: selected ? theme.accent : theme.canvas), in: Circle())
+                            .overlay(Circle().stroke(Color(nsColor: theme.canvas), lineWidth: 1.5))
+                            .shadow(color: .black.opacity(0.14), radius: 2, y: 1)
+                    }
+                    .buttonStyle(.plain)
+                    .position(map(region.anchor))
+                    .accessibilityLabel(L("\(side.title)，相似区域 \(region.id)", "\(side.title), similar region \(region.id)"))
+                    .accessibilityValue(selected ? L("已选中", "Selected") : L("未选中", "Not Selected"))
+                    .accessibilityIdentifier("image.similarityRegion.\(side.rawValue).\(region.id)")
+                    .help(L("点击同时强调左右对应区域", "Highlight this region on both images"))
+                }
+            }
+            .frame(width: size.width, height: size.height, alignment: .topLeading)
+            .clipped()
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: model.selectedSimilarityRegionID)
+        }
     }
 
     private func selectionOverlay(_ side: ImageComparisonSide, preview: ImageComparisonPreview,

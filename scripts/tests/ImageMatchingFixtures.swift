@@ -42,6 +42,47 @@ enum ImageMatchingFixtures {
         .init(left: asset(left), right: asset(right))
     }
 
+    /// A known full-height edit splits the surviving shared content into two
+    /// islands. Write source-order pixels directly so the expected occlusion
+    /// coordinates do not depend on Core Graphics drawing orientation.
+    static func occlusionBounds(in image: CGImage) -> CGRect {
+        CGRect(x: image.width * 2 / 5, y: 0,
+               width: max(1, image.width / 5), height: image.height)
+    }
+
+    static func occluded(_ image: CGImage) -> CGImage {
+        replacingPixels(in: image, bounds: occlusionBounds(in: image))
+    }
+
+    /// A bounded central edit leaves a visible hole inside otherwise connected
+    /// common content, rather than splitting it into separate left/right islands.
+    static func localOcclusionBounds(in image: CGImage) -> CGRect {
+        CGRect(x: image.width * 3 / 8, y: image.height * 3 / 8,
+               width: max(1, image.width / 4), height: max(1, image.height / 4))
+    }
+
+    static func locallyOccluded(_ image: CGImage) -> CGImage {
+        replacingPixels(in: image, bounds: localOcclusionBounds(in: image))
+    }
+
+    private static func replacingPixels(in image: CGImage, bounds: CGRect) -> CGImage {
+        precondition(image.bitsPerPixel == 32 && image.bitsPerComponent == 8)
+        var bytes = [UInt8](image.dataProvider!.data! as Data)
+        for y in Int(bounds.minY)..<Int(bounds.maxY) {
+            for x in Int(bounds.minX)..<Int(bounds.maxX) {
+                let offset = y * image.bytesPerRow + x * 4
+                bytes[offset] = 201
+                bytes[offset + 1] = 102
+                bytes[offset + 2] = 120
+                bytes[offset + 3] = 255
+            }
+        }
+        return CGImage(width: image.width, height: image.height, bitsPerComponent: 8, bitsPerPixel: 32,
+            bytesPerRow: image.bytesPerRow, space: image.colorSpace!, bitmapInfo: image.bitmapInfo,
+            provider: CGDataProvider(data: Data(bytes) as CFData)!, decode: nil,
+            shouldInterpolate: false, intent: .defaultIntent)!
+    }
+
     static func write(_ image: CGImage, to url: URL) throws {
         let output = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)!
         CGImageDestinationAddImage(output, image, nil)
