@@ -27,7 +27,7 @@ enum ImageTransformChecks {
             let success = ProcessInfo.processInfo.environment["CROSSDIFF_CORNER_CHECK_ONLY"] == "1"
                     ? "PASS: targeted native corner transitions and mouse-up completion"
                     : ProcessInfo.processInfo.environment["CROSSDIFF_SMART_CHECK_ONLY"] == "1"
-                    ? "PASS: targeted native smart alignment, evidence, restore, failure, tab retention and light/dark/bilingual/860px windows"
+                    ? "PASS: targeted native smart alignment, similarity regions, evidence, restore, failure, tab retention and light/dark/bilingual/860px windows"
                     : "PASS: native image scale/rotation, four-corner resize, aspect locking, horizontal/vertical flip, independent edits, alignment, mode/tab retention, reset, newest render, immutable files, Chinese/English and light/dark/wide/860px full-window renders"
             let verdict = failures.isEmpty
                 ? success
@@ -233,6 +233,8 @@ enum ImageTransformChecks {
         try await settled(model)
         check(model.matchingResult?.status == .accepted && model.canRestoreAlignment && model.mode == .wipe,
               "native smart-align button applies verified registration and opens wipe mode")
+        check(!model.showSimilarRegions && model.similarityResult == nil,
+              "native smart alignment leaves similarity analysis and highlights off by default")
         check(model.leftTransform.isIdentity && abs(model.rightTransform.offsetX - 103) < 0.5 && abs(model.rightTransform.offsetY - 71) < 0.5,
               "native alignment maps a crop into the original image")
         for (name, width, height, dark, language) in [
@@ -263,12 +265,50 @@ enum ImageTransformChecks {
         try await pause()
         check(model.matchingResult?.status == .accepted && model.showMatchPoints && model.canRestoreAlignment,
               "switching tabs preserves automatic alignment, evidence and restore snapshot")
+        try await checkSimilarityRegions(session: session)
         try await press("image.restoreAlignment")
         try await settled(model)
         check(model.leftTransform == previousLeft && model.rightTransform == previousRight && !model.leftAspectLocked,
               "native restore recovers the complete previous manual alignment")
-        check(model.matchingResult == nil && !model.showMatchPoints && !model.canRestoreAlignment,
+        check(model.matchingResult == nil && !model.showMatchPoints && !model.canRestoreAlignment &&
+              !model.showSimilarRegions && model.similarityResult == nil && model.selectedSimilarityRegionID == nil,
               "restore removes stale alignment evidence")
+
+        let edited = fixtures.appendingPathComponent("Locally edited composition.png")
+        try ImageMatchingFixtures.write(ImageMatchingFixtures.occluded(original), to: edited)
+        let editedBytes = try Data(contentsOf: edited)
+        let editedSession = ComparisonSession(kind: .image, left: .init(path: lhs.path), right: .init(path: edited.path))
+        WorkspaceStore.shared.sessions = [editedSession]
+        WorkspaceStore.shared.selectedID = editedSession.id
+        let editedModel = editedSession.imageComparisonModel
+        try await settled(editedModel)
+        try await press("image.smartAlign")
+        try await wait("local-edit alignment") { !editedModel.isMatching && editedModel.matchingResult != nil }
+        try await settled(editedModel)
+        try await press("image.similarRegions")
+        try await wait("local-edit similarity") { !editedModel.isAnalyzingSimilarity }
+        guard let islands = editedModel.similarityResult?.regions, let lastIsland = islands.last else {
+            throw CheckError(description: "Known local edit produced no visible similarity evidence")
+        }
+        check(islands.count >= 2, "native similarity view separates shared content around an occluding edit")
+        editedModel.mode = .sideBySide
+        try await pause()
+        check(try enabled(try control("image.similarityPrevious")) && enabled(try control("image.similarityNext")),
+              "multiple shared regions enable native previous and next navigation")
+        try await press("image.similarityRegion.right.\(lastIsland.id)")
+        check(editedModel.selectedSimilarityRegionID == lastIsland.id,
+              "selecting a right-image region selects the shared identity for both sides")
+        try await press("image.similarityNext")
+        check(editedModel.selectedSimilarityRegionID == islands.first!.id,
+              "native next-region navigation wraps from the final island to the first")
+        try await press("image.similarityPrevious")
+        check(editedModel.selectedSimilarityRegionID == lastIsland.id,
+              "native previous-region navigation wraps back to the final island")
+        try await stage("image-similarity-occlusion-zh-light", width: 1220, height: 790, dark: false, language: .simplifiedChinese)
+        try await stage("image-similarity-occlusion-en-dark-860", width: 860, height: 580, dark: true, language: .english)
+        check(try Data(contentsOf: edited) == editedBytes && !editedSession.dirty,
+              "local-edit region inspection keeps the edited input immutable")
+        try await checkCropVariants(original: original, cropped: cropped, originalURL: lhs, croppedURL: rhs, fixtures: fixtures)
 
         let blank = fixtures.appendingPathComponent("No detail.png")
         try ImageMatchingFixtures.write(ImageMatchingFixtures.solid(), to: blank)
@@ -286,7 +326,166 @@ enum ImageTransformChecks {
         try await stage("image-smart-rejected-en-light-860", width: 860, height: 640, dark: false, language: .english)
         check(try Data(contentsOf: lhs) == bytes[0] && Data(contentsOf: rhs) == bytes[1] && !session.dirty,
               "smart alignment, points, restore and failure never write the sources")
-        log("PASS: native smart alignment, match evidence, restore, tab retention, failure and source immutability")
+        log("PASS: native smart alignment, similarity regions, match evidence, restore, tab retention, failure and source immutability")
+    }
+
+    private static func checkSimilarityRegions(session: ComparisonSession) async throws {
+        let model = session.imageComparisonModel
+        if model.showMatchPoints { try await press("image.matchPoints") }
+        let left = model.leftTransform, right = model.rightTransform, mode = model.mode
+        try await press("image.similarRegions")
+        try await wait("similarity region analysis") { !model.isAnalyzingSimilarity }
+        guard let result = model.similarityResult, let first = result.regions.first else {
+            throw CheckError(description: "Known crop produced no visible similarity evidence")
+        }
+        check(result.regions.count == 1, "an unedited crop is one continuous shared region, including its verified flat background")
+        checkOverlap(result, expectedLeft: CGRect(x: 103, y: 71, width: 540, height: 390),
+                     expectedRight: CGRect(x: 0, y: 0, width: 540, height: 390), label: "original and crop")
+        check(model.showSimilarRegions && !model.similarityFailed,
+              "native similar-regions button keeps verified content visible until explicitly hidden")
+        check(model.leftTransform == left && model.rightTransform == right && model.mode == mode,
+              "native region analysis leaves display mode and both image transforms untouched")
+        model.mode = .sideBySide
+        try await pause()
+        _ = try control("image.similarityRegion.left.\(first.id)")
+        _ = try control("image.similarityRegion.right.\(first.id)")
+        check(try !enabled(try control("image.similarityPrevious")) && !enabled(try control("image.similarityNext")),
+              "a single crop region keeps native previous and next navigation disabled")
+        check(model.selectedSimilarityRegionID == first.id, "the continuous crop region is selected initially")
+        for (name, width, height, dark, language) in [
+            ("image-similarity-crop-zh-light", 1220.0, 790.0, false, AppLanguage.simplifiedChinese),
+            ("image-similarity-crop-zh-dark", 1220.0, 790.0, true, AppLanguage.simplifiedChinese),
+            ("image-similarity-crop-zh-light-860", 860.0, 580.0, false, AppLanguage.simplifiedChinese),
+            ("image-similarity-crop-zh-dark-860", 860.0, 580.0, true, AppLanguage.simplifiedChinese),
+            ("image-similarity-crop-en-dark-860", 860.0, 580.0, true, AppLanguage.english),
+            ("image-similarity-crop-en-light-860", 860.0, 580.0, false, AppLanguage.english)
+        ] {
+            try await stage(name, width: width, height: height, dark: dark, language: language)
+            for id in ["image.similarRegions", "image.similarityPrevious", "image.similarityNext", "image.similaritySummary"] {
+                let frame = try accessibilityFrame(try control(id))
+                check(frame.width > 0 && frame.height > 0 && window.frame.contains(frame),
+                      "\(name) keeps \(id) visible inside the native window")
+            }
+        }
+        model.mode = .difference
+        let difference = model.preview!.difference.dataProvider!.data! as Data
+        try await stage("image-similarity-difference-zh-dark-860", width: 860, height: 580, dark: true, language: .simplifiedChinese)
+        try await press("image.similarRegions")
+        check(!model.showSimilarRegions && model.similarityResult != nil,
+              "native hide-region action removes the overlay while retaining completed analysis")
+        check(model.mode == .difference && (model.preview!.difference.dataProvider!.data! as Data) == difference,
+              "hiding similarity leaves the exact original pixel-difference bitmap intact")
+        try await press("image.similarRegions")
+        check(model.showSimilarRegions && !model.isAnalyzingSimilarity && model.similarityResult?.duration == result.duration,
+              "native re-enable reuses cached evidence without rerunning analysis")
+        let other = ComparisonSession(left: .init(text: "region cache"), right: .init(text: "tab retention"))
+        WorkspaceStore.shared.sessions.append(other)
+        WorkspaceStore.shared.selectedID = other.id
+        try await pause()
+        WorkspaceStore.shared.selectedID = session.id
+        try await pause()
+        check(session.imageComparisonModel === model && model.showSimilarRegions && model.similarityResult?.duration == result.duration &&
+              model.selectedSimilarityRegionID == first.id,
+              "tab switching retains visible similarity regions, cached evidence and selection")
+        check(model.leftTransform == left && model.rightTransform == right,
+              "similarity visibility and navigation do not move the compared images")
+    }
+
+    private static func checkCropVariants(original: CGImage, cropped: CGImage, originalURL: URL,
+                                          croppedURL: URL, fixtures: URL) async throws {
+        let reversed = try await openRegionComparison(left: croppedURL, right: originalURL, label: "reversed crop")
+        let reversedResult = reversed.imageComparisonModel.similarityResult!
+        check(reversedResult.regions.count == 1, "swapping crop and original still produces one continuous shared region")
+        checkOverlap(reversedResult, expectedLeft: CGRect(x: 0, y: 0, width: 540, height: 390),
+                     expectedRight: CGRect(x: 103, y: 71, width: 540, height: 390), label: "crop and original")
+        try await stage("image-similarity-crop-reversed-zh-light", width: 1220, height: 790, dark: false, language: .simplifiedChinese)
+        try await stage("image-similarity-crop-reversed-en-dark-860", width: 860, height: 580, dark: true, language: .english)
+
+        // Generate an actually rotated/scaled PNG and let the same native button
+        // workflow recover its alignment; changing only the preview controls
+        // would not exercise detection or source-coordinate evidence.
+        let transformed = try ImageComparisonRenderer.render(sources: ImageMatchingFixtures.sources(cropped, cropped),
+            rightTransform: .init(scale: 0.83, rotationDegrees: 22))
+        let transformedURL = fixtures.appendingPathComponent("Rotated scaled crop.png")
+        try ImageMatchingFixtures.write(transformed.right.image, to: transformedURL)
+        let transformedBytes = try Data(contentsOf: transformedURL)
+        let rotated = try await openRegionComparison(left: originalURL, right: transformedURL, label: "rotated scaled crop")
+        let rotatedModel = rotated.imageComparisonModel
+        let rotatedResult = rotatedModel.similarityResult!
+        check(rotatedResult.overlap.count >= 3 && !rotatedResult.regions.isEmpty,
+              "rotated scaled crop has independent geometric coverage and verified similar content")
+        check(abs(rotatedModel.rightTransform.rotationDegrees + 22) < 0.5 && abs(rotatedModel.rightTransform.scale - 1 / 0.83) < 0.02,
+              "native alignment recovers the rotated and scaled source crop")
+        let originalBounds = CGRect(x: 0, y: 0, width: original.width, height: original.height).insetBy(dx: -1, dy: -1)
+        let rotatedBounds = CGRect(x: 0, y: 0, width: transformed.width, height: transformed.height).insetBy(dx: -1, dy: -1)
+        check(rotatedResult.overlap.allSatisfy { originalBounds.contains($0) && rotatedBounds.contains($0.applying(rotatedResult.leftToRight)) },
+              "both rendered overlap outlines follow actual source bounds after rotation and scaling")
+        try await stage("image-similarity-crop-rotated-en-light", width: 1220, height: 790, dark: false, language: .english)
+        try await stage("image-similarity-crop-rotated-zh-dark-860", width: 860, height: 580, dark: true, language: .simplifiedChinese)
+
+        let localEdit = ImageMatchingFixtures.locallyOccluded(cropped)
+        let localURL = fixtures.appendingPathComponent("Crop with local edit.png")
+        try ImageMatchingFixtures.write(localEdit, to: localURL)
+        let localBytes = try Data(contentsOf: localURL)
+        let edited = try await openRegionComparison(left: originalURL, right: localURL, label: "crop with local hole")
+        let editedResult = edited.imageComparisonModel.similarityResult!
+        checkOverlap(editedResult, expectedLeft: CGRect(x: 103, y: 71, width: 540, height: 390),
+                     expectedRight: CGRect(x: 0, y: 0, width: 540, height: 390), label: "crop with local hole")
+        let localBounds = ImageMatchingFixtures.localOcclusionBounds(in: localEdit)
+        let centerInRight = CGPoint(x: localBounds.midX, y: localBounds.midY)
+        let centerInLeft = centerInRight.applying(editedResult.leftToRight.inverted())
+        check(!editedResult.regions.flatMap(\.cells).contains { $0.contains(centerInLeft) },
+              "local edit remains an unfilled hole even inside the complete geometric crop outline")
+        let nearHole = localBounds.insetBy(dx: -36, dy: -36)
+        check(editedResult.regions.flatMap(\.boundary).contains { edge in
+            nearHole.contains(edge.start.applying(editedResult.leftToRight)) &&
+            nearHole.contains(edge.end.applying(editedResult.leftToRight))
+        }, "similar-content boundary preserves an inner contour around a local edit")
+        try await stage("image-similarity-crop-hole-zh-light", width: 1220, height: 790, dark: false, language: .simplifiedChinese)
+        try await stage("image-similarity-crop-hole-en-dark-860", width: 860, height: 580, dark: true, language: .english)
+        check(try Data(contentsOf: transformedURL) == transformedBytes && Data(contentsOf: localURL) == localBytes &&
+              !reversed.dirty && !rotated.dirty && !edited.dirty,
+              "reversed, transformed and locally edited crop comparisons keep inputs immutable")
+    }
+
+    private static func openRegionComparison(left: URL, right: URL, label: String) async throws -> ComparisonSession {
+        let session = ComparisonSession(kind: .image, left: .init(path: left.path), right: .init(path: right.path))
+        WorkspaceStore.shared.sessions = [session]
+        WorkspaceStore.shared.selectedID = session.id
+        let model = session.imageComparisonModel
+        try await settled(model)
+        check(!model.showSimilarRegions && model.similarityResult == nil, "\(label): regions default to hidden")
+        try await press("image.smartAlign")
+        try await wait("\(label) alignment") { !model.isMatching && model.matchingResult != nil }
+        try await settled(model)
+        guard model.matchingResult?.status == .accepted else {
+            throw CheckError(description: "\(label): native smart alignment failed")
+        }
+        check(!model.showSimilarRegions && model.similarityResult == nil, "\(label): alignment alone does not add region information")
+        try await press("image.similarRegions")
+        try await wait("\(label) similarity") { !model.isAnalyzingSimilarity }
+        guard model.similarityResult != nil, !model.similarityFailed else {
+            throw CheckError(description: "\(label): native region analysis failed")
+        }
+        model.mode = .sideBySide
+        try await pause()
+        return session
+    }
+
+    private static func checkOverlap(_ result: ImageSimilarityResult, expectedLeft: CGRect, expectedRight: CGRect, label: String) {
+        func bounds(_ points: [CGPoint]) -> CGRect {
+            guard let first = points.first else { return .zero }
+            let minX = points.map(\.x).min() ?? first.x, maxX = points.map(\.x).max() ?? first.x
+            let minY = points.map(\.y).min() ?? first.y, maxY = points.map(\.y).max() ?? first.y
+            return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+        }
+        func nearRect(_ a: CGRect, _ b: CGRect) -> Bool {
+            abs(a.minX - b.minX) < 1 && abs(a.minY - b.minY) < 1 &&
+            abs(a.maxX - b.maxX) < 1 && abs(a.maxY - b.maxY) < 1
+        }
+        check(result.overlap.count >= 3 && nearRect(bounds(result.overlap), expectedLeft) &&
+              nearRect(bounds(result.overlap.map { $0.applying(result.leftToRight) }), expectedRight),
+              "\(label): geometric outline identifies the whole shared image extent on both sides")
     }
 
     private static func inspectImageColors(_ name: String, model: ImageComparisonModel) throws {
@@ -630,6 +829,16 @@ enum ImageTransformChecks {
             check(invoke(object, action), "\(id) accepts its accessibility action")
         }
         try await pause()
+    }
+
+    private static func enabled(_ object: NSObject) throws -> Bool {
+        if let control = object as? NSControl { return control.isEnabled }
+        let selector = NSSelectorFromString("isAccessibilityEnabled")
+        guard object.responds(to: selector) else {
+            throw CheckError(description: "Missing accessible enabled state for \(string(object, "accessibilityIdentifier"))")
+        }
+        typealias Getter = @convention(c) (AnyObject, Selector) -> Bool
+        return unsafeBitCast(object.method(for: selector), to: Getter.self)(object, selector)
     }
 
     private static func dragCanvas(_ id: String, delta: NSPoint) async throws {
