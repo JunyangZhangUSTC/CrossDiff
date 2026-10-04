@@ -60,7 +60,7 @@ public struct PluginLocalizedText: Codable, Equatable, Sendable {
 }
 
 public enum PluginRuntimeProfile: String, Codable, Sendable { case restrictedJavaScript, trustedExecutable }
-public enum PluginInputKind: String, Codable, Sendable { case text, pdf, archiveCatalog, photoAnalysis, httpExchange, audioAnalysis, officeDocument }
+public enum PluginInputKind: String, Codable, Sendable { case text, pdf, archiveCatalog, photoAnalysis, httpExchange, audioAnalysis, officeDocument, videoAnalysis }
 public enum PluginComparisonMode: String, Codable, Sendable { case pairwise, threeWayMerge, multiSubject }
 public enum PluginInputRole: String, Codable, Sendable { case left, right, base, ours, theirs, peer }
 public enum PluginResultStatus: String, Codable, Sendable { case completed, partial }
@@ -97,6 +97,7 @@ public struct PluginManifest: Codable, Equatable, Sendable {
         case "apiExchange": return "crossdiff.api-exchange/1"
         case "audioTimeline": return "crossdiff.audio/1"
         case "officeDocuments": return "crossdiff.office/1"
+        case "videoTimeline": return "crossdiff.video/1"
         default: return ""
         }
     }
@@ -160,6 +161,10 @@ public struct PluginComparisonRequest: Codable, Equatable, Sendable {
             guard Set(inputs.compactMap { $0.content["kind"]?.stringValue }).count == 1 else {
                 throw PluginValidationError.invalidField("office document kinds")
             }
+        }
+        if manifest.inputKind == .videoAnalysis {
+            for input in inputs { try VideoContract.validateInput(input.content) }
+            try VideoContract.validateOptions(options)
         }
         let roles = inputs.map(\.role)
         switch mode {
@@ -228,6 +233,7 @@ public struct PluginComparisonResult: Codable, Equatable, Sendable {
         if schema == "crossdiff.api-exchange/1" { _ = try APIComparisonResult.parse(self) }
         if schema == "crossdiff.audio/1" { try AudioContract.validateResult(self, request: request) }
         if schema == "crossdiff.office/1" { try OfficeContract.validateResult(self, request: request) }
+        if schema == "crossdiff.video/1" { try VideoContract.validateResult(self, request: request) }
         if schema == "crossdiff.photography/1" {
             guard let findings = payload["findings"]?.arrayValue, findings.count <= 8,
                   findings.allSatisfy({ value in

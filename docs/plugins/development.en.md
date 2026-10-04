@@ -1,6 +1,6 @@
 # Plugin development · Experimental v1
 
-Status: 2026-10-02, for the unpublished CrossDiff 0.12.0 source preview (Photography/API/Audio/Office 0.1.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
+Status: 2026-10-04, for the unpublished CrossDiff 0.14.0 source preview (Photography/API/Audio/Office/Video 0.1.0 and PDF 0.2.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
 
 The contract is implemented in [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift), [PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift), [PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) and [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift). Future capabilities discussed in the [architecture design](../architecture/compare-everything.md) are not automatically available in this preview.
 
@@ -17,6 +17,7 @@ Plugins supply comparison algorithms. The host reads inputs, runs tasks and disp
 | `photoAnalysis` | Bounded, normalized Apple/OpenCV RGB/HSL distributions, neutral share and analysis metadata | `photography`: paired photos, regions, histograms, recorded curves and capture information |
 | `audioAnalysis` | Bounded source metadata and host matching evidence; no PCM, waveform or spectral grids | `audioTimeline`: paired timelines, channel waveforms, spectrograms, regions and A/B audition |
 | `officeDocument` | One selected DOCX/XLSX/PPTX section with typed cells, original positions, formulas and saved values | `officeDocuments`: native grids and paragraph/slide content |
+| `videoAnalysis` | Bounded video metadata, without paths, frame pixels, PCM or correspondence claims | `videoTimeline`: native paired pictures and timelines, manual timing and paused inspection |
 
 The bundled [PDF plugin](../../Plugins/PDF/) contains the JavaScript algorithm that aligns and classifies pages. PDFKit extracts and presents them in the host. The independently installable [JSON example](../../Plugins/Examples/JSON/) compares top-level JSON values through the same contract.
 
@@ -386,6 +387,29 @@ Inputs contain `AudioSourceMetadata`: source identity/name, duration, sample rat
 The restricted script reports metadata differences and independent union coverage. The host validates source bounds, finite values, budgets, schema/run identity and coverage, and requires the original evidence, state and host diagnostics to be retained. PCM, waveforms and spectral grids stay outside JSON. Apple analysis and the separate Olaf C helper are trusted host components; this does not grant arbitrary native/file access to third-party scripts or establish an OS sandbox.
 
 The contract is implemented in [`AudioComparison.swift`](../../Sources/CrossDiffCore/AudioComparison.swift). Run `check-audio-plugin.sh`, `check-audio-engine.sh`, `check-audio-cache.sh` and `check-audio-workflow.sh` under `scripts/tests/`. Package with `python3 scripts/package-audio-plugin.py`. Both editions contain the required host services and renderer.
+
+<a id="video-contract"></a>
+
+## Video contract (added in 0.14.0)
+
+See [`Plugins/Official/Video`](../../Plugins/Official/Video/). The manifest uses `videoAnalysis`, `videoTimeline` and pairwise mode; results use `crossdiff.video/1`. A host with the 0.14.0 video capabilities is required. The overall protocol remains experimental v1; earlier hosts reject the unknown input kind and view.
+
+Each `VideoSourceMetadata.pluginContent` contains only `id`, `name`, `duration`, `width`, `height`, `nominalFrameRate`, `codec`, `hasAudio` and `isHDR`. Duration is a rational time such as `{ "value": "6000", "timescale": 600 }`: a lossless decimal-string value and positive Int32 timescale, greater than zero and at most 24 hours. Dimensions describe the transformed display orientation and range from 1 to 32768 per axis. Nominal rate is 0–1000; zero means unavailable and never establishes constant frame rate. HDR describes a source transfer-function flag only. No paths, frame pixels, PCM or playback access are exposed; unknown metadata fields are rejected.
+
+Initial `options` must be empty. The only result payload fields are:
+
+```json
+{
+  "metadataDifferences": ["duration", "codec"],
+  "contentCompared": false
+}
+```
+
+Differences list actual changes in stable `duration`, `width`, `height`, `nominalFrameRate`, `codec`, `hasAudio`, `isHDR` order. The host recomputes these from the request. Duration uses exact rational equality: 600/600 and 1000/1000 are equal. Unknown or repeated fields, omitted or fabricated changes, and `contentCompared: true` are rejected. A `completed` result means metadata processing finished, not that pictures match, complete recordings correspond or quality has been measured.
+
+Native host services own playback, real-PTS frame stepping, manual offset, looping and ROI. Paused differences require equal pixel dimensions and explicit Rec.709 SDR tags; third-party scripts cannot bypass that gate. Automatic segment correspondence and professional quality metrics are not exposed.
+
+The implementation is in [`VideoComparison.swift`](../../Sources/CrossDiffCore/VideoComparison.swift). Run `check-video-plugin.sh` for Core, real JavaScript and helper checks; `check-video-source.sh` for local source services; and `check-video-workflow.sh` for the native workbench. Package with `python3 scripts/package-video-plugin.py`. Full includes the plugin; Base can install it independently, and both editions provide the native video capabilities.
 
 ## crossdiff.office/1
 
