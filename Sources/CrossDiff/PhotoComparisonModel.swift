@@ -4,8 +4,8 @@ import CrossDiffCore
 import UniformTypeIdentifiers
 
 /// Owns photograph inputs and analysis independently of the SwiftUI view lifetime.
-/// Only normalized regions and explicit XMP paths are persisted; rendered pixels and
-/// calculated distributions never become source-file edits.
+/// Regions, explicit XMP paths and viewing preferences are persisted. Rendered
+/// pixels, histogram brushing and distributions never become source-file edits.
 @MainActor
 final class PhotoComparisonModel: ObservableObject {
     enum Side { case left, right }
@@ -15,9 +15,15 @@ final class PhotoComparisonModel: ObservableObject {
         didSet {
             guard state != oldValue else { return }
             onStateChanged?()
-            if state.leftRegion != oldValue.leftRegion || state.rightRegion != oldValue.rightRegion
+            let regionChanged = state.leftRegion != oldValue.leftRegion || state.rightRegion != oldValue.rightRegion
+            if regionChanged
                 || state.leftXMPPath != oldValue.leftXMPPath || state.rightXMPPath != oldValue.rightXMPPath {
                 scheduleAnalysis()
+            }
+            if state.histogramChannel != oldValue.histogramChannel, highlightedRange != nil {
+                highlightedRange = nil
+            } else if regionChanged || state.previewChannel != oldValue.previewChannel {
+                schedulePreview()
             }
         }
     }
@@ -35,12 +41,25 @@ final class PhotoComparisonModel: ObservableObject {
     @Published private(set) var error: Error?
     @Published private(set) var isLoading = false
     @Published private(set) var isAnalyzing = false
+    @Published var highlightedRange: PhotoHistogramRange? {
+        didSet {
+            guard highlightedRange != oldValue else { return }
+            if let highlightedRange, !highlightedRange.isValid { self.highlightedRange = nil }
+            schedulePreview()
+        }
+    }
+    @Published private(set) var leftDisplayImage: CGImage?
+    @Published private(set) var rightDisplayImage: CGImage?
+    @Published private(set) var isPreviewing = false
+    @Published private(set) var previewError: Error?
     private var sourceURLs: (URL, URL)?
     private var execution: Execute?
     private var loadedIdentity: [String]?
     private var generation = UUID()
     private var analysisTask: Task<Void, Never>?
     private var decodeTask: Task<(PhotoDecodedImage, PhotoDecodedImage), Error>?
+    private var previewTask: Task<Void, Never>?
+    private var previewGeneration = UUID()
 
     init(state: PhotoWorkspaceState = .init()) {
         self.state = state.isValid ? state : .init()
@@ -50,6 +69,7 @@ final class PhotoComparisonModel: ObservableObject {
         let identity = [left.absoluteString, right.absoluteString, executionID]
         execution = execute; sourceURLs = (left, right)
         if loadedIdentity == identity, leftImage != nil, rightImage != nil {
+            if leftDisplayImage == nil || rightDisplayImage == nil { schedulePreview() }
             if leftStatistics != nil, rightStatistics != nil, error == nil { return }
             scheduleAnalysis()
             if let analysisTask {
@@ -57,17 +77,20 @@ final class PhotoComparisonModel: ObservableObject {
             }
             return
         }
-        let previousAnalysis = analysisTask, previousDecode = decodeTask
+        let previousAnalysis = analysisTask, previousDecode = decodeTask, previousPreview = previewTask
         cancel()
         let token = UUID(); generation = token
         isLoading = true; error = nil
         leftImage = nil; rightImage = nil; leftStatistics = nil; rightStatistics = nil
+        leftDisplayImage = nil; rightDisplayImage = nil; previewError = nil
+        highlightedRange = nil
         findings = []; diagnostics = []; resultStatus = nil; leftCurves = []; rightCurves = []; curveWarnings = []
         let worker = Task.detached(priority: .userInitiated) {
             // Cooperative library calls may finish after cancellation. Join them
             // before allocating another image or analysis buffer.
             await previousAnalysis?.value
             _ = await previousDecode?.result
+            await previousPreview?.value
             try Task.checkCancellation()
             let first = try PhotoAnalysisEngine.load(left)
             try Task.checkCancellation()
@@ -83,6 +106,7 @@ final class PhotoComparisonModel: ObservableObject {
             decodeTask = nil
             leftImage = images.0; rightImage = images.1
             loadedIdentity = identity; isLoading = false
+            schedulePreview()
             scheduleAnalysis()
             if let analysisTask {
                 await withTaskCancellationHandler { await analysisTask.value } onCancel: { analysisTask.cancel() }
@@ -94,10 +118,56 @@ final class PhotoComparisonModel: ObservableObject {
     func cancel() {
         generation = UUID(); analysisTask?.cancel()
         decodeTask?.cancel()
-        isLoading = false; isAnalyzing = false
+        previewGeneration = UUID(); previewTask?.cancel()
+        isLoading = false; isAnalyzing = false; isPreviewing = false
     }
 
     func invalidateSources() { loadedIdentity = nil }
+
+    func clearHighlight() { highlightedRange = nil }
+
+    private func schedulePreview() {
+        let previous = previewTask
+        previous?.cancel()
+        let token = UUID(); previewGeneration = token
+        leftDisplayImage = nil; rightDisplayImage = nil; previewError = nil
+        guard let leftImage, let rightImage else { isPreviewing = false; return }
+        let snapshot = state, highlight = highlightedRange
+        if snapshot.previewChannel == .original, highlight == nil {
+            leftDisplayImage = leftImage.preview; rightDisplayImage = rightImage.preview
+            isPreviewing = false
+            // Retain the predecessor so a later request still joins any worker.
+            return
+        }
+        isPreviewing = true
+        previewTask = Task { [weak self] in
+            await previous?.value
+            do {
+                try Task.checkCancellation()
+                try await Task.sleep(nanoseconds: 90_000_000)
+                let worker = Task.detached(priority: .userInitiated) {
+                    let left = try PhotoAnalysisEngine.preview(leftImage, channel: snapshot.previewChannel,
+                        highlight: highlight, region: snapshot.leftRegion)
+                    try Task.checkCancellation()
+                    let right = try PhotoAnalysisEngine.preview(rightImage, channel: snapshot.previewChannel,
+                        highlight: highlight, region: snapshot.rightRegion)
+                    try Task.checkCancellation()
+                    return (left, right)
+                }
+                let previews = try await withTaskCancellationHandler { try await worker.value } onCancel: { worker.cancel() }
+                try Task.checkCancellation()
+                guard let self, self.previewGeneration == token else { return }
+                self.leftDisplayImage = previews.0; self.rightDisplayImage = previews.1
+                self.isPreviewing = false
+            } catch is CancellationError {
+                if let self, self.previewGeneration == token { self.isPreviewing = false }
+            } catch {
+                if let self, self.previewGeneration == token, !Task.isCancelled {
+                    self.previewError = error; self.isPreviewing = false
+                }
+            }
+        }
+    }
 
     func selectRegion(_ region: PhotoRegion, side: Side) {
         guard region.isValid else { return }

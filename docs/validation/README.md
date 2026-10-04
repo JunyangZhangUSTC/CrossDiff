@@ -4,6 +4,7 @@ These records describe checks performed for specific development previews, inclu
 
 | Preview | Record |
 | --- | --- |
+| 0.13.1 | [Photography channels, comparative histograms and capture metadata](photography-enhancements-0.13.1.md) |
 | 0.13.0 | [Image smart alignment, source coordinates and native workflow](image-smart-alignment-0.13.0.md) |
 | 0.12.0 | [Office import, row matching and native workflow](office-0.12.0.md) |
 | 0.11.0 | [Audio workbench and native workflow](audio-0.11.0.md) · [Matching engine experiments](audio-matching-m0.md) |
