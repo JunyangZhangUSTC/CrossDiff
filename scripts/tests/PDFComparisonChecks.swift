@@ -65,12 +65,18 @@ struct PDFComparisonChecks {
         try check(model.pairs[2].left == nil && model.pairs[2].right == 2, "Extra pages remain on their actual source side")
         try check(!model.presentationTitle(for: model.pairs[2]).contains("Added") && !model.presentationTitle(for: model.pairs[2]).contains("新增"),
                   "Page-number alignment does not claim that unrelated extra pages were added")
+        let positional = model.presentation(for: model.pairs[2])
+        try check(positional == .onlyRight && positional.symbol == "doc" && positional.emptyPageSymbol == "doc" && positional.tone == .neutral,
+                  "Page-number extra pages use a neutral page symbol and color, not an insertion badge")
         let beforeModes = await calls.count
         model.selectAlignmentMode(.smart)
         try check(model.pairs[0].kind == .same && model.pairs[1].kind == .added && model.pairs[2].kind == .changed,
                   "Inserted scanned page does not misalign the later changed text page")
         try check(model.pairs[2].left == 1 && model.pairs[2].right == 2, "Page locations refer to the correct original inputs")
         try check(!model.isSmartFallback, "Well-supported insertion remains smart-aligned")
+        let inserted = model.presentation(for: model.pairs[1])
+        try check(inserted == .comparison(.added) && inserted.symbol == "plus" && inserted.emptyPageSymbol == "plus.rectangle.on.rectangle" && inserted.tone == .added,
+                  "Reliable smart insertion retains its added-page symbol and color")
         model.selectedIndex = 2
         for _ in 0..<100 where model.textDiff == nil { try await Task.sleep(nanoseconds: 10_000_000) }
         try check(model.textDiff?.hunks.isEmpty == false, "Selected pages provide real text differences")
@@ -108,6 +114,19 @@ struct PDFComparisonChecks {
         let afterModes = await calls.count
         try check(afterModes == beforeModes, "Changing page modes and remounting a loaded view do not re-read or re-run the plugin")
 
+        let reversed = PDFComparisonModel()
+        await reversed.load(left: rightURL, right: leftURL, execute: execute)
+        try check(reversed.error == nil && reversed.pairs.count == 3, "Swapped inputs remain a complete page-number comparison")
+        let leftOnly = reversed.presentation(for: reversed.pairs[2])
+        try check(leftOnly == .onlyLeft && leftOnly.symbol == "doc" && leftOnly.emptyPageSymbol == "doc" && leftOnly.tone == .neutral,
+                  "Swapping inputs keeps a positional left-only page neutral rather than calling it deleted")
+        reversed.selectAlignmentMode(.smart)
+        try check(!reversed.isSmartFallback && reversed.pairs[1].left == 1 && reversed.pairs[1].right == nil,
+                  "Swapped smart insertion preserves the actual removed-page source")
+        let removed = reversed.presentation(for: reversed.pairs[1])
+        try check(removed == .comparison(.removed) && removed.symbol == "minus" && removed.emptyPageSymbol == "minus.rectangle" && removed.tone == .removed,
+                  "Reliable smart removal retains its removed-page symbol and color")
+
         let unrelatedLeft = fixtures.appendingPathComponent("unrelated-left.pdf")
         let unrelatedRight = fixtures.appendingPathComponent("unrelated-right.pdf")
         try makePDF([FixturePage(text: "AAAA", shade: 0.1)]).write(to: unrelatedLeft)
@@ -126,6 +145,15 @@ struct PDFComparisonChecks {
                   "Fallback navigation retains original page numbers and no fabricated left page")
         try check(!unrelated.presentationTitle(for: unrelated.pairs[2]).contains("Added") && !unrelated.presentationTitle(for: unrelated.pairs[2]).contains("新增"),
                   "Smart fallback also uses neutral single-sided page labels")
+        let fallback = unrelated.presentation(for: unrelated.pairs[2])
+        try check(fallback == .onlyRight && fallback.symbol == "doc" && fallback.emptyPageSymbol == "doc" && fallback.tone == .neutral,
+                  "Smart fallback uses the same neutral symbol and color as page-number comparison")
+        await unrelated.load(left: unrelatedRight, right: unrelatedLeft, execute: execute)
+        try check(unrelated.error == nil && unrelated.isSmartFallback && unrelated.pairs.count == 3,
+                  "Swapped unrelated documents still fall back without losing source pages")
+        let reversedFallback = unrelated.presentation(for: unrelated.pairs[2])
+        try check(reversedFallback == .onlyLeft && reversedFallback.symbol == "doc" && reversedFallback.emptyPageSymbol == "doc" && reversedFallback.tone == .neutral,
+                  "Smart fallback never changes a left-only page into a red deletion badge")
 
         for unsupportedEvidence in [false, true] {
             let contradictory: @Sendable ([PluginInput]) async throws -> PluginComparisonResult = { inputs in
