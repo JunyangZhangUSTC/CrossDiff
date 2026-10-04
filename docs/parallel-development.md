@@ -1,8 +1,8 @@
 # 并行开发工作流 / Parallel development
 
-本地工作区可以使用五个独立仓库：一个用于集成和完整测试，四个用于不同方向的开发。它们连接同一个 GitHub 仓库，但各自拥有完整源码、独立 `.git`、构建缓存和开发会话。这个目录布局只存在于本机；GitHub 仍然是一个项目，通过分支协作。
+本地工作区可以使用七个独立仓库：一个用于集成和完整测试，六个用于不同方向的开发。它们连接同一个 GitHub 仓库，但各自拥有完整源码、独立 `.git`、构建缓存和开发会话。这个目录布局只存在于本机；GitHub 仍然是一个项目，通过分支协作。
 
-Use five independent clones of the same GitHub repository: one integration checkout and four development checkouts. Each has its own Git metadata, build output and local development data. GitHub continues to contain one project, organized by branches.
+Use seven independent clones of the same GitHub repository: one integration checkout and six development checkouts. Each has its own Git metadata, build output and local development data. GitHub continues to contain one project, organized by branches.
 
 ```text
 CrossDiff/
@@ -10,7 +10,9 @@ CrossDiff/
 ├── CrossDiff-image/
 ├── CrossDiff-photo/
 ├── CrossDiff-office/
-└── CrossDiff-video/
+├── CrossDiff-video/
+├── CrossDiff-folder/
+└── CrossDiff-zip/
 ```
 
 | 文件夹 / Directory | 分支 / Branch | 用途 / Purpose |
@@ -20,10 +22,16 @@ CrossDiff/
 | `CrossDiff-photo` | `zhangjy/photo` | 摄影分析 / Photography analysis |
 | `CrossDiff-office` | `zhangjy/office` | 办公文档 / Office documents |
 | `CrossDiff-video` | `zhangjy/video` | 视频功能研发 / Video development |
+| `CrossDiff-folder` | `zhangjy/folder` | 文件夹比较与性能优化 / Folder comparison and performance |
+| `CrossDiff-zip` | `zhangjy/zip` | 压缩包比较与虚拟目录 / Archive comparison and virtual directories |
 
 每个目录的 `origin` 均通过 SSH 连接[同一个 GitHub 仓库](https://github.com/JunyangZhangUSTC/CrossDiff)，当前分支跟踪远端同名分支。视频目录是研发入口，并不表示视频插件已经实现。
 
 All clones use an SSH origin for the same repository and track their matching remote branch. The video branch is a development workspace; it does not imply a shipped video plugin.
+
+主分支维护者在 `CrossDiff-main` 集成已经推送的提交。其他目录可能有正在进行的研发，保持它们的工作区、分支、文件和运行进程不变；新目录从主仓库创建，不从活跃功能目录复制。需要更新协作说明时，只修改主仓库中的文档，再由各分支自行合并。
+
+The main maintainer integrates published commits in `CrossDiff-main`. Leave active feature checkouts, branches, files and processes untouched. Create additional checkouts from main, not from another active feature checkout. Update shared workflow documentation in main and let feature branches integrate it through Git.
 
 ## 在功能目录开发 / Work in a feature checkout
 
@@ -69,9 +77,9 @@ git fetch origin
 git merge --no-ff origin/zhangjy/image
 ```
 
-如有冲突，先解决、检查并完成合并提交，再开始下一个分支。替换最后一条命令中的分支名即可合并摄影、办公或视频方向。需要放弃尚未完成的冲突合并时，使用 `git merge --abort`。
+如有冲突，先解决、检查并完成合并提交，再开始下一个分支。替换最后一条命令中的分支名即可合并摄影、办公、视频、文件夹或压缩包方向。需要放弃尚未完成的冲突合并时，使用 `git merge --abort`。
 
-Resolve conflicts, inspect the result and complete the merge before starting another branch. Substitute the photography, Office or video branch as needed. Use `git merge --abort` to cancel an unfinished conflicted merge.
+Resolve conflicts, inspect the result and complete the merge before starting another branch. Substitute the photography, Office, video, folder or archive branch as needed. Use `git merge --abort` to cancel an unfinished conflicted merge.
 
 合并完成后运行完整检查与应用构建，通过后再推送主分支：
 

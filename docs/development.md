@@ -4,7 +4,7 @@ CrossDiff is a native macOS application built with SwiftUI and AppKit. Its compa
 
 For product behavior, see the [user guide](usage.md), [specification](specification.md), and [roadmap](roadmap.md). Contribution expectations are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-For separate image, photography, Office and video development checkouts with integration on `main`, follow the bilingual [parallel development workflow](parallel-development.md).
+For separate image, photography, Office, video, folder and archive development checkouts with integration on `main`, follow the bilingual [parallel development workflow](parallel-development.md).
 
 The next framework direction is documented separately in the [product vision](product-vision.md), [architecture proposal](architecture/compare-everything.md), and [draft plugin guide](plugins/development.md). The broader architecture remains a proposal. The implemented experimental contract includes a JavaScriptCore helper and native table, document-page, archive-tree, photography, HTTP field, audio timeline and Office content renderers. Photography began in the 0.9.0 source preview, API Compare in 0.10.0, and Audio in 0.11.0. The current, unpublished 0.12.0 Full source build also bundles Office; all four use plugin version 0.1.0. Version 0.8.0 introduced Base and Full editions with a shared offline official-plugin catalog; see the [implemented API](plugins/development.en.md). Shared comparison terms are in the [glossary](../GLOSSARY.md), with accepted design decisions under [docs/adr](adr/0001-comparison-modes.md).
 
