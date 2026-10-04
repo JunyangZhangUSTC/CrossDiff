@@ -8,6 +8,20 @@ import CrossDiffCore
 final class FolderComparisonModel: ObservableObject {
     @Published private(set) var result: FolderComparisonResult?
     @Published private(set) var visibleEntries: [FolderEntry] = []
+    @Published private(set) var browserProjection: FolderBrowserProjection = .empty
+    @Published var browserMode: FolderBrowserMode = .tree { didSet { if browserMode != oldValue { filterEntries() } } }
+    @Published var statusFilter: FolderBrowserFilter = .differences {
+        didSet {
+            guard statusFilter != oldValue else { return }
+            updatingFilter = true; differencesOnly = statusFilter != .all; updatingFilter = false
+            filterEntries()
+        }
+    }
+    @Published var sortOrder = FolderBrowserSort() { didSet { if sortOrder != oldValue { filterEntries() } } }
+    @Published var expandedPaths = Set<String>() { didSet { if expandedPaths != oldValue { filterEntries() } } }
+    @Published var scopePath = "" { didSet { if scopePath != oldValue { filterEntries() } } }
+    @Published var showModifiedDates = false
+    @Published private(set) var displayingPreviousScan = false
     @Published private(set) var progress: FolderScanProgress?
     @Published var preview: FolderCopyPlan?
     @Published private(set) var busy = false
@@ -17,7 +31,12 @@ final class FolderComparisonModel: ObservableObject {
     @Published private(set) var completedAt: Date?
     @Published private(set) var ignoredNames = FolderComparison.ignoredNames
     @Published var selection = Set<String>()
-    @Published var differencesOnly = true { didSet { if differencesOnly != oldValue { filterEntries() } } }
+    // Kept for session callers; the visible control uses the richer status filter.
+    @Published var differencesOnly = true {
+        didSet {
+            if differencesOnly != oldValue && !updatingFilter { statusFilter = differencesOnly ? .differences : .all }
+        }
+    }
     @Published var query = "" { didSet { if query != oldValue { filterEntries(debounce: true) } } }
     @Published private var statusText: () -> String = { L("按文件内容比较", "Compare by file contents") }
     var status: String {
@@ -30,11 +49,35 @@ final class FolderComparisonModel: ObservableObject {
     }
     private(set) var scanCount = 0
     private var roots: [URL]?
+    private var previousResult: FolderComparisonResult?
     private var task: Task<Void, Never>?
     private var filterTask: Task<Void, Never>?
     private var generation = UUID()
     private var filterGeneration = UUID()
     private var resultIndex: [String: FolderEntry] = [:]
+    private var visiblePaths = Set<String>()
+    private var updatingFilter = false
+
+    var displayedResult: FolderComparisonResult? { result ?? (displayingPreviousScan ? previousResult : nil) }
+
+    var effectiveSortOrder: FolderBrowserSort {
+        // Statuses change continuously during verification. Apply that ordering
+        // once verification stops, rather than moving the row under the pointer.
+        scanning && sortOrder.key == .status ? .init() : sortOrder
+    }
+
+    func setSort(_ sort: FolderBrowserSort) { sortOrder = sort }
+    func toggleFolder(_ path: String) {
+        guard query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        if expandedPaths.contains(path) { expandedPaths.remove(path) } else { expandedPaths.insert(path) }
+    }
+    func openFolder(_ path: String) {
+        guard path.isEmpty || displayedResult?.entries.contains(where: { $0.path == path && $0.isDirectory }) == true else { return }
+        selection.removeAll()
+        scopePath = path
+    }
+    func goUp() { openFolder(scopePath.split(separator: "/").dropLast().joined(separator: "/")) }
+    func collapseAll() { expandedPaths.removeAll() }
 
     deinit { task?.cancel(); filterTask?.cancel() }
 
@@ -47,11 +90,18 @@ final class FolderComparisonModel: ObservableObject {
         task?.cancel()
         generation = UUID()
         let current = generation
+        let sameRoots = roots == [left, right]
+        previousResult = sameRoots ? displayedResult : nil
         roots = [left, right]
         scanCount += 1
+        displayingPreviousScan = previousResult != nil
         result = nil; progress = nil; completedAt = nil; error = nil; preview = nil
-        resultIndex.removeAll(); selection.removeAll()
-        filterTask?.cancel(); filterGeneration = UUID(); visibleEntries = []; filtering = false
+        resultIndex.removeAll()
+        if !sameRoots {
+            scopePath = ""; expandedPaths.removeAll(); selection.removeAll()
+            browserProjection = .empty; visibleEntries = []; visiblePaths.removeAll()
+        }
+        filterTask?.cancel(); filterGeneration = UUID(); filtering = false
         busy = true; scanning = true
         statusText = { L("正在扫描目录…", "Scanning folders…") }
         let options = FolderScanOptions(ignoredNames: ignoredNames)
@@ -63,6 +113,8 @@ final class FolderComparisonModel: ObservableObject {
                         self.progress = update.progress
                         if let partial = update.result {
                             self.result = partial
+                            self.displayingPreviousScan = false
+                            self.previousResult = nil
                             self.filterEntries()
                         }
                     }
@@ -73,6 +125,12 @@ final class FolderComparisonModel: ObservableObject {
                 try Task.checkCancellation()
                 guard let self, self.generation == current else { return }
                 self.result = scanned; self.progress = scanned.progress
+                self.displayingPreviousScan = false
+                self.previousResult = nil
+                // A refreshed scope may have disappeared from both inputs.
+                if !self.scopePath.isEmpty && !scanned.entries.contains(where: { $0.path == self.scopePath && $0.isDirectory }) {
+                    self.scopePath = ""
+                }
                 self.resultIndex = Dictionary(uniqueKeysWithValues: scanned.entries.map { ($0.path, $0) })
                 self.completedAt = Date()
                 let changed = scanned.entries.filter { !$0.isDirectory && $0.status != .same }.count
@@ -88,6 +146,7 @@ final class FolderComparisonModel: ObservableObject {
             }
             guard let self, self.generation == current else { return }
             self.busy = false; self.scanning = false
+            self.filterEntries()
         }
     }
 
@@ -102,43 +161,48 @@ final class FolderComparisonModel: ObservableObject {
         generation = UUID() // Discard any already-queued progress or completion.
         if scanning { statusText = { L("已取消 · 比较未完成", "Canceled · Comparison incomplete") } }
         busy = false; scanning = false
+        filterEntries()
     }
 
     func canCopy(toRight: Bool) -> Bool {
-        guard !busy, completedAt != nil, result?.isComplete == true, !selection.isEmpty else { return false }
-        return selection.allSatisfy { resultIndex[$0]?.canCopy(toRight: toRight) == true }
+        guard !busy, !filtering, completedAt != nil, result?.isComplete == true, !selection.isEmpty else { return false }
+        return selection.isSubset(of: visiblePaths) && selection.allSatisfy { resultIndex[$0]?.canCopy(toRight: toRight) == true }
     }
 
     private func filterEntries(debounce: Bool = false) {
+        // The previous snapshot stays browsable during inventory, including after
+        // cancellation. Copy still requires a newly completed, authoritative result.
         filterTask?.cancel()
         let current = UUID(); filterGeneration = current
-        let entries = result?.entries ?? [], query = query, differencesOnly = differencesOnly
+        let entries = displayedResult?.entries ?? [], query = query, filter = statusFilter
+        let mode = browserMode, scope = scopePath, sort = effectiveSortOrder, expanded = expandedPaths
         filtering = true
         filterTask = Task { [weak self] in
             do {
                 if debounce { try await Task.sleep(nanoseconds: 100_000_000) }
                 let worker = Task.detached(priority: .userInitiated) {
-                    var filtered: [FolderEntry] = []
-                    for (index, entry) in entries.enumerated() {
-                        if index % 1024 == 0 { try Task.checkCancellation() }
-                        if (!differencesOnly || entry.status != .same) && (query.isEmpty || entry.path.localizedCaseInsensitiveContains(query)) {
-                            filtered.append(entry)
-                        }
-                    }
-                    return filtered
+                    try FolderBrowser.project(entries: entries, mode: mode, filter: filter, query: query,
+                                              scopePath: scope, sort: sort, expandedPaths: expanded)
                 }
-                let filtered = try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
+                let projection = try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
                 try Task.checkCancellation()
                 guard let self, self.filterGeneration == current else { return }
-                self.visibleEntries = filtered; self.filtering = false
+                let paths = Set(projection.rows.map(\.id))
+                self.visiblePaths = paths
+                self.selection.formIntersection(paths)
+                self.visibleEntries = projection.matchingEntries
+                self.browserProjection = projection
+                self.filtering = false
             } catch { /* A newer query or result owns the next publication. */ }
         }
     }
 
     func prepare(paths: Set<String>, toRight: Bool) {
-        guard let result, !busy, completedAt != nil, result.isComplete else { return }
+        guard let result, !busy, !filtering, completedAt != nil, result.isComplete,
+              !paths.isEmpty, paths.isSubset(of: visiblePaths) else { return }
         busy = true; statusText = { L("正在核验复制预览…", "Verifying files for copy preview…") }
         let current = generation
+        let projectionGeneration = filterGeneration
         task = Task { [weak self] in
             let worker = Task.detached(priority: .userInitiated) {
                 try FolderComparison.prepareCopy(result, paths: paths, toRight: toRight)
@@ -147,8 +211,12 @@ final class FolderComparisonModel: ObservableObject {
                 let plan = try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
                 try Task.checkCancellation()
                 guard let self, self.generation == current else { return }
-                self.preview = plan
-                self.statusText = { L("请核对待复制的文件", "Review the files to be copied") }
+                if self.filterGeneration == projectionGeneration && !self.filtering && paths.isSubset(of: self.visiblePaths) {
+                    self.preview = plan
+                    self.statusText = { L("请核对待复制的文件", "Review the files to be copied") }
+                } else {
+                    self.statusText = { L("浏览范围已改变，请重新选择要复制的文件", "The view changed. Select the files to copy again.") }
+                }
             } catch is CancellationError {} catch {
                 guard let self, self.generation == current else { return }
                 self.error = error; self.statusText = { L("无法准备复制", "Unable to prepare copy") }
@@ -158,8 +226,11 @@ final class FolderComparisonModel: ObservableObject {
         }
     }
 
+    /// Scans are read-only and can be replaced; copy review and writes cannot.
+    var canReplaceRoots: Bool { (!busy || scanning) && preview == nil }
+
     func execute(_ plan: FolderCopyPlan, left: URL, right: URL) {
-        guard !busy else { return }
+        guard !busy, preview?.id == plan.id else { return }
         preview = nil; busy = true; statusText = { L("正在复制文件…", "Copying files…") }
         let current = generation
         task = Task { [weak self] in

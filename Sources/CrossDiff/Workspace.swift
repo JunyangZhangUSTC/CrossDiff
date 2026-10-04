@@ -728,6 +728,49 @@ final class WorkspaceStore: ObservableObject {
     }
     func openPair(_ left: URL, _ right: URL) { accept([left, right]) }
 
+    func chooseFolder(for session: ComparisonSession, side: Side) {
+        guard session.kind == .folder, sessions.contains(where: { $0 === session }),
+              session.folderComparisonModel.canReplaceRoots else { return }
+        let parent = NativeMenuController.shared.comparisonWindow
+        guard parent?.attachedSheet == nil else { return }
+        let originalLeft = session.left.path, originalRight = session.right.path
+        let panel = NSOpenPanel()
+        panel.title = side == .left ? L("更换左侧文件夹", "Change Left Folder") : L("更换右侧文件夹", "Change Right Folder")
+        panel.prompt = L("选择", "Choose")
+        panel.canChooseFiles = false; panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false; panel.canCreateDirectories = false
+        panel.directoryURL = session.value(side).path.map { URL(fileURLWithPath: $0) }
+        let completion: (NSApplication.ModalResponse) -> Void = { [weak self, weak session] response in
+            guard let self, let session, response == .OK, let url = panel.url,
+                  session.left.path == originalLeft, session.right.path == originalRight else { return }
+            self.replaceFolder(url, for: session, side: side)
+        }
+        if let parent { panel.beginSheetModal(for: parent, completionHandler: completion) }
+        else { panel.begin(completionHandler: completion) }
+    }
+
+    @discardableResult
+    func replaceFolder(_ url: URL, for session: ComparisonSession, side: Side) -> Bool {
+        guard session.kind == .folder, sessions.contains(where: { $0 === session }),
+              session.folderComparisonModel.canReplaceRoots,
+              let oldLeft = session.left.path, let oldRight = session.right.path else { return false }
+        let folder = url.standardizedFileURL
+        guard folder.path != URL(fileURLWithPath: side == .left ? oldLeft : oldRight).standardizedFileURL.path else { return false }
+        do {
+            guard url.isFileURL else { throw PluginAppError(zh: "请选择本地文件夹。", en: "Choose a local folder.") }
+            let metadata = try folder.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
+            guard metadata.isDirectory == true, metadata.isPackage != true else {
+                throw PluginAppError(zh: "请选择本地文件夹。", en: "Choose a local folder.")
+            }
+            session.replace(.init(path: folder.path), side: side)
+            // Invalidate old selections and copy results before the next view update.
+            session.folderComparisonModel.loadIfNeeded(
+                left: URL(fileURLWithPath: side == .left ? folder.path : oldLeft),
+                right: URL(fileURLWithPath: side == .right ? folder.path : oldRight))
+            return true
+        } catch { session.folderComparisonModel.error = error; return false }
+    }
+
     func chooseTextFile(for session: ComparisonSession, side: Side) {
         let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
         panel.title = side == .left ? L("打开左侧文本文件", "Open Left Text File") : L("打开右侧文本文件", "Open Right Text File")

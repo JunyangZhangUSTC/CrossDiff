@@ -78,7 +78,7 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 | Compare | Available today |
 | :--- | :--- |
 | **Text & code** | Paste text or open files; inspect character or line changes; align rows; edit either side; merge blocks; find and replace; undo independently. Works with text formats such as TXT, Markdown, HTML, JSON, XML, and YAML. |
-| **Local folders** | Show clear differences before verifying contents, with scan progress, custom ignore rules and results retained across tab switches; preview and revalidate selected copies. |
+| **Local folders** | The 0.13.1 folder-branch preview adds aligned panes, linked expansion, sortable headers and status filters. See clear differences before content verification; preview and revalidate selected copies. [Folder guide](docs/usage.md#compare-folders) |
 | **Archives** | Treat ZIP, TAR, and common compressed TAR formats as virtual folders. Compare an archive with another archive or a local folder, verify contents, and find identical files across paths without extracting to disk. Bundled with Base. |
 | **Images** | Side-by-side, overlay, wipe, and pixel differences. The 0.13.0 source preview adds offline Smart Align for rotated, scaled and cropped versions, with match points, manual refinement and one-click restore. |
 | **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |

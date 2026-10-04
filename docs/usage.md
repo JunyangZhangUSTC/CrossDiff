@@ -1,6 +1,6 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio and Office plugins. This guide describes the 0.12.2 source preview; see GitHub Releases for published builds. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio and Office plugins. This guide includes the 0.13.1 folder-branch source preview; see GitHub Releases for published builds. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
@@ -46,7 +46,24 @@ Matching is literal: regular expressions and replacement backreferences are not 
 
 CrossDiff restores comparisons locally on the next launch. **Session → Clear Local Session History…** asks for confirmation, then closes all comparisons and removes saved temporary text. It leaves original files, language, and appearance preferences unchanged. Compared text and paths may be present in the local session file. See the [privacy details](../SECURITY.md#local-data-and-file-handling).
 
+<a id="compare-folders"></a>
 ## Compare folders / 文件夹比较
+
+**0.13.1 文件夹分支预览：** 左右相同路径始终在同一行，两边共享选择与滚动；不存在的一侧显示占位，读取失败时显示未知。默认“目录”模式折叠子目录，通过任意一侧箭头联动展开；双击目录进入该范围，“上一级”和“全部目录”返回上层或根。双击两边都有的普通文件打开比较。
+
+左右标题栏各有 **更换…** 按钮，可在当前标签中替换对应文件夹并立即重新比较，另一侧保持不变。取消或选择同一目录不会重扫；新目录会清空旧选择并返回根范围，保留搜索、筛选、排序、展示模式与忽略规则。扫描期间可以更换；复制核验、确认和执行期间暂时禁用。新路径随本机会话保存。
+
+点击名称、状态、任意一侧的大小表头排序，再次点击反转方向；列菜单可显示左右修改时间。目录模式只重排同级项目且目录优先；“列表”模式在当前范围内跨目录排序。文件大小按真实字节排序，缺失值置后；目录不显示误导性的自身大小。修改时间不同本身不表示内容不同。
+
+状态菜单可查看全部、需关注、内容改动、仅左侧、仅右侧、问题或待校验。搜索当前范围的相对路径，保留并临时展开命中项的祖先；清空搜索恢复原展开状态。目录摘要统计整个子树，折叠不改变数量；悬停可查看详细分类。选择排序后保留，筛选或折叠后隐藏的选择会清除。选择目录不会隐式递归复制。
+
+**0.13.1 folder-branch preview:** Both panes share rows, selection and scrolling. Missing items have placeholders; unreadable locations remain unknown. **Tree** starts with collapsed folders; either disclosure arrow expands both sides. Double-click a folder to browse within it, then use **Parent Folder** or **All Folders** to return. Double-click a pair of regular files to compare them.
+
+Use **Change…** in either folder header to replace that side and compare again in the same tab. The opposite side stays unchanged. Canceling or selecting the same directory does not rescan. A new folder clears old selections and returns to the root scope while retaining search, filter, sort, view and ignore preferences. Replacement is available during scans, but disabled during copy verification, confirmation and execution. New paths are saved in the local session.
+
+Click either name, status or size header to sort; click again to reverse. The columns menu reveals modification dates. Tree mode sorts siblings with folders first; **List** sorts across the current subtree. Sizes use actual bytes, missing values remain last, and folder sizes display a dash. Different timestamps alone do not imply different contents.
+
+Filter by All, To Review, Modified, Left Only, Right Only, Issues or Pending. Search relative paths within the current scope; matching ancestors expand temporarily, then restore when the query is cleared. Folder summaries count descendants without duplicating ancestors; hover for details. Sorting preserves selection. Filtering or collapsing clears hidden selections, and selecting a folder never recursively copies it.
 
 文件夹比较先递归检查路径、类型和大小，直接显示仅单侧存在、类型不同及大小不同的项目；同大小的普通文件随后使用 SHA-256 核验内容，默认最多两个文件比较任务并行。大小与时间戳相同不能证明内容相同。扫描期间可查看部分结果，上方显示发现数量、内容核验进度及实际读取量；尚未核验的项目标为“待校验”。取消后保留部分结果，但不能据此复制。
 
