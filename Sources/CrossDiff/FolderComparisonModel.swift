@@ -6,6 +6,31 @@ import CrossDiffCore
 /// Results are snapshots; only an explicit refresh reads subsequent file changes.
 @MainActor
 final class FolderComparisonModel: ObservableObject {
+    typealias ScanOperation = @Sendable (URL, URL, FolderScanOptions, @escaping @Sendable (FolderScanUpdate) -> Void) async throws -> FolderComparisonResult
+    struct ProjectionInput: Sendable {
+        let entries: [FolderEntry]
+        let mode: FolderBrowserMode
+        let filter: FolderBrowserFilter
+        let query: String
+        let scope: String
+        let sort: FolderBrowserSort
+        let expanded: Set<String>
+        func project() throws -> FolderBrowserProjection {
+            try FolderBrowser.project(entries: entries, mode: mode, filter: filter, query: query,
+                                      scopePath: scope, sort: sort, expandedPaths: expanded)
+        }
+    }
+    typealias ProjectionOperation = @Sendable (ProjectionInput) throws -> FolderBrowserProjection
+    private let scanOperation: ScanOperation
+    private let projectionOperation: ProjectionOperation
+
+    init(scan: @escaping ScanOperation = { left, right, options, update in
+        try await FolderComparison.scanIncrementally(left: left, right: right, options: options, onUpdate: update)
+    }, project: @escaping ProjectionOperation = { try $0.project() }) {
+        scanOperation = scan
+        projectionOperation = project
+    }
+
     @Published private(set) var result: FolderComparisonResult?
     @Published private(set) var visibleEntries: [FolderEntry] = []
     @Published private(set) var browserProjection: FolderBrowserProjection = .empty
@@ -54,6 +79,14 @@ final class FolderComparisonModel: ObservableObject {
     private var filterTask: Task<Void, Never>?
     private var generation = UUID()
     private var filterGeneration = UUID()
+    private var resultRevision = UUID()
+    private var publishedResultRevision: UUID?
+    private var publishedFilterGeneration: UUID?
+    private struct ProjectionRequest: Sendable {
+        let input: ProjectionInput
+        let resultRevision: UUID
+    }
+    private var pendingProjection: ProjectionRequest?
     private var resultIndex: [String: FolderEntry] = [:]
     private var visiblePaths = Set<String>()
     private var updatingFilter = false
@@ -96,26 +129,30 @@ final class FolderComparisonModel: ObservableObject {
         scanCount += 1
         displayingPreviousScan = previousResult != nil
         result = nil; progress = nil; completedAt = nil; error = nil; preview = nil
+        resultRevision = UUID(); publishedResultRevision = nil
         resultIndex.removeAll()
         if !sameRoots {
             scopePath = ""; expandedPaths.removeAll(); selection.removeAll()
             browserProjection = .empty; visibleEntries = []; visiblePaths.removeAll()
         }
-        filterTask?.cancel(); filterGeneration = UUID(); filtering = false
+        filterTask?.cancel(); filterTask = nil; pendingProjection = nil
+        filterGeneration = UUID(); filtering = false
         busy = true; scanning = true
         statusText = { L("正在扫描目录…", "Scanning folders…") }
         let options = FolderScanOptions(ignoredNames: ignoredNames)
+        let scanOperation = scanOperation
         task = Task { [weak self] in
             let worker = Task.detached(priority: .userInitiated) { [weak self] in
-                try await FolderComparison.scanIncrementally(left: left, right: right, options: options) { [weak self] update in
+                try await scanOperation(left, right, options) { [weak self] update in
                     Task { @MainActor [weak self] in
                         guard let self, self.generation == current, self.scanning else { return }
                         self.progress = update.progress
                         if let partial = update.result {
                             self.result = partial
+                            self.resultRevision = UUID()
                             self.displayingPreviousScan = false
                             self.previousResult = nil
-                            self.filterEntries()
+                            self.filterEntries(coalescing: true)
                         }
                     }
                 }
@@ -125,6 +162,7 @@ final class FolderComparisonModel: ObservableObject {
                 try Task.checkCancellation()
                 guard let self, self.generation == current else { return }
                 self.result = scanned; self.progress = scanned.progress
+                self.resultRevision = UUID()
                 self.displayingPreviousScan = false
                 self.previousResult = nil
                 // A refreshed scope may have disappeared from both inputs.
@@ -135,7 +173,6 @@ final class FolderComparisonModel: ObservableObject {
                 self.completedAt = Date()
                 let changed = scanned.entries.filter { !$0.isDirectory && $0.status != .same }.count
                 self.statusText = { L("\(scanned.entries.count) 项 · \(changed) 个文件有差异或需要处理", "\(scanned.entries.count) items · \(changed) files with differences or issues") }
-                self.filterEntries()
             } catch is CancellationError {
                 guard let self, self.generation == current else { return }
                 self.statusText = { L("已取消 · 比较未完成", "Canceled · Comparison incomplete") }
@@ -146,7 +183,7 @@ final class FolderComparisonModel: ObservableObject {
             }
             guard let self, self.generation == current else { return }
             self.busy = false; self.scanning = false
-            self.filterEntries()
+            self.filterEntries(coalescing: true)
         }
     }
 
@@ -165,25 +202,35 @@ final class FolderComparisonModel: ObservableObject {
     }
 
     func canCopy(toRight: Bool) -> Bool {
-        guard !busy, !filtering, completedAt != nil, result?.isComplete == true, !selection.isEmpty else { return false }
+        guard !busy, !filtering, publishedResultRevision == resultRevision, publishedFilterGeneration == filterGeneration,
+              completedAt != nil, result?.isComplete == true, !selection.isEmpty else { return false }
         return selection.isSubset(of: visiblePaths) && selection.allSatisfy { resultIndex[$0]?.canCopy(toRight: toRight) == true }
     }
 
-    private func filterEntries(debounce: Bool = false) {
-        // The previous snapshot stays browsable during inventory, including after
-        // cancellation. Copy still requires a newly completed, authoritative result.
-        filterTask?.cancel()
-        let current = UUID(); filterGeneration = current
-        let entries = displayedResult?.entries ?? [], query = query, filter = statusFilter
-        let mode = browserMode, scope = scopePath, sort = effectiveSortOrder, expanded = expandedPaths
+    private func filterEntries(debounce: Bool = false, coalescing: Bool = false) {
+        let input = ProjectionInput(entries: displayedResult?.entries ?? [], mode: browserMode,
+                                    filter: statusFilter, query: query, scope: scopePath,
+                                    sort: effectiveSortOrder, expanded: expandedPaths)
+        let request = ProjectionRequest(input: input, resultRevision: resultRevision)
         filtering = true
+        if coalescing, filterTask != nil {
+            // A slow projection must get a chance to finish while scan snapshots
+            // arrive every 100 ms. Keep only the newest pending snapshot.
+            pendingProjection = request
+            return
+        }
+        filterTask?.cancel()
+        pendingProjection = nil
+        filterGeneration = UUID()
+        startProjection(request, generation: filterGeneration, debounce: debounce)
+    }
+
+    private func startProjection(_ request: ProjectionRequest, generation current: UUID, debounce: Bool = false) {
+        let projectionOperation = projectionOperation
         filterTask = Task { [weak self] in
             do {
                 if debounce { try await Task.sleep(nanoseconds: 100_000_000) }
-                let worker = Task.detached(priority: .userInitiated) {
-                    try FolderBrowser.project(entries: entries, mode: mode, filter: filter, query: query,
-                                              scopePath: scope, sort: sort, expandedPaths: expanded)
-                }
+                let worker = Task.detached(priority: .userInitiated) { try projectionOperation(request.input) }
                 let projection = try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
                 try Task.checkCancellation()
                 guard let self, self.filterGeneration == current else { return }
@@ -192,13 +239,24 @@ final class FolderComparisonModel: ObservableObject {
                 self.selection.formIntersection(paths)
                 self.visibleEntries = projection.matchingEntries
                 self.browserProjection = projection
-                self.filtering = false
-            } catch { /* A newer query or result owns the next publication. */ }
+                self.publishedResultRevision = request.resultRevision
+                self.publishedFilterGeneration = current
+            } catch {
+                // Root/query changes have their own generation and replacement
+                // task. An unexpected projection failure cannot enable copying.
+            }
+            guard let self, self.filterGeneration == current else { return }
+            self.filterTask = nil
+            if let pending = self.pendingProjection {
+                self.pendingProjection = nil
+                self.startProjection(pending, generation: current)
+            } else { self.filtering = false }
         }
     }
 
     func prepare(paths: Set<String>, toRight: Bool) {
-        guard let result, !busy, !filtering, completedAt != nil, result.isComplete,
+        guard let result, !busy, !filtering, publishedResultRevision == resultRevision, publishedFilterGeneration == filterGeneration,
+              completedAt != nil, result.isComplete,
               !paths.isEmpty, paths.isSubset(of: visiblePaths) else { return }
         busy = true; statusText = { L("正在核验复制预览…", "Verifying files for copy preview…") }
         let current = generation

@@ -120,6 +120,12 @@ import CrossDiffCore
                 _ = try ArchiveCatalog.snapshot(url: source, nativeReaderURL: invalidHelper)
             }
         }
+        stage = "fast helper exit preserves classified errors"
+        // The real helper rejects this CRC quickly. Repeated launch/read/reap
+        // cycles cover a kernel exit arriving before Process.isRunning updates.
+        for _ in 0..<128 {
+            try rejectsAs("damaged") { _ = try snapshot("bad-pack-crc.7z") }
+        }
         stage = "unchanged source"
         let mutable = fixtures.appendingPathComponent("mutable.7z")
         let old = try ArchiveCatalog.snapshot(url: mutable, nativeReaderURL: helper)

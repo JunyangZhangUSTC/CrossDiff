@@ -5,7 +5,9 @@ import Darwin
     static var assertions = 0
     static func expect(_ value: @autoclosure () -> Bool, _ message: String) {
         assertions += 1
-        precondition(value(), message)
+        let success = value()
+        if !success { fputs("FAIL: " + message + "\n", stderr) }
+        precondition(success, message)
     }
 
     static func main() async throws {
@@ -44,6 +46,15 @@ import Darwin
         for index in 0..<250 { try file(left, "large-one-sided/file\(index).txt", 0) }
         let result = try FolderComparison.scan(left: left, right: right)
         let entries = result.entries
+
+        // Both parents exist, but their only descendant exists on the left. The
+        // parent's derived "changed" status is context, not a modified content item.
+        let sideOnlySubtree = entries.filter { $0.path == "docs" || $0.path == "docs/左侧😀.txt" }
+        for mode in FolderBrowserMode.allCases {
+            let modified = try FolderBrowser.project(entries: sideOnlySubtree, mode: mode, filter: .changed)
+            expect(modified.counts.changed == 0 && modified.rows.isEmpty && modified.matchingEntries.isEmpty,
+                   "A modified count of zero must not leave a derived-only ancestor in the modified filter")
+        }
 
         let collapsed = try FolderBrowser.project(entries: entries)
         expect(!collapsed.rows.contains { $0.id == "large-one-sided/file1.txt" }, "One-sided large directory must initially stay collapsed")

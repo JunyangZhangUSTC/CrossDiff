@@ -112,6 +112,7 @@ public enum FolderBrowser {
         }
 
         var totals: [String: FolderBrowserCounts] = [:], descendants: [String: FolderBrowserCounts] = [:]
+        var countedPaths = Set<String>()
         let bottomUp = indexed.keys.sorted { depths[$0, default: 0] > depths[$1, default: 0] }
         for (offset, path) in bottomUp.enumerated() {
             if offset % 1024 == 0 { try Task.checkCancellation() }
@@ -121,6 +122,7 @@ public enum FolderBrowser {
             descendants[path] = contained
             let entry = indexed[path]!
             let countSelf = childPaths.isEmpty || !entry.isDirectory || entry.hasDirectProblem
+            if countSelf { countedPaths.insert(path) }
             totals[path] = countSelf ? contained.adding(.init(status: entry.status)) : contained
         }
         let counts = (children[""] ?? []).reduce(FolderBrowserCounts()) { $0.adding(totals[$1] ?? .init()) }
@@ -128,7 +130,11 @@ public enum FolderBrowser {
         var matchingPaths = Set<String>()
         for (offset, entry) in indexed.values.enumerated() {
             if offset % 1024 == 0 { try Task.checkCancellation() }
-            if accepts(entry.status, filter: filter) && (search.isEmpty || entry.path.localizedCaseInsensitiveContains(search)) {
+            // Derived ancestor statuses summarize their children. Only countable
+            // items directly match a status filter; ancestors are restored below
+            // as context, so "Modified: 0" cannot show a lone modified parent.
+            if (filter == .all || countedPaths.contains(entry.path)) && accepts(entry.status, filter: filter)
+                && (search.isEmpty || entry.path.localizedCaseInsensitiveContains(search)) {
                 matchingPaths.insert(entry.path)
             }
         }
@@ -145,19 +151,6 @@ public enum FolderBrowser {
             try Task.checkCancellation()
             return result
         }
-        // Hidden descendants need no natural-name sort in the collapsed tree. Preserve
-        // inventory order for the compatibility list; only flat mode needs a global sort.
-        let matchingEntries = mode == .list
-            ? try sorted(Array(matchingPaths), directoriesFirst: false).compactMap { indexed[$0] }
-            : entries.filter { matchingPaths.contains($0.path) }
-        if mode == .list {
-            let rows = matchingEntries.map {
-                FolderBrowserRow(entry: $0, depth: 0, hasChildren: false, isExpanded: false,
-                                 descendants: descendants[$0.path] ?? .init())
-            }
-            return FolderBrowserProjection(rows: rows, matchingEntries: matchingEntries, counts: counts)
-        }
-
         var visiblePaths = matchingPaths, searchExpanded = Set<String>()
         for path in matchingPaths {
             var ancestor = parentByPath[path] ?? ""
@@ -168,6 +161,16 @@ public enum FolderBrowser {
                 ancestor = parentByPath[ancestor] ?? ""
             }
         }
+        if mode == .list {
+            let orderedEntries = try sorted(Array(visiblePaths), directoriesFirst: false).compactMap { indexed[$0] }
+            let rows = orderedEntries.map {
+                FolderBrowserRow(entry: $0, depth: 0, hasChildren: false, isExpanded: false,
+                                 descendants: descendants[$0.path] ?? .init())
+            }
+            return FolderBrowserProjection(rows: rows, matchingEntries: orderedEntries.filter { matchingPaths.contains($0.path) }, counts: counts)
+        }
+        // Hidden descendants need no natural-name sort in the collapsed tree.
+        let matchingEntries = entries.filter { matchingPaths.contains($0.path) }
         var rows: [FolderBrowserRow] = []
         // Iterative traversal also handles deeply nested inventories without a recursive
         // Swift call stack. Only expanded siblings need to be sorted/materialized.

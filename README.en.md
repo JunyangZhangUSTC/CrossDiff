@@ -82,16 +82,16 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 | Compare | Available today |
 | :--- | :--- |
 | **Text & code** | Paste text or open files; inspect character or line changes; align rows; edit either side; merge blocks; find and replace; undo independently. Works with text formats such as TXT, Markdown, HTML, JSON, XML, and YAML. |
-| **Local folders** | The 0.13.1 folder-branch preview adds aligned panes, linked expansion, sortable headers and status filters. See clear differences before content verification; preview and revalidate selected copies. [Folder guide](docs/usage.md#compare-folders) |
-| **Archives** | Treat ZIP, TAR, and common compressed TAR formats as virtual folders. The 0.13.0 source preview adds unencrypted, single-volume 7z and a limited RAR subset. Compare an archive with another archive or a local folder, verify contents, and find identical files across paths without extracting to disk. Bundled with Base. |
-| **Images** | Side-by-side, overlay, wipe, and pixel differences. Source previews support offline Smart Align for rotated, scaled and cropped versions. Version 0.13.2 shows a crop’s full corresponding extent and continuous similar content, with linked selection, match points, manual refinement and one-click restore. |
+| **Local folders** | The 0.14.0 source preview provides aligned panes, linked expansion, sortable headers and status filters. See clear differences before content verification; preview and revalidate selected copies. [Folder guide](docs/usage.md#compare-folders) |
+| **Archives** | Treat ZIP, TAR, and common compressed TAR formats as virtual folders. The 0.14.0 source preview provides unencrypted, single-volume 7z and a limited RAR subset. Compare an archive with another archive or a local folder, verify contents, and find identical files across paths without extracting to disk. Bundled with Base. |
+| **Images** | Side-by-side, overlay, wipe, and pixel differences. Source previews support offline Smart Align for rotated, scaled and cropped versions. The 0.14.0 source preview shows a crop’s full corresponding extent and continuous similar content, with linked selection, match points, manual refinement and one-click restore. |
 | **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |
-| **PDF documents** | Native page previews and extractable text differences. The 0.12.2 source preview adds page order, evidence-based matching and manual page selection, with safe fallback for unrelated documents. Bundled with Full; available as an official plugin for Base. |
+| **PDF documents** | Native page previews and extractable text differences. The source preview supports page order, evidence-based matching and manual page selection, with safe fallback for unrelated documents. Bundled with Full; available as an official plugin for Base. |
 | **Office documents** | Word paragraphs and tables, Excel rows matched across positions or by key columns, and PowerPoint slide content. Character highlights, formulas and saved results, plus original previews. Read-only DOCX/XLSX/PPTX support. [Office guide](docs/usage.md#office) |
 | **API** | Compare locally saved requests and responses as structured fields to investigate changes. |
 | **Audio** | Compare recordings and edited versions on paired timelines, with a closer look at selected passages. |
 | **Video · 0.14.0 source preview** | Native MOV/MP4/M4V side-by-side viewing, source-time frame stepping, manual offset, mute or A/B audio, looped passages and saved local regions. Wipe and difference views pause playback; differences require equal pixel dimensions and explicit Rec.709 SDR tags. |
-| **Photography** | Read-only paired photographs, named region pairs, HSL, and recorded curves. The 0.13.1 source preview adds RGB channel grayscale previews, Lab L*/RGB histograms with region highlighting, and side-by-side capture metadata. Uses Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
+| **Photography** | Read-only paired photographs, named region pairs, HSL, and recorded curves. The 0.14.0 source preview provides RGB channel grayscale previews, Lab L*/RGB histograms with region highlighting, and side-by-side capture metadata. Uses Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
 
 <details>
 <summary><b>The details make a difference</b></summary>
@@ -114,7 +114,9 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 
 ## Choose your edition
 
-**Version covered here: 0.12.1 · macOS 14+ · Apple silicon (arm64)**
+**Download above: 0.12.1 · macOS 14+ · Apple silicon (arm64)**
+
+The current source is the **0.14.0 integration preview**, including folder, archive, image and photography enhancements plus the video plugin. It is not a public release yet; these additions require a source build. See the [integration and validation record](docs/validation/integration-2026-10-04.md).
 
 **Full is recommended: all core features and every official plugin for the version, ready to use.** Archive, PDF, Photography, API, Audio and Office comparison are all included.
 

@@ -6,6 +6,8 @@ python3 -m unittest discover -s scripts/tests -p 'test_github_release.py'
 python3 -m unittest discover -s scripts/tests -p 'test_plugin_inventory.py'
 bash scripts/check.sh
 bash scripts/tests/check-folder-browser.sh
+bash scripts/tests/check-folder-model.sh
+bash scripts/tests/check-folder-performance.sh
 bash scripts/tests/check-archives-core.sh
 bash scripts/tests/check-archive-native.sh
 bash scripts/tests/check-archive-plugin.sh
@@ -24,6 +26,9 @@ bash scripts/tests/check-image-matching.sh
 bash scripts/tests/check-photography-plugin.sh
 bash scripts/tests/check-api-import.sh
 bash scripts/tests/check-api-plugin.sh
+bash scripts/tests/check-office-import.sh
+bash scripts/tests/check-office-plugin.sh
+bash scripts/tests/check-office-model.sh
 bash scripts/tests/check-audio-plugin.sh
 bash scripts/tests/check-audio-engine.sh
 bash scripts/tests/check-audio-playback.sh
@@ -51,3 +56,5 @@ bash scripts/tests/check-photo-workflow.sh
 bash scripts/tests/check-api-workflow.sh
 bash scripts/tests/check-audio-workflow.sh
 bash scripts/tests/check-video-workflow.sh
+bash scripts/tests/check-office-workflow.sh
+bash scripts/tests/check-integration-workflow.sh

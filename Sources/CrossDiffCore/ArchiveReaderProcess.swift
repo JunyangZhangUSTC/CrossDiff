@@ -45,8 +45,15 @@ enum ArchiveReaderProcess {
             var info = proc_taskinfo()
             if process.isRunning {
                 let count = proc_pidinfo(process.processIdentifier, PROC_PIDTASKINFO, 0, &info, Int32(MemoryLayout<proc_taskinfo>.size))
-                guard count == MemoryLayout<proc_taskinfo>.size || !process.isRunning else { throw ArchiveError.readerFailed }
-                guard info.pti_resident_size <= maximumResidentBytes else { throw ArchiveError.limit }
+                let sampleError = errno
+                if count == MemoryLayout<proc_taskinfo>.size {
+                    guard info.pti_resident_size <= maximumResidentBytes else { throw ArchiveError.limit }
+                } else if !(count == 0 && sampleError == ESRCH), process.isRunning {
+                    throw ArchiveError.readerFailed
+                }
+                // The kernel can report ESRCH before Foundation observes exit.
+                // Keep draining stdout and checking the deadline; the final exit
+                // status and complete reply still determine success or failure.
             }
         }
         var bytes = Data(), buffer = [UInt8](repeating: 0, count: 64 * 1024), ended = false

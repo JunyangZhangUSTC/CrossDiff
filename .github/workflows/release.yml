@@ -88,6 +88,7 @@ jobs:
       - name: Folder comparison checks
         run: |
           bash scripts/tests/check-folder-browser.sh
+          bash scripts/tests/check-folder-model.sh
           bash scripts/tests/check-folder-performance.sh
           bash scripts/tests/check-folder-workflow.sh --build-only
 
@@ -143,6 +144,18 @@ jobs:
       - name: Compile new comparison workflow checks
         run: bash scripts/tests/check-new-comparison-workflow.sh --build-only
 
+      - name: Compile native editor checks
+        run: bash scripts/tests/check-editor.sh --build-only
+
+      - name: Compile native text alignment checks
+        run: bash scripts/tests/check-alignment.sh --build-only
+
+      - name: Compile native scroll geometry checks
+        run: bash scripts/tests/check-scroll-geometry.sh --build-only
+
+      - name: Compile native deletion preview checks
+        run: bash scripts/tests/check-deletion-preview.sh --build-only
+
       - name: Compile native workflow checks
         run: bash scripts/tests/check-workflow.sh --build-only
 
@@ -162,9 +175,13 @@ jobs:
       - name: Compile native image workflow checks
         run: bash scripts/tests/check-image-workflow.sh --build-only
 
+      - name: Compile cross-module integration workflow
+        run: bash scripts/tests/check-integration-workflow.sh --build-only
+
       - name: Build, audit, and package the exact commit
         run: |
           bash scripts/package-release.sh
+          bash scripts/tests/check-bundled-helpers.sh
           source scripts/project-env.sh
           [[ "$(/usr/bin/lipo -archs dist/CrossDiff.app/Contents/MacOS/CrossDiff)" == arm64 ]]
 

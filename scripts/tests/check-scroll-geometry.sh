@@ -9,6 +9,10 @@ swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" \
   "$project_root/Sources/CrossDiff/ComparisonScrollView.swift" \
   "$project_root/scripts/tests/ScrollGeometryChecks.swift" \
   -o "$check_build/scroll-geometry-checks"
+if [[ "${1:-}" == "--build-only" ]]; then
+  echo "Built: $check_build/scroll-geometry-checks"
+  exit 0
+fi
 /usr/bin/python3 - "$check_build/scroll-geometry-checks" "${1:-fixed}" <<'PY'
 import subprocess, sys
 try:

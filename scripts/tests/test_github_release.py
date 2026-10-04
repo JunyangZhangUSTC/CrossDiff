@@ -7,6 +7,7 @@ import json
 import zipfile
 from pathlib import Path
 import plistlib
+import stat
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
@@ -97,10 +98,17 @@ class ReleaseTests(unittest.TestCase):
         patch.object(release, "git_bytes", side_effect=lambda root, *args: (ROOT / args[-1].removeprefix("HEAD:")).read_bytes()).start()
         self.addCleanup(patch.stopall)
 
-    def write_app(self, name, edition, catalog=None, packages=None):
+    def write_app(self, name, edition, catalog=None, packages=None, missing_executable=None):
         with zipfile.ZipFile(self.directory / name, "w") as archive:
             prefix = "CrossDiff.app/Contents/"
             archive.writestr(prefix + "Info.plist", plistlib.dumps(self.metadata))
+            for executable in release.plugin_inventory.APP_EXECUTABLE_FILES:
+                if executable == missing_executable:
+                    continue
+                entry = zipfile.ZipInfo(prefix + executable)
+                entry.create_system = 3
+                entry.external_attr = (stat.S_IFREG | 0o755) << 16
+                archive.writestr(entry, b"\xcf\xfa\xed\xfe" + bytes(28))
             for notice in release.plugin_inventory.APP_LICENSE_FILES:
                 archive.writestr(prefix + "Resources/" + notice, "notice fixture")
             archive.writestr(prefix + "Resources/OfficialPlugins.json", self.catalog if catalog is None else catalog)
@@ -123,6 +131,16 @@ class ReleaseTests(unittest.TestCase):
 
     def package(self):
         return release.validate_package(self.root, TAG, self.directory)
+
+    def test_release_rejects_a_missing_bundled_helper_before_publication(self):
+        for name, edition in ((self.app, "base"), (self.full, "full")):
+            with self.subTest(edition=edition):
+                self.write_app(name, edition, missing_executable="Helpers/CrossDiffArchiveReader")
+                self.write_manifest()
+                with self.assertRaisesRegex(release.ReleaseError, "Missing required application executable"):
+                    self.package()
+                self.write_app(name, edition)
+                self.write_manifest()
 
     def test_creates_draft_with_all_verified_downloads_and_can_retry(self):
         package = self.package()

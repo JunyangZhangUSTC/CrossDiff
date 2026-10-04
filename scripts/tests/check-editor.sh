@@ -27,4 +27,8 @@ swiftc "${crossdiff_photo_swift_flags[@]}" -swift-version 5 -D CROSSDIFF_UI_CHEC
   "$compile_sources"/*.swift \
   "$project_root/scripts/tests/EditorAppearanceChecks.swift" \
   "$project_root/scripts/tests/EditorStateChecks.swift" -o "$check_build/editor-checks"
+if [[ "${1:-}" == "--build-only" ]]; then
+  echo "Built: $check_build/editor-checks"
+  exit 0
+fi
 CROSSDIFF_DATA_DIR="$check_build/data" "$check_build/editor-checks"
