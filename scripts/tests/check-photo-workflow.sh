@@ -10,8 +10,8 @@ compile_sources="$(mktemp -d "$check_build/sources.XXXXXX")"
 mkdir -p "$compile_sources/app" "$compile_sources/core"
 cp "$project_root/Sources/CrossDiff"/*.swift "$compile_sources/app/"
 cp "$project_root/Sources/CrossDiffCore"/*.swift "$compile_sources/core/"
-# Change only the disposable check copy; the shipping app keeps its lifecycle.
-/usr/bin/python3 - "$compile_sources/app/CrossDiffApp.swift" <<'PY'
+# Change only the disposable check copy; shipping lifecycle and windows are unchanged.
+/usr/bin/python3 - "$compile_sources/app/CrossDiffApp.swift" "$compile_sources/app/MainWindowController.swift" <<'PY'
 import pathlib, sys
 path = pathlib.Path(sys.argv[1])
 source = path.read_text()
@@ -20,6 +20,11 @@ source = source.replace('NativeUIRenderChecks.start()', 'PhotoWorkflowChecks.sta
 source = source.replace('func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }',
                         'func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }')
 path.write_text(source)
+window_path = pathlib.Path(sys.argv[2])
+window_source = window_path.read_text()
+constructor = 'NSWindow(contentRect:'
+assert window_source.count(constructor) == 1, 'Expected one native main-window constructor'
+window_path.write_text(window_source.replace(constructor, 'PhotoWorkflowCheckWindow(contentRect:', 1))
 PY
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" -emit-module -emit-library -module-name CrossDiffCore \
   "$compile_sources/core"/*.swift -emit-module-path "$check_build/CrossDiffCore.swiftmodule" -o "$check_build/libCrossDiffCore.dylib"

@@ -86,7 +86,7 @@ Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type
 | **Office documents** | Word paragraphs and tables, Excel rows matched across positions or by key columns, and PowerPoint slide content. Character highlights, formulas and saved results, plus original previews. Read-only DOCX/XLSX/PPTX support. [Office guide](docs/usage.md#office) |
 | **API** | Compare locally saved requests and responses as structured fields to investigate changes. |
 | **Audio** | Compare recordings and edited versions on paired timelines, with a closer look at selected passages. |
-| **Photography** | Read-only paired photographs, RGB/HSL histograms, named region pairs, capture metadata, and recorded processing curves. Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
+| **Photography** | Read-only paired photographs, named region pairs, HSL, and recorded curves. The 0.13.1 source preview adds RGB channel grayscale previews, Lab L*/RGB histograms with region highlighting, and side-by-side capture metadata. Uses Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
 
 <details>
 <summary><b>The details make a difference</b></summary>

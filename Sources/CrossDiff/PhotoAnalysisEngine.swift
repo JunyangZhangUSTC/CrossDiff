@@ -27,7 +27,7 @@ struct PhotoDecodedImage: @unchecked Sendable {
 }
 
 enum PhotoAnalysisError: LocalizedError {
-    case invalidFile, fileTooLarge, pixelBudget, unsupportedRAW, decode, invalidRegion, noPixels, statistics
+    case invalidFile, fileTooLarge, pixelBudget, unsupportedRAW, decode, invalidRegion, invalidRange, noPixels, statistics
     var errorDescription: String? {
         switch self {
         case .invalidFile: return L("请选择本地图片文件。", "Choose a local image file.")
@@ -36,6 +36,7 @@ enum PhotoAnalysisError: LocalizedError {
         case .unsupportedRAW: return L("此 RAW 无法由当前 macOS 完整解码，未使用内嵌预览代替。请尝试受支持的 RAW 或导出 TIFF。", "This RAW cannot be fully decoded by this macOS version. No embedded preview was substituted. Try a supported RAW or export TIFF.")
         case .decode: return L("无法解码此图片。", "This image could not be decoded.")
         case .invalidRegion: return L("分析选区超出了图片范围。", "The analysis region is outside the image.")
+        case .invalidRange: return L("请选择单一通道的有效直方图区间。", "Choose a valid histogram range for one channel.")
         case .noPixels: return L("选区内没有可分析的有效可见像素。", "The region contains no valid visible pixels to analyze.")
         case .statistics: return L("专业分析库无法完成此次统计。", "The analysis library could not compute these statistics.")
         }
@@ -46,7 +47,8 @@ enum PhotoAnalysisEngine {
     static let maximumFileBytes = 256 * 1024 * 1024
     static let maximumPixels = 64_000_000
     static let maximumSampleSide = 4096
-    static let analysisSpace = "sRGB · SDR [0, 1] · HSL lightness · OpenCV 4.12.0"
+    static let maximumPreviewSide = 2048
+    static let analysisSpace = "sRGB · SDR [0, 1] · Lab L* [0, 100] (D65) · HSL L · OpenCV 4.12.0"
     private static let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
     private static let context = CIContext(options: [
         .workingColorSpace: CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!,
@@ -133,12 +135,12 @@ enum PhotoAnalysisEngine {
         try validateSize(decoded.extent.size)
         let oriented = decoded.transformed(by: CGAffineTransform(translationX: -decoded.extent.minX, y: -decoded.extent.minY))
         let width = Int(oriented.extent.width.rounded()), height = Int(oriented.extent.height.rounded())
-        let thumbnail = resample(oriented, maximumSide: 2048)
+        let thumbnail = resample(oriented, maximumSide: maximumPreviewSide)
         guard let preview = context.createCGImage(thumbnail, from: thumbnail.extent, format: .RGBA8, colorSpace: srgb) else {
             throw isRAW ? PhotoAnalysisError.unsupportedRAW : PhotoAnalysisError.decode
         }
         try Task.checkCancellation()
-        diagnostics.append(.init(zhHans: "统计在 sRGB 浮点数据的 SDR 0–1 范围内进行；超出范围的值会截至端点，不据此判断 RAW 过曝。明度为 HSL L，非物理亮度。", en: "Statistics use floating-point sRGB in the SDR 0–1 range. Out-of-range values are clamped; endpoints do not establish RAW overexposure. Lightness is HSL L, not physical luminance."))
+        diagnostics.append(.init(zhHans: "统计在 sRGB 浮点数据的 SDR 0–1 范围内进行；超出范围的值会截至端点，不据此判断 RAW 过曝。感知明度为 Lab L*（D65，0–100）；HSL 明度 L 单独保留，两者均非物理亮度。", en: "Statistics use floating-point sRGB in the SDR 0–1 range. Out-of-range values are clamped; endpoints do not establish RAW overexposure. Perceptual lightness is Lab L* (D65, 0–100); HSL lightness L is retained separately. Neither is physical luminance."))
         diagnostics.append(.init(zhHans: "有效像素等权统计；完全透明和非有限值不参与。HSL 饱和度低于 2% 归为中性色。", en: "Valid pixels have equal weight; fully transparent and non-finite samples are excluded. HSL saturation below 2% is classified as neutral."))
         var recordedCurves: [PhotoRecordedCurve] = []
         var curveWarning: Error?
@@ -154,14 +156,7 @@ enum PhotoAnalysisEngine {
 
     static func analyze(_ image: PhotoDecodedImage, region: PhotoRegion) throws -> PhotoStatistics {
         try Task.checkCancellation()
-        guard region.isValid else { throw PhotoAnalysisError.invalidRegion }
-        let full = CGRect(x: 0, y: 0, width: image.pixelWidth, height: image.pixelHeight)
-        // User regions have a top-left origin; Core Image uses bottom-left.
-        let sourceRect = CGRect(x: Double(image.pixelWidth) * region.x,
-            y: Double(image.pixelHeight) * (1 - region.y - region.height),
-            width: Double(image.pixelWidth) * region.width,
-            height: Double(image.pixelHeight) * region.height).integral.intersection(full)
-        guard !sourceRect.isEmpty else { throw PhotoAnalysisError.invalidRegion }
+        let sourceRect = try sourceRect(for: image, region: region)
         let cropped = image.image.cropped(to: sourceRect).transformed(by:
             CGAffineTransform(translationX: -sourceRect.minX, y: -sourceRect.minY))
         let sample = resample(cropped, maximumSide: maximumSampleSide)
@@ -172,10 +167,10 @@ enum PhotoAnalysisEngine {
                            bounds: sample.extent, format: .RGBAf, colorSpace: srgb)
         }
         try Task.checkCancellation()
-        var histograms = [Double](repeating: 0, count: 256 * 5 + 360)
+        var histograms = [Double](repeating: 0, count: 256 * 6 + 360)
         var count: Int32 = 0
         var neutral = 0.0
-        let result = crossdiff_photo_histograms(&pixels, Int32(width), Int32(height), &histograms, histograms.count, &count, &neutral)
+        let result = crossdiff_photo_histograms_v2(&pixels, Int32(width), Int32(height), &histograms, histograms.count, &count, &neutral)
         if result == 2 { throw PhotoAnalysisError.noPixels }
         guard result == 0 else { throw PhotoAnalysisError.statistics }
         try Task.checkCancellation()
@@ -183,7 +178,87 @@ enum PhotoAnalysisEngine {
             blue: Array(histograms[512..<768]), lightness: Array(histograms[768..<1024]),
             hue: Array(histograms[1280..<1640]), saturation: Array(histograms[1024..<1280]),
             neutralFraction: neutral, analyzedPixels: Int(count), sampleWidth: width, sampleHeight: height,
-            sampled: width < Int(sourceRect.width) || height < Int(sourceRect.height), analysisSpace: analysisSpace)
+            sampled: width < Int(sourceRect.width) || height < Int(sourceRect.height), analysisSpace: analysisSpace,
+            perceptualLightness: Array(histograms[1640..<1896]))
+    }
+
+    /// Channel and brush affect this bounded display only, never the ROI or statistics.
+    static func preview(_ image: PhotoDecodedImage, channel: PhotoPreviewChannel,
+                        highlight: PhotoHistogramRange?, region: PhotoRegion) throws -> CGImage {
+        try Task.checkCancellation()
+        let selectedSource = try sourceRect(for: image, region: region)
+        guard highlight?.isValid != false else { throw PhotoAnalysisError.invalidRange }
+        if channel == .original && highlight == nil { return image.preview }
+        let sample = resample(image.image, maximumSide: maximumPreviewSide)
+        let width = Int(sample.extent.width), height = Int(sample.extent.height)
+        var pixels = [Float](repeating: 0, count: width * height * 4)
+        pixels.withUnsafeMutableBytes { bytes in
+            context.render(sample, toBitmap: bytes.baseAddress!, rowBytes: width * 4 * MemoryLayout<Float>.size,
+                           bounds: sample.extent, format: .RGBAf, colorSpace: srgb)
+        }
+        try Task.checkCancellation()
+        let horizontalScale = Double(width) / Double(image.pixelWidth)
+        let verticalScale = Double(height) / Double(image.pixelHeight)
+        // CIContext bitmap rows and CGImage provider rows start at the visual top.
+        let roi = CGRect(x: selectedSource.minX * horizontalScale,
+                         y: (Double(image.pixelHeight) - selectedSource.maxY) * verticalScale,
+                         width: selectedSource.width * horizontalScale, height: selectedSource.height * verticalScale)
+            .integral.intersection(CGRect(x: 0, y: 0, width: width, height: height))
+        let displayChannel: Int32
+        switch channel {
+        case .original: displayChannel = 0
+        case .red: displayChannel = 1
+        case .green: displayChannel = 2
+        case .blue: displayChannel = 3
+        }
+        let brushChannel: Int32
+        switch highlight?.channel {
+        case .perceptualLightness: brushChannel = 0
+        case .red: brushChannel = 1
+        case .green: brushChannel = 2
+        case .blue: brushChannel = 3
+        default: brushChannel = -1
+        }
+        var output = Data(count: width * height * 4)
+        try pixels.withUnsafeBufferPointer { source in
+            try output.withUnsafeMutableBytes { bytes in
+                for row in stride(from: 0, to: height, by: 64) {
+                    try Task.checkCancellation()
+                    let rows = min(64, height - row)
+                    let block = CGRect(x: 0, y: row, width: width, height: rows)
+                    let intersection = roi.intersection(block)
+                    let selected = intersection.isNull ? CGRect.zero : intersection.offsetBy(dx: 0, dy: -Double(row))
+                    let result = crossdiff_photo_preview(source.baseAddress! + row * width * 4,
+                        Int32(width), Int32(rows), displayChannel, brushChannel,
+                        Int32(highlight?.lowerBin ?? 0), Int32(highlight?.upperBin ?? 255),
+                        Int32(selected.minX), Int32(selected.minY), Int32(selected.width), Int32(selected.height),
+                        bytes.baseAddress!.assumingMemoryBound(to: UInt8.self) + row * width * 4, rows * width * 4)
+                    guard result == 0 else { throw PhotoAnalysisError.statistics }
+                }
+            }
+        }
+        try Task.checkCancellation()
+        // Preserve unpremultiplied channel values and alpha without a second color conversion.
+        guard let provider = CGDataProvider(data: output as CFData),
+              let result = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
+                  bytesPerRow: width * 4, space: srgb,
+                  bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue), provider: provider,
+                  decode: nil, shouldInterpolate: true, intent: .defaultIntent)
+        else { throw PhotoAnalysisError.decode }
+        try Task.checkCancellation()
+        return result
+    }
+
+    private static func sourceRect(for image: PhotoDecodedImage, region: PhotoRegion) throws -> CGRect {
+        guard region.isValid else { throw PhotoAnalysisError.invalidRegion }
+        let full = CGRect(x: 0, y: 0, width: image.pixelWidth, height: image.pixelHeight)
+        // User regions have a top-left origin; Core Image uses bottom-left.
+        let rect = CGRect(x: Double(image.pixelWidth) * region.x,
+            y: Double(image.pixelHeight) * (1 - region.y - region.height),
+            width: Double(image.pixelWidth) * region.width,
+            height: Double(image.pixelHeight) * region.height).integral.intersection(full)
+        guard !rect.isEmpty else { throw PhotoAnalysisError.invalidRegion }
+        return rect
     }
 
     private static func validateSize(_ size: CGSize) throws {
@@ -221,7 +296,16 @@ enum PhotoAnalysisEngine {
         if let aperture = exif[kCGImagePropertyExifFNumber as String] as? NSNumber { add("aperture", "光圈", "Aperture", "ƒ/\(aperture)") }
         if let iso = exif[kCGImagePropertyExifISOSpeedRatings as String] as? [NSNumber] { add("iso", "ISO", "ISO", iso.map(\.stringValue).joined(separator: ", ")) }
         if let focal = exif[kCGImagePropertyExifFocalLength as String] as? NSNumber { add("focalLength", "焦距", "Focal length", "\(focal) mm") }
-        if let bias = exif[kCGImagePropertyExifExposureBiasValue as String] as? NSNumber { add("exposureBias", "曝光补偿", "Exposure bias", "\(bias) EV") }
+        if let bias = exif[kCGImagePropertyExifExposureBiasValue as String] as? NSNumber, bias.doubleValue.isFinite {
+            let formatter = NumberFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.numberStyle = .decimal
+            formatter.usesGroupingSeparator = false
+            formatter.maximumFractionDigits = 2
+            formatter.positivePrefix = "+"
+            formatter.negativePrefix = "-"
+            if let value = formatter.string(from: bias) { add("exposureBias", "曝光补偿", "Exposure bias", "\(value) EV") }
+        }
         if let balance = exif[kCGImagePropertyExifWhiteBalance as String] as? NSNumber {
             add("whiteBalance", "白平衡模式（0 自动 / 1 手动）", "White balance (0 auto / 1 manual)", balance.stringValue)
         }

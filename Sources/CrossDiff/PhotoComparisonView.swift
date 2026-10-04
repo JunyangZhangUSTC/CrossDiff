@@ -16,6 +16,8 @@ struct PhotoComparisonView: View {
     @State private var showsSaveRegion = false
     @State private var regionName = ""
     @State private var inspectSide: PhotoComparisonModel.Side?
+    @State private var hoveredBin: Int?
+    @State private var showsAnalysisHelp = false
     private var theme: ComparisonTheme { appearance.colors }
     private var selectedRegionName: String? {
         model.state.regions.first { $0.left == model.state.leftRegion && $0.right == model.state.rightRegion }?.name
@@ -49,7 +51,7 @@ struct PhotoComparisonView: View {
                         Divider()
                         photograph(rightImage, url: right, side: .right, region: model.state.rightRegion)
                     }.frame(minHeight: 210, idealHeight: 360, maxHeight: .infinity)
-                    analysisPanel.frame(minHeight: 215, idealHeight: 270, maxHeight: 440)
+                    analysisPanel.frame(minHeight: 250, idealHeight: 390, maxHeight: 500)
                 }
             } else if let error = model.error {
                 ContentUnavailableView {
@@ -61,15 +63,16 @@ struct PhotoComparisonView: View {
             }
         }
         .foregroundStyle(Color(nsColor: theme.text)).background(Color(nsColor: theme.canvas))
+        .environment(\.colorScheme, appearance.isDark ? .dark : .light)
         .task(id: [left.absoluteString, right.absoluteString, executionID]) {
             await model.load(left: left, right: right, execute: execute, executionID: executionID)
         }
         .onDisappear { model.cancel() }
         .sheet(isPresented: Binding(get: { inspectSide != nil }, set: { if !$0 { inspectSide = nil } })) {
-            if inspectSide == .left, let image = model.leftImage {
-                PhotoPreviewInspector(image: image.preview, name: left.lastPathComponent)
-            } else if let image = model.rightImage {
-                PhotoPreviewInspector(image: image.preview, name: right.lastPathComponent)
+            if inspectSide == .left, let image = model.leftDisplayImage {
+                PhotoPreviewInspector(image: image, name: left.lastPathComponent + " · " + previewTitle)
+            } else if inspectSide == .right, let image = model.rightDisplayImage {
+                PhotoPreviewInspector(image: image, name: right.lastPathComponent + " · " + previewTitle)
             }
         }
     }
@@ -103,7 +106,7 @@ struct PhotoComparisonView: View {
                     }
                 }
             } label: { Label(selectedRegionName ?? L("已存区域", "Saved Regions"), systemImage: "rectangle.stack").lineLimit(1) }
-                .frame(maxWidth: 160)
+                .frame(maxWidth: 132)
                 .help(L("保存左右区域配对，随时切换", "Save pairs of regions and switch between them"))
                 .accessibilityIdentifier("photo.savedRegions")
             Button {
@@ -116,7 +119,16 @@ struct PhotoComparisonView: View {
                 .disabled(model.state.regions.count >= 32 || model.leftImage == nil)
                 .popover(isPresented: $showsSaveRegion) { saveRegionPopover }
             Spacer(minLength: 0)
-            Text(L("只读", "Read-only")).font(.system(size: 11)).foregroundStyle(Color(nsColor: theme.secondaryText))
+            Picker(L("照片预览", "Photo Preview"), selection: $model.state.previewChannel) {
+                Text(L("预览：原图", "Preview: Original")).tag(PhotoPreviewChannel.original)
+                Text(L("预览：红通道", "Preview: Red")).tag(PhotoPreviewChannel.red)
+                Text(L("预览：绿通道", "Preview: Green")).tag(PhotoPreviewChannel.green)
+                Text(L("预览：蓝通道", "Preview: Blue")).tag(PhotoPreviewChannel.blue)
+            }.pickerStyle(.menu).labelsHidden().frame(width: 140)
+                .id(settings.language.rawValue + (appearance.isDark ? "-dark" : "-light"))
+                .help(L("同时查看两侧的单通道灰度预览；不改变原图或统计。", "View both photographs as one grayscale channel. Originals and statistics stay unchanged."))
+                .disabled(model.leftImage == nil)
+                .accessibilityIdentifier("photo.preview-channel")
             Button { reload() } label: { Image(systemName: "arrow.clockwise") }
                 .help(L("重新读取照片与分析", "Reload Photographs and Analysis"))
                 .accessibilityLabel(L("重新读取照片与分析", "Reload Photographs and Analysis"))
@@ -154,16 +166,29 @@ struct PhotoComparisonView: View {
     private func photograph(_ image: PhotoDecodedImage, url: URL, side: PhotoComparisonModel.Side, region: PhotoRegion) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Image(systemName: "photo").foregroundStyle(Color(nsColor: theme.secondaryText))
+                Text(side == .left ? "A" : "B").font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color(nsColor: side == .left ? theme.photoLeft : theme.photoRight))
                 Text(url.lastPathComponent).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.middle)
                 Spacer(minLength: 6)
+                Text(previewTitle).font(.system(size: 10)).lineLimit(1)
+                    .foregroundStyle(Color(nsColor: theme.secondaryText)).help(previewTitle)
                 Text(region == .full ? L("全图", "Whole Image") : L("选区", "Region") + " · " + String(format: "%.1f%%", region.width * region.height * 100))
                     .font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText)).fixedSize()
                 Button { inspectSide = side } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
                     .buttonStyle(.borderless).help(L("放大查看预览", "Inspect Preview"))
                     .accessibilityLabel(L("放大查看预览", "Inspect Preview"))
+                    .disabled(model.isPreviewing || (side == .left ? model.leftDisplayImage : model.rightDisplayImage) == nil)
             }.padding(.horizontal, 14).frame(height: 36)
-            PhotoRegionView(image: image.preview, region: region) { model.selectRegion($0, side: side) }
+            PhotoRegionView(image: displayedImage(image, side: side), region: region) { model.selectRegion($0, side: side) }
+                .overlay(alignment: .topTrailing) {
+                    if model.isPreviewing {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.mini)
+                            Text(L("更新预览…", "Updating preview…")).font(.system(size: 10))
+                        }.padding(8).background(Color(nsColor: theme.canvas), in: RoundedRectangle(cornerRadius: 6))
+                            .padding(12).allowsHitTesting(false)
+                    }
+                }
                 .accessibilityIdentifier(side == .left ? "photo.left.region" : "photo.right.region")
             HStack {
                 Text("\(image.pixelWidth) × \(image.pixelHeight)").monospacedDigit()
@@ -172,6 +197,21 @@ struct PhotoComparisonView: View {
             }.font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
                 .padding(.horizontal, 14).frame(height: 26)
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func displayedImage(_ image: PhotoDecodedImage, side: PhotoComparisonModel.Side) -> CGImage {
+        (side == .left ? model.leftDisplayImage : model.rightDisplayImage) ?? image.preview
+    }
+
+    private var previewTitle: String {
+        let title: String
+        switch model.state.previewChannel {
+        case .original: title = L("原图", "Original")
+        case .red: title = L("红通道灰度", "Red Channel Grayscale")
+        case .green: title = L("绿通道灰度", "Green Channel Grayscale")
+        case .blue: title = L("蓝通道灰度", "Blue Channel Grayscale")
+        }
+        return title + (model.highlightedRange == nil ? "" : L(" · 区间高亮", " · Range Highlight"))
     }
 
     private var analysisPanel: some View {
@@ -187,11 +227,18 @@ struct PhotoComparisonView: View {
                     Picker(L("分析项目", "Analysis Section"), selection: $section) {
                         ForEach(Section.allCases, id: \.self) { Text($0.title).tag($0) }
                     }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 460).id(settings.language)
-                } else {
-                    Text(L("相同刻度 · 有效像素占比", "Shared scale · Fraction of valid pixels"))
-                        .font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
                 }
                 Spacer(minLength: 0)
+                if model.highlightedRange != nil {
+                    Button { model.clearHighlight() } label: {
+                        Label(L("清除高亮", "Clear Highlight"), systemImage: "xmark.circle")
+                    }.buttonStyle(.borderless).font(.system(size: 11))
+                        .accessibilityIdentifier("photo.clear-highlight")
+                }
+                Button { showsAnalysisHelp.toggle() } label: { Image(systemName: "info.circle") }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(L("分析说明", "About This Analysis"))
+                    .popover(isPresented: $showsAnalysisHelp) { analysisHelp }
                 Button {
                     showsProfessional.toggle()
                     if !showsProfessional { section = .tone }
@@ -202,8 +249,13 @@ struct PhotoComparisonView: View {
                     .accessibilityIdentifier("photo.professional")
             }.padding(.horizontal, 16).frame(height: 38)
             Divider()
+            if section == .tone { toneControls }
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    if let error = model.previewError {
+                        Label(localizedErrorDescription(error), systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
+                    }
                     if let error = model.error {
                         Label(localizedErrorDescription(error), systemImage: "exclamationmark.triangle")
                             .font(.callout).foregroundStyle(Color(nsColor: theme.secondaryText))
@@ -216,15 +268,7 @@ struct PhotoComparisonView: View {
                         case .information: information(first, second)
                         }
                         if section == .tone {
-                            findings
-                            HStack(spacing: 6) {
-                                Image(systemName: "info.circle")
-                                Text(L("明度为 HSL L，不是曝光值；成片分布不能还原原作者的调色参数。", "Lightness is HSL L, not exposure. Image distributions do not recover the creator’s editing settings."))
-                            }.font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
-                            if first.sampled || second.sampled {
-                                Text(L("当前结果经过有界采样；分析尺寸见“拍摄与分析信息”。", "These results use bounded sampling. See Image & Analysis for sample dimensions."))
-                                    .font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
-                            }
+                            analysisCaption(first, second)
                         }
                     } else {
                         HStack { Spacer(); Text(L("正在计算选区分布…", "Calculating region distributions…")); Spacer() }
@@ -235,35 +279,139 @@ struct PhotoComparisonView: View {
         }.background(Color(nsColor: theme.canvas))
     }
 
-    private var findings: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            ForEach(Array(model.findings.prefix(3).enumerated()), id: \.offset) { _, finding in
-                HStack(alignment: .firstTextBaseline, spacing: 7) {
-                    Circle().fill(Color(nsColor: theme.accent)).frame(width: 4, height: 4)
-                    Text(finding.localized).font(.system(size: 11)).textSelection(.enabled)
-                }
-            }
-        }
+    private var toneControls: some View {
+        HStack(spacing: 12) {
+            Picker(L("图表通道", "Chart Channel"), selection: $model.state.histogramChannel) {
+                Text(L("明度 L*", "Lightness L*")).tag(PhotoHistogramChannel.perceptualLightness)
+                Text("RGB").tag(PhotoHistogramChannel.rgb)
+                Text("R").tag(PhotoHistogramChannel.red)
+                Text("G").tag(PhotoHistogramChannel.green)
+                Text("B").tag(PhotoHistogramChannel.blue)
+            }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 325).id(settings.language)
+                .accessibilityIdentifier("photo.histogram-channel")
+            Spacer(minLength: 0)
+            Picker(L("图表布局", "Chart Layout"), selection: $model.state.histogramLayout) {
+                Text(L("分开", "Separate")).tag(PhotoHistogramLayout.separated)
+                Text(L("叠加", "Overlay")).tag(PhotoHistogramLayout.overlay)
+                Text(L("分布差", "Difference")).tag(PhotoHistogramLayout.difference)
+            }.pickerStyle(.segmented).labelsHidden().frame(width: 236).id(settings.language)
+                .accessibilityIdentifier("photo.histogram-layout")
+        }.controlSize(.small).padding(.horizontal, 18).frame(height: 40)
+            .background(Color(nsColor: theme.chrome))
+            .onChange(of: model.state.histogramChannel) { _, _ in hoveredBin = nil }
+    }
+
+    private var analysisHelp: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L("读懂这组对比", "Reading This Comparison")).font(.headline)
+            Text(L("两侧按各自有效像素数归一化，并共用刻度。悬停查看双方数值，拖选数值范围，在照片中定位对应像素。", "Both sides use the fraction of their own valid pixels and share a scale. Hover to compare values; drag across a range to locate matching pixels in the photographs."))
+            Text(L("明度 L* 是 CIELAB 感知明度，范围 0–100。摘要来自分箱统计，分位值为估计；它不是拍摄曝光或相机动态范围。HSL 明度仍在专业色彩分析中提供。", "Lightness L* is CIELAB perceptual lightness, from 0 to 100. Summaries use binned statistics and estimated percentiles, not exposure or camera dynamic range. HSL lightness remains available under Color analysis."))
+            Text(L("分析采用统一 sRGB SDR 范围。高亮仅用于观察，不改变选区或统计。不同主体和构图会影响分布；RAW 使用 Apple 默认显影，端点不代表传感器过曝。", "Analysis uses a common sRGB SDR range. Highlighting does not change regions or statistics. Subjects and composition affect distributions. RAW uses Apple's default rendering; endpoints do not establish sensor clipping."))
+            Text(L("预览最长边 2048 像素，统计选区最长边 4096 像素，分别采样。细小内容的屏幕高亮可能与统计占比略有差别。", "Preview images are sampled to a maximum edge of 2048 pixels; region statistics use up to 4096. Fine details in the highlighted preview may differ slightly from the measured fractions."))
+        }.font(.system(size: 12)).foregroundStyle(Color(nsColor: theme.text)).padding(20).frame(width: 370)
     }
 
     private func tone(_ first: PhotoStatistics, _ second: PhotoStatistics) -> some View {
-        let rgbMax = maximum(first.red, first.green, first.blue, second.red, second.green, second.blue)
-        let lightMax = maximum(first.lightness, second.lightness)
-        return HStack(alignment: .top, spacing: 28) {
-            toneCharts(first, rgbMaximum: rgbMax, lightMaximum: lightMax)
-            Rectangle().fill(Color(nsColor: theme.separator)).frame(width: 1)
-            toneCharts(second, rgbMaximum: rgbMax, lightMaximum: lightMax)
+        VStack(alignment: .leading, spacing: 12) {
+            toneSummary(first, second)
+            Divider()
+            if model.state.histogramChannel == .rgb {
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach([PhotoHistogramChannel.red, .green, .blue], id: \.self) { channel in
+                        pairedChart(channel, first, second).frame(maxWidth: .infinity)
+                    }
+                }
+            } else {
+                pairedChart(model.state.histogramChannel, first, second)
+            }
+            if let selected = model.highlightedRange {
+                HStack(spacing: 8) {
+                    Image(systemName: "viewfinder")
+                    Text(highlightTitle(selected))
+                    Spacer(minLength: 0)
+                    Text(L("左", "Left") + " " + String(format: "%.1f%%", first.fraction(in: selected) * 100))
+                        .foregroundStyle(Color(nsColor: theme.photoLeft))
+                    Text(L("右", "Right") + " " + String(format: "%.1f%%", second.fraction(in: selected) * 100))
+                        .foregroundStyle(Color(nsColor: theme.photoRight))
+                }.font(.system(size: 11)).monospacedDigit().padding(.vertical, 3)
+            }
+
         }
     }
-    private func toneCharts(_ value: PhotoStatistics, rgbMaximum: Double, lightMaximum: Double) -> some View {
-        HStack(alignment: .top, spacing: 20) {
-            PhotoHistogram(title: L("RGB 分布", "RGB Distribution"), series: [
-                .init(values: value.red, color: Color(red: 0.85, green: 0.31, blue: 0.33)),
-                .init(values: value.green, color: Color(red: 0.25, green: 0.65, blue: 0.43)),
-                .init(values: value.blue, color: Color(red: 0.32, green: 0.53, blue: 0.88))], sharedMaximum: rgbMaximum)
-            PhotoHistogram(title: L("明度分布 · HSL L", "Lightness · HSL L"),
-                           series: [.init(values: value.lightness, color: Color(nsColor: theme.accent))], sharedMaximum: lightMaximum)
-        }.frame(maxWidth: .infinity)
+
+    private func toneSummary(_ first: PhotoStatistics, _ second: PhotoStatistics) -> some View {
+            HStack(alignment: .top, spacing: 22) {
+                summaryColumn(L("明度中位值", "Median Lightness"),
+                    left: first.percentile(0.5, channel: .perceptualLightness).map { $0 * 100 },
+                    right: second.percentile(0.5, channel: .perceptualLightness).map { $0 * 100 }, suffix: "L*",
+                    help: L("一半像素低于此明度；由 256 个分箱估算，不是曝光值。", "Half the pixels fall below this lightness. Estimated from 256 bins, not an exposure value."))
+                summaryColumn(L("明暗跨度", "Tonal Spread"), left: tonalSpread(first), right: tonalSpread(second), suffix: "L*",
+                    help: L("P90 − P10：中间 80% 像素的感知明度跨度，不是相机动态范围。", "P90 − P10: perceptual lightness span of the middle 80% of pixels, not camera dynamic range."))
+                let low = PhotoHistogramRange(channel: .perceptualLightness, lowerBin: 0, upperBin: 50)
+                summaryColumn(L("低明度占比", "Low-lightness Share"),
+                    left: first.fraction(in: low) * 100, right: second.fraction(in: low) * 100, suffix: "%",
+                    help: L("L* < 约 20 的像素占比；不是欠曝判定。差值单位为百分点。", "Fraction of pixels at L* ≲ 20; not an underexposure diagnosis. Differences use percentage points."))
+                let high = PhotoHistogramRange(channel: .perceptualLightness, lowerBin: 205, upperBin: 255)
+                summaryColumn(L("高明度占比", "High-lightness Share"),
+                    left: first.fraction(in: high) * 100, right: second.fraction(in: high) * 100, suffix: "%",
+                    help: L("L* ≥ 约 80 的像素占比。明亮内容不等于过曝；差值单位为百分点。", "Fraction of pixels at L* ≳ 80. Bright content is not necessarily overexposed; the difference is in percentage points."))
+            }
+    }
+
+    private func pairedChart(_ channel: PhotoHistogramChannel, _ first: PhotoStatistics, _ second: PhotoStatistics) -> some View {
+        PhotoComparisonHistogram(title: channelTitle(channel), channel: channel,
+            left: first.values(for: channel), right: second.values(for: channel), layout: model.state.histogramLayout,
+            hoveredBin: $hoveredBin, selection: $model.highlightedRange)
+    }
+
+    private func highlightTitle(_ selected: PhotoHistogramRange) -> String {
+        let lower = Double(selected.lowerBin) * 100.0 / 256.0
+        let upper = Double(selected.upperBin + 1) * 100.0 / 256.0
+        let range = String(format: "%.1f–%.1f", lower, upper)
+        let unit = selected.channel == .perceptualLightness ? " L*" : "%"
+        return L("高亮", "Highlight") + " · " + channelTitle(selected.channel) + " " + range + unit
+    }
+
+    private func channelTitle(_ channel: PhotoHistogramChannel) -> String {
+        switch channel {
+        case .perceptualLightness: return L("感知明度 · Lab L*", "Perceptual Lightness · Lab L*")
+        case .rgb: return L("RGB 总览", "RGB Overview")
+        case .red: return L("红通道 · R", "Red Channel · R")
+        case .green: return L("绿通道 · G", "Green Channel · G")
+        case .blue: return L("蓝通道 · B", "Blue Channel · B")
+        }
+    }
+
+    private func tonalSpread(_ value: PhotoStatistics) -> Double? {
+        guard let low = value.percentile(0.1, channel: .perceptualLightness),
+              let high = value.percentile(0.9, channel: .perceptualLightness) else { return nil }
+        return (high - low) * 100
+    }
+
+    private func summaryColumn(_ title: String, left: Double?, right: Double?, suffix: String, help: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title).font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
+            HStack(spacing: 9) {
+                Text(left.map { String(format: "%.1f", $0) } ?? "—").foregroundStyle(Color(nsColor: theme.photoLeft))
+                Text("→").foregroundStyle(Color(nsColor: theme.secondaryText))
+                Text(right.map { String(format: "%.1f", $0) } ?? "—").foregroundStyle(Color(nsColor: theme.photoRight))
+                Text(suffix).font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
+            }.font(.system(size: 14, weight: .medium)).monospacedDigit()
+            if let left, let right {
+                Text("Δ " + String(format: "%+.1f", right - left) + (suffix == "%" ? L(" 个百分点", " pp") : " L*"))
+                    .font(.system(size: 10)).monospacedDigit().foregroundStyle(Color(nsColor: theme.secondaryText))
+            }
+        }.frame(maxWidth: .infinity, alignment: .leading).help(help)
+    }
+
+    private func analysisCaption(_ first: PhotoStatistics, _ second: PhotoStatistics) -> some View {
+        HStack(spacing: 8) {
+            Text(L("共同刻度 · sRGB SDR · 只读", "Shared scale · sRGB SDR · Read-only"))
+            Spacer(minLength: 0)
+            Text(first.sampled || second.sampled
+                 ? L("采样统计 · 高亮为预览", "Sampled statistics · Preview highlights")
+                 : L("选区统计 · 高亮为预览", "Region statistics · Preview highlights"))
+        }.font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
     }
 
     private func color(_ first: PhotoStatistics, _ second: PhotoStatistics) -> some View {
@@ -284,6 +432,9 @@ struct PhotoComparisonView: View {
                                sharedMaximum: hueMaximum, lowerLabel: "0°", upperLabel: "360°")
                 PhotoHistogram(title: L("饱和度 · S", "Saturation · S"), series: [.init(values: value.saturation, color: Color(nsColor: theme.accent))], sharedMaximum: saturationMaximum)
             }
+            PhotoHistogram(title: L("明度 · HSL L", "Lightness · HSL L"),
+                series: [.init(values: value.lightness, color: Color(nsColor: theme.accent))],
+                sharedMaximum: maximum(model.leftStatistics?.lightness ?? [], model.rightStatistics?.lightness ?? []))
             Text(L("中性色占比", "Neutral Pixels") + "  " + String(format: "%.1f%%", value.neutralFraction * 100))
                 .font(.system(size: 11)).monospacedDigit()
         }.frame(maxWidth: .infinity)
@@ -331,43 +482,88 @@ struct PhotoComparisonView: View {
 
     private func information(_ first: PhotoStatistics, _ second: PhotoStatistics) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 28) {
-                informationColumn(model.leftImage, statistics: first)
-                Rectangle().fill(Color(nsColor: theme.separator)).frame(width: 1)
-                informationColumn(model.rightImage, statistics: second)
+            HStack(spacing: 14) {
+                Text(L("文件记录", "File Records")).frame(width: 148, alignment: .leading)
+                Text(L("A · 左侧", "A · Left")).foregroundStyle(Color(nsColor: theme.photoLeft))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(L("B · 右侧", "B · Right")).foregroundStyle(Color(nsColor: theme.photoRight))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }.font(.system(size: 11, weight: .semibold)).padding(.horizontal, 8)
+            VStack(spacing: 2) {
+                ForEach(metadataFields, id: \.0) { field in
+                    metadataComparisonRow(field.0, label: field.1,
+                        left: metadataValue(field.0, image: model.leftImage),
+                        right: metadataValue(field.0, image: model.rightImage))
+                }
+            }
+            Text(L("圆点标记不同项；缺失值显示“未记录”。拍摄参数来自文件，不根据画面推测。", "Dots mark differences; absent values say “Not recorded”. Capture settings come from the file, never from estimates of the picture."))
+                .font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
+            Divider()
+            Text(L("分析条件", "Analysis Conditions")).font(.system(size: 12, weight: .medium))
+            VStack(spacing: 2) {
+                metadataComparisonRow("analysisSpace", label: L("分析色彩空间", "Analysis Space"), left: first.analysisSpace, right: second.analysisSpace)
+                metadataComparisonRow("sampleSize", label: L("分析尺寸", "Sample Dimensions"),
+                    left: "\(first.sampleWidth) × \(first.sampleHeight)", right: "\(second.sampleWidth) × \(second.sampleHeight)")
+                metadataComparisonRow("sampleCount", label: L("有效像素", "Valid Pixels"), left: "\(first.analyzedPixels)", right: "\(second.analyzedPixels)")
+                metadataComparisonRow("sampled", label: L("采样", "Sampling"),
+                    left: first.sampled ? L("有界采样", "Bounded Sampling") : L("选区全部像素", "All Region Pixels"),
+                    right: second.sampled ? L("有界采样", "Bounded Sampling") : L("选区全部像素", "All Region Pixels"))
+            }
+            ForEach(Array((model.leftImage?.diagnostics ?? []).enumerated()), id: \.offset) { _, diagnostic in
+                Text(L("左侧：", "Left: ") + diagnostic.localized).font(.system(size: 10))
+                    .foregroundStyle(Color(nsColor: theme.secondaryText))
+            }
+            ForEach(Array((model.rightImage?.diagnostics ?? []).enumerated()), id: \.offset) { _, diagnostic in
+                Text(L("右侧：", "Right: ") + diagnostic.localized).font(.system(size: 10))
+                    .foregroundStyle(Color(nsColor: theme.secondaryText))
             }
             Divider()
+            Text(L("插件分析 · HSL", "Plugin Analysis · HSL")).font(.system(size: 12, weight: .medium))
+            ForEach(Array(model.findings.enumerated()), id: \.offset) { _, finding in
+                Text(finding.localized).font(.system(size: 11))
+            }
             ForEach(Array(model.diagnostics.enumerated()), id: \.offset) { _, diagnostic in
                 Label(diagnostic.localized, systemImage: "info.circle")
                     .font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
             }
-            ForEach(Array(model.findings.dropFirst(3).enumerated()), id: \.offset) { _, finding in
-                Text(finding.localized).font(.system(size: 11))
-            }
         }
     }
-    private func informationColumn(_ image: PhotoDecodedImage?, statistics: PhotoStatistics) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            informationRow(L("分析色彩空间", "Analysis Color Space"), statistics.analysisSpace)
-            informationRow(L("分析尺寸", "Analysis Dimensions"), "\(statistics.sampleWidth) × \(statistics.sampleHeight)")
-            informationRow(L("有效像素", "Valid Pixels"), "\(statistics.analyzedPixels)")
-            informationRow(L("采样", "Sampling"), statistics.sampled ? L("有界采样", "Bounded Sampling") : L("所选区域完整像素", "Full Selected Region"))
-            Divider()
-            if let image {
-                ForEach(image.metadata) { informationRow($0.label.localized, $0.value) }
-                ForEach(Array(image.diagnostics.enumerated()), id: \.offset) { _, diagnostic in
-                    Label(diagnostic.localized, systemImage: "info.circle").font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
-                }
-            }
-            Text(L("未显示的拍摄参数可能未记录。画面统计不能确定快门、色温或曝光调整值。", "Omitted capture settings may not be recorded. Pixel statistics cannot determine shutter speed, color temperature, or exposure adjustments."))
-                .font(.system(size: 10)).foregroundStyle(Color(nsColor: theme.secondaryText))
-        }.frame(maxWidth: .infinity, alignment: .topLeading)
+
+    private var metadataFields: [(String, String)] {
+        [("cameraMake", L("厂商", "Manufacturer")), ("camera", L("相机", "Camera")),
+         ("lens", L("镜头", "Lens")), ("shutter", L("快门", "Shutter")),
+         ("aperture", L("光圈", "Aperture")), ("iso", "ISO"),
+         ("exposureBias", L("曝光补偿", "Exposure Bias")), ("focalLength", L("焦距", "Focal Length")),
+         ("whiteBalance", L("白平衡模式", "White Balance")), ("dimensions", L("像素尺寸", "Pixel Dimensions")),
+         ("profile", L("颜色配置", "Color Profile")), ("depth", L("源文件位深", "Source Bit Depth"))]
     }
-    private func informationRow(_ label: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(label).foregroundStyle(Color(nsColor: theme.secondaryText)).frame(width: 105, alignment: .leading)
-            Text(value).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
-        }.font(.system(size: 11))
+
+    private func metadataValue(_ id: String, image: PhotoDecodedImage?) -> String? {
+        guard let value = image?.metadata.first(where: { $0.id == id })?.value else { return nil }
+        if id == "whiteBalance" {
+            if value == "0" { return L("自动", "Auto") }
+            if value == "1" { return L("手动", "Manual") }
+        }
+        return value
+    }
+
+    private func metadataComparisonRow(_ id: String, label: String, left: String?, right: String?) -> some View {
+        let differs = left != right
+        return HStack(alignment: .firstTextBaseline, spacing: 14) {
+            HStack(spacing: 5) {
+                Text(label)
+                if differs { Circle().fill(Color(nsColor: theme.accent)).frame(width: 4, height: 4) }
+            }.foregroundStyle(Color(nsColor: theme.secondaryText)).frame(width: 148, alignment: .leading)
+            Text(left ?? L("未记录", "Not recorded")).textSelection(.enabled)
+                .foregroundStyle(Color(nsColor: left == nil ? theme.secondaryText : (differs ? theme.photoLeft : theme.text)))
+                .frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("photo.metadata.\(id).left")
+            Text(right ?? L("未记录", "Not recorded")).textSelection(.enabled)
+                .foregroundStyle(Color(nsColor: right == nil ? theme.secondaryText : (differs ? theme.photoRight : theme.text)))
+                .frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("photo.metadata.\(id).right")
+        }.font(.system(size: 11)).padding(.horizontal, 8).padding(.vertical, 7)
+            .background(Color(nsColor: theme.accent).opacity(differs ? 0.055 : 0), in: RoundedRectangle(cornerRadius: 4))
     }
     private func maximum(_ arrays: [Double]...) -> Double { arrays.flatMap { $0 }.max() ?? 0 }
     private func reload() {

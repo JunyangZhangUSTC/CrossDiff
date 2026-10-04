@@ -86,7 +86,7 @@
 | **办公文档** | Word 段落与表格、Excel 跨行匹配与关键列、PowerPoint 幻灯片内容；字符高亮、公式与保存的结果、原文件预览。支持 DOCX／XLSX／PPTX，只读比较。[办公指南](docs/usage.md#office) |
 | **API** | 结构化比较本地保存的请求与响应，排查字段变化。 |
 | **音频** | 用时间线对照录音与剪辑版本，深入比较局部声音。 |
-| **摄影** | 只读双图、RGB／HSL 直方图、局部框选与命名区域、拍摄信息、有记录的处理曲线；Apple 原生 RAW 解码与 OpenCV 专业统计。[摄影指南](docs/usage.md#photography) |
+| **摄影** | 只读双图、命名区域、HSL 和有记录的处理曲线；0.13.1 源码预览新增 RGB 通道灰度预览、Lab L*／RGB 直方图与区域高亮、拍摄参数左右对照。使用 Apple RAW 解码与 OpenCV 统计。[摄影指南](docs/usage.md#photography) |
 
 <details>
 <summary><b>细节也值得认真对比</b></summary>

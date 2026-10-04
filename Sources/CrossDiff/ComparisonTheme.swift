@@ -25,6 +25,8 @@ struct ComparisonTheme: Equatable {
     var secondaryText: NSColor { color(0x646C78, 0xB0BAC8) }
     var separator: NSColor { color(0xDEE2E8, 0x373E49) }
     var accent: NSColor { color(0x355F99, 0xA0C6FF) }
+    var photoLeft: NSColor { color(0x355F99, 0xA0C6FF) }
+    var photoRight: NSColor { color(0xAA5C1A, 0xF3B977) }
     var selectionBackground: NSColor { color(0xC5DAFA, 0x344F76) }
     var selectionText: NSColor { color(0x1B2637, 0xFFFFFF) }
     var navigationOutline: NSColor { color(0x6194D8, 0x96BCED) }

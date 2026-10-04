@@ -1,8 +1,15 @@
 import AppKit
 import CoreGraphics
+import CryptoKit
 import ImageIO
 import UniformTypeIdentifiers
 import CrossDiffCore
+
+/// Only the disposable workflow build substitutes this window class. Allowing
+/// offscreen title bars lets a real chart sit beneath a stationary system pointer.
+@MainActor final class PhotoWorkflowCheckWindow: NSWindow {
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
+}
 
 @MainActor enum PhotoWorkflowChecks {
     typealias D = DeletionPreviewChecks
@@ -11,7 +18,7 @@ import CrossDiffCore
         NSApp.setActivationPolicy(.accessory)
         Task {
             do { try await run() } catch { D.failures.append("Interrupted: \(error)") }
-            let verdict = D.failures.isEmpty ? "PASS: real photography plugin, selection groups, persistence, stale-result protection, XMP, native themes, base installation" : "FAIL: " + D.failures.joined(separator: "; ")
+            let verdict = D.failures.isEmpty ? "PASS: real photography plugin, native channels/layouts, Lab histograms, chart interaction, preview cancellation, selection groups, persistence, stale-result protection, XMP, native themes, base installation" : "FAIL: " + D.failures.joined(separator: "; ")
             try? (D.report + [verdict]).joined(separator: "\n").write(to: D.output.appendingPathComponent("verdict.txt"), atomically: true, encoding: .utf8)
             print(verdict); exit(D.failures.isEmpty ? 0 : 8)
         }
@@ -24,9 +31,10 @@ import CrossDiffCore
             return D.window != nil
         }
         D.window.setFrameOrigin(NSPoint(x: -10000, y: -10000)); D.window.orderFront(nil)
-        let left = root.appendingPathComponent("Coastal study.png"), right = root.appendingPathComponent("Warm reference.png")
-        try writeImage(left, warm: false); try writeImage(right, warm: true)
-        let originals = try [Data(contentsOf: left), Data(contentsOf: right)]
+        let left = root.appendingPathComponent("Coastal study.tiff"), right = root.appendingPathComponent("Warm reference.tiff")
+        try writeImage(left, warm: false, captureMetadata: true)
+        try writeImage(right, warm: true, captureMetadata: true)
+        let originals = try sourceHashes([left, right])
         let store = WorkspaceStore.shared
         store.beginNewComparison()
         try await D.wait("native comparison chooser") { store.newComparison != nil && D.window.attachedSheet != nil }
@@ -45,6 +53,12 @@ import CrossDiffCore
         try await ready(model)
         D.check(model.findings.count >= 2 && model.leftImage != nil && model.rightImage != nil, "actual restricted plugin produces findings for both decoded images")
         D.check(model.leftStatistics?.analyzedPixels == 1200 * 800, "native ROI statistics are independent of UI preview size")
+        D.check(model.leftImage?.metadata.first(where: { $0.id == "shutter" })?.value == "1/125 s"
+                && model.rightImage?.metadata.first(where: { $0.id == "shutter" })?.value == "1/250 s",
+                "ImageIO retains the differing fixture exposure times")
+        D.check(model.leftImage?.metadata.contains(where: { $0.id == "exposureBias" }) == true
+                && model.rightImage?.metadata.contains(where: { $0.id == "exposureBias" }) == false,
+                "missing exposure compensation remains absent in decoded source metadata")
         AppSettings.shared.language = .simplifiedChinese
         try await render("photo-light", width: 1220, dark: false)
         let sky = PhotoRegion(x: 0.08, y: 0.05, width: 0.7, height: 0.35)
@@ -65,10 +79,18 @@ import CrossDiffCore
         try await ready(model)
         D.check(model.leftStatistics?.analyzedPixels == skyPixels && model.state.rightRegion == .full, "saved pairs restore both independent regions and cancel stale work")
         try await render("photo-regions-dark", width: 1220, dark: true)
+        try await displayAndChartChecks(model)
         let snapshot = session.snapshot
         let encoded = try JSONEncoder().encode([snapshot])
         let decoded = try JSONDecoder().decode([StoredComparison].self, from: encoded)[0]
-        D.check(decoded.photoState == model.state && decoded.photoState?.regions.count == 2, "named selection groups persist through the real session snapshot")
+        D.check(decoded.photoState == model.state && decoded.photoState?.regions.count == 2,
+                "named selection groups and all display choices persist through the real session snapshot")
+        var legacy = try JSONSerialization.jsonObject(with: JSONEncoder().encode(model.state)) as! [String: Any]
+        for key in ["previewChannel", "histogramChannel", "histogramLayout"] { legacy.removeValue(forKey: key) }
+        let legacyState = try JSONDecoder().decode(PhotoWorkspaceState.self, from: JSONSerialization.data(withJSONObject: legacy))
+        D.check(legacyState.previewChannel == .original && legacyState.histogramChannel == .perceptualLightness
+                && legacyState.histogramLayout == .separated && legacyState.regions == model.state.regions,
+                "old saved photo state restores default display choices without losing named regions")
         let xmp = root.appendingPathComponent("curves.xmp")
         try """
         <x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/" crs:ProcessVersion="11.0"><crs:ToneCurvePV2012><rdf:Seq><rdf:li>0, 12</rdf:li><rdf:li>128, 150</rdf:li><rdf:li>255, 250</rdf:li></rdf:Seq></crs:ToneCurvePV2012></rdf:Description></rdf:RDF></x:xmpmeta>
@@ -85,6 +107,7 @@ import CrossDiffCore
             for dark in [false, true] {
                 AppSettings.shared.language = dark ? .english : .simplifiedChinese
                 try await render("photo-professional-\(name)-\(dark ? "dark-en-narrow" : "light-zh-narrow")", width: 860, dark: dark)
+                if section == 3 { try metadataRowChecks() }
             }
         }
         model.resetRegions(); try await ready(model)
@@ -102,9 +125,156 @@ import CrossDiffCore
             PluginInput(id: "right", role: .right, name: "right", content: model.rightStatistics!.pluginContent)])
         D.check(result.schema == "crossdiff.photography/1", "externally installed package runs its actual restricted algorithm")
         try await snapshotAndSchedulingChecks(root: root, right: right, execute: { try await execution.compare($0) })
-        let bytesAfter = try [Data(contentsOf: left), Data(contentsOf: right)]
-        D.check(bytesAfter == originals, "all comparisons and region operations preserve source bytes")
+        let hashesAfter = try sourceHashes([left, right])
+        D.check(hashesAfter == originals, "all comparisons, previews, chart highlights and region operations preserve source SHA-256 hashes")
     }
+    static func displayAndChartChecks(_ model: PhotoComparisonModel) async throws {
+        try await previewReady(model)
+        D.check(model.state.previewChannel == .original && model.state.histogramChannel == .perceptualLightness
+                && model.state.histogramLayout == .separated, "new photo comparison defaults to original image and separate Lab histograms")
+        let statistics = [model.leftStatistics!, model.rightStatistics!]
+        let regions = [model.state.leftRegion, model.state.rightRegion]
+        let originalLeft = imageBytes(model.leftImage!.preview)
+        let originalRight = imageBytes(model.rightImage!.preview)
+        D.check(imageBytes(model.leftDisplayImage!) == originalLeft, "default displayed photograph retains the decoded original colors")
+        for (index, channel) in PhotoPreviewChannel.allCases.enumerated() {
+            try await choose("photo.preview-channel", index: index)
+            try await previewReady(model)
+            D.check(model.state.previewChannel == channel, "native photo display menu selects \(channel.rawValue)")
+            D.check(model.state.histogramChannel == .perceptualLightness, "photo display menu leaves histogram channel independent")
+            if channel != .original {
+                let pixels = imageBytes(model.leftDisplayImage!)
+                D.check(isGrayscale(pixels) && pixels != originalLeft, "\(channel.rawValue) preview renders grayscale channel intensities")
+            }
+        }
+        for (index, channel) in PhotoHistogramChannel.allCases.enumerated() {
+            try await choose("photo.histogram-channel", index: index)
+            D.check(model.state.histogramChannel == channel && model.state.previewChannel == .blue,
+                    "native histogram control selects \(channel.rawValue) independently of preview")
+        }
+        try await choose("photo.preview-channel", index: 0)
+        try await previewReady(model)
+        try await choose("photo.histogram-channel", index: 1)
+        for (index, layout) in PhotoHistogramLayout.allCases.enumerated() {
+            try await choose("photo.histogram-layout", index: index)
+            D.check(model.state.histogramLayout == layout, "native histogram layout control selects \(layout.rawValue)")
+            AppSettings.shared.language = .simplifiedChinese
+            try await render("photo-rgb-\(layout.rawValue)-light-zh-narrow", width: 860, dark: false)
+            AppSettings.shared.language = .english
+            try await render("photo-rgb-\(layout.rawValue)-dark-en-narrow", width: 860, dark: true)
+            let plot = layout == .separated ? "left" : layout.rawValue
+            for channel in ["red", "green", "blue"] {
+                _ = try control("photo.histogram.\(channel).\(plot)")
+            }
+        }
+        D.check([model.leftStatistics!, model.rightStatistics!] == statistics && !model.isAnalyzing,
+                "preview channels and chart display modes retain original ROI statistics")
+        try await choose("photo.histogram-channel", index: 0)
+        try await choose("photo.histogram-layout", index: 1)
+        AppSettings.shared.language = .english
+        try await render("photo-lab-overlay-light-en-narrow", width: 860, dark: false)
+        AppSettings.shared.language = .simplifiedChinese
+        try await render("photo-lab-overlay-dark-zh-narrow", width: 860, dark: true)
+        let chartID = "photo.histogram.perceptualLightness.overlay"
+        let description = try await hoverChart(chartID,
+            readoutIdentifier: "photo.histogram.perceptualLightness.readout", fraction: 0.55)
+        D.log("Histogram hover readout: \(description)")
+        D.check(description.contains("A") && description.contains("B"), "native histogram hover exposes both sides at the same bin")
+        // Give native accessibility geometry time to settle after moving the
+        // temporary hover window back offscreen before locating the drag target.
+        try await D.pause()
+        try await dragChart(chartID, from: 0.2, to: 0.7)
+        try await D.wait("chart drag updates highlight range") { model.highlightedRange != nil }
+        try await previewReady(model)
+        D.check(model.highlightedRange?.channel == .perceptualLightness,
+                "native histogram drag selects perceptual-lightness bins")
+        let highlightedLeft = imageBytes(model.leftDisplayImage!)
+        D.check(highlightedLeft != originalLeft || imageBytes(model.rightDisplayImage!) != originalRight,
+                "histogram selection changes visible photo pixels")
+        D.check(rightEdgeBytes(highlightedLeft, width: model.leftDisplayImage!.width)
+                == rightEdgeBytes(originalLeft, width: model.leftImage!.preview.width),
+                "histogram highlight leaves the strip outside the left ROI untouched")
+        D.check([model.state.leftRegion, model.state.rightRegion] == regions
+                && [model.leftStatistics!, model.rightStatistics!] == statistics && !model.isAnalyzing,
+                "chart highlight preserves both source-coordinate regions and their statistics")
+        try await render("photo-lab-highlight-dark-zh-narrow", width: 860, dark: true)
+        try await press("photo.clear-highlight")
+        try await previewReady(model)
+        D.check(model.highlightedRange == nil && imageBytes(model.leftDisplayImage!) == originalLeft
+                && imageBytes(model.rightDisplayImage!) == originalRight, "native clear-highlight restores both original photo previews")
+
+        // Superseded display work must not publish after a newer original request.
+        for channel in [PhotoPreviewChannel.red, .green, .blue, .red, .original] {
+            model.state.previewChannel = channel
+            model.highlightedRange = channel == .original ? nil : .init(channel: .red, lowerBin: 20, upperBin: 220)
+        }
+        try await previewReady(model)
+        try await D.pause()
+        D.check(model.state.previewChannel == .original && imageBytes(model.leftDisplayImage!) == originalLeft,
+                "rapid preview and highlight changes cannot publish a stale transformed image")
+        // Persist a non-default combination so the session round trip exercises all new fields.
+        try await choose("photo.preview-channel", index: 2)
+        try await choose("photo.histogram-channel", index: 3)
+        try await choose("photo.histogram-layout", index: 2)
+        try await previewReady(model)
+        D.check([model.leftStatistics!, model.rightStatistics!] == statistics,
+                "all display interactions leave the analyzed photograph unchanged")
+    }
+
+    static func metadataRowChecks() throws {
+        func displayed(_ id: String) throws -> String {
+            let value = try accessibleText(id)
+            D.log("\(id): \(value)")
+            return value
+        }
+        let leftShutter = try displayed("photo.metadata.shutter.left")
+        let rightShutter = try displayed("photo.metadata.shutter.right")
+        D.check(leftShutter.contains("1/125 s") && rightShutter.contains("1/250 s"),
+                "native metadata rows display differing recorded shutter values side by side")
+        let leftISO = try displayed("photo.metadata.iso.left")
+        let rightISO = try displayed("photo.metadata.iso.right")
+        D.check(leftISO.contains("200") && rightISO.contains("800"),
+                "native capture comparison preserves left and right ISO values")
+        let recordedBias = try displayed("photo.metadata.exposureBias.left")
+        let missingBias = try displayed("photo.metadata.exposureBias.right")
+        let missing = AppSettings.shared.language == .english ? "Not recorded" : "未记录"
+        D.check(recordedBias.contains("EV") && missingBias.contains(missing),
+                "native exposure compensation row distinguishes a record from an explicit missing value")
+        let missingLens = try displayed("photo.metadata.lens.left")
+        D.check(missingLens.contains(missing), "capture metadata with no record is not inferred from the photograph")
+    }
+
+    static func sourceHashes(_ urls: [URL]) throws -> [Data] {
+        try urls.map { Data(SHA256.hash(data: try Data(contentsOf: $0))) }
+    }
+    static func imageBytes(_ image: CGImage) -> Data {
+        let context = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
+            bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        return Data(bytes: context.data!, count: image.width * image.height * 4)
+    }
+    static func rightEdgeBytes(_ data: Data, width: Int) -> Data {
+        // The selected sky ends at x=0.78; this strip is unambiguously outside it.
+        let start = Int(Double(width) * 0.9) * 4, stride = width * 4
+        var result = Data()
+        for row in 0..<(data.count / stride) { result.append(data[(row * stride + start)..<((row + 1) * stride)]) }
+        return result
+    }
+    static func isGrayscale(_ data: Data) -> Bool {
+        data.withUnsafeBytes { raw in
+            let bytes = raw.bindMemory(to: UInt8.self)
+            for offset in stride(from: 0, to: bytes.count, by: 4) {
+                let red = Int(bytes[offset])
+                let green = Int(bytes[offset + 1])
+                let blue = Int(bytes[offset + 2])
+                if abs(red - green) > 1 { return false }
+                if abs(green - blue) > 1 { return false }
+            }
+            return true
+        }
+    }
+
     static func snapshotAndSchedulingChecks(root: URL, right: URL, execute: @escaping PhotoComparisonModel.Execute) async throws {
         let path = root.appendingPathComponent("snapshot-photo.png")
         try writeImage(path, warm: false, curve: 100)
@@ -146,6 +316,16 @@ import CrossDiffCore
         await queued.load(left: path, right: right, execute: observed, executionID: "scheduling")
         try await ready(queued)
         let initialCount = await counter.total
+        queued.state.previewChannel = .red
+        queued.highlightedRange = .init(channel: .green, lowerBin: 64, upperBin: 192)
+        queued.cancel()
+        queued.state.previewChannel = .blue
+        queued.clearHighlight()
+        await queued.load(left: path, right: right, execute: observed, executionID: "scheduling")
+        try await previewReady(queued)
+        let expectedBlue = try PhotoAnalysisEngine.preview(queued.leftImage!, channel: .blue, highlight: nil, region: queued.state.leftRegion)
+        D.check(imageBytes(queued.leftDisplayImage!) == imageBytes(expectedBlue),
+                "cancelled display work and cached reload publish only the current preview request")
         for index in 1...25 {
             queued.selectRegion(.init(x: Double(index) / 100, y: 0, width: 0.5, height: 0.5), side: .left)
         }
@@ -169,6 +349,99 @@ import CrossDiffCore
         var maximumActive = 0
         func begin() { total += 1; active += 1; maximumActive = max(maximumActive, active) }
         func end() { active -= 1 }
+    }
+    static func control(_ identifier: String) throws -> NSObject {
+        let matches = objects().filter { string($0, "accessibilityIdentifier") == identifier }
+        if let native = matches.first(where: { $0 is NSControl }) { return native }
+        if let cell = matches.first as? NSCell, let view = cell.controlView { return view }
+        guard let object = matches.first else { throw D.CheckError(description: "Missing accessible control: \(identifier)") }
+        return object
+    }
+    static func choose(_ identifier: String, index: Int) async throws {
+        let object = try control(identifier)
+        if let picker = object as? NSSegmentedControl {
+            D.check(index < picker.segmentCount, "\(identifier) includes the requested segment")
+            picker.selectedSegment = index
+            D.check(picker.sendAction(picker.action, to: picker.target), "\(identifier) dispatches a native selection")
+        } else if let picker = object as? NSPopUpButton {
+            guard let menu = picker.menu, let item = picker.item(at: index) else {
+                throw D.CheckError(description: "\(identifier) is missing menu item \(index)")
+            }
+            D.check(item.action != nil && item.isEnabled, "\(identifier) exposes an enabled native menu action")
+            picker.selectItem(at: index)
+            // SwiftUI menu Pickers attach their binding action to each item,
+            // whereas the popup button itself may intentionally have no action.
+            menu.performActionForItem(at: index)
+            menu.cancelTrackingWithoutAnimation()
+        } else { throw D.CheckError(description: "\(identifier) is not a native selection control") }
+        try await D.pause()
+    }
+    static func accessibilityFrame(_ object: NSObject) throws -> NSRect {
+        if let element = object as? NSAccessibilityElement { return element.accessibilityFrame() }
+        if let view = object as? NSView { return view.accessibilityFrame() }
+        let selector = NSSelectorFromString("accessibilityFrame")
+        guard object.responds(to: selector) else { throw D.CheckError(description: "Missing accessible frame") }
+        typealias Frame = @convention(c) (AnyObject, Selector) -> NSRect
+        return unsafeBitCast(object.method(for: selector), to: Frame.self)(object, selector)
+    }
+    static func activateWindow() async throws {
+        if !NSApp.isActive { NSApp.activate(ignoringOtherApps: true) }
+        if NSApp.keyWindow !== D.window { D.window.makeKeyAndOrderFront(nil) }
+        D.window.acceptsMouseMovedEvents = true
+        try await D.wait("native photo interaction window active") { NSApp.isActive && NSApp.keyWindow === D.window }
+    }
+    static func hoverChart(_ identifier: String, readoutIdentifier: String, fraction: Double) async throws -> String {
+        try await activateWindow()
+        let oldOrigin = D.window.frame.origin
+        defer {
+            D.window.setFrameOrigin(oldOrigin)
+            D.window.contentView?.layoutSubtreeIfNeeded()
+            D.window.displayIfNeeded()
+        }
+        let frame = try accessibilityFrame(control(identifier))
+        let target = NSPoint(x: frame.minX + frame.width * fraction, y: frame.midY)
+        let pointer = NSEvent.mouseLocation
+        // SwiftUI continuous hover consults the pointer's actual window position.
+        // Put the real chart beneath the stationary pointer just for this check;
+        // never warp the user's pointer or call the chart's internal callbacks.
+        let visibleOrigin = NSPoint(x: oldOrigin.x + pointer.x - target.x,
+                                    y: oldOrigin.y + pointer.y - target.y)
+        D.window.setFrameOrigin(visibleOrigin)
+        D.window.contentView?.layoutSubtreeIfNeeded()
+        D.window.displayIfNeeded()
+        let placedFrame = try accessibilityFrame(control(identifier))
+        let placedTarget = NSPoint(x: placedFrame.minX + placedFrame.width * fraction, y: placedFrame.midY)
+        D.log("Hover placement: requested=\(visibleOrigin), actual=\(D.window.frame.origin), chart=\(placedFrame), target=\(placedTarget), sampledPointer=\(pointer)")
+        D.check(abs(placedTarget.x - pointer.x) <= 3 && abs(placedTarget.y - pointer.y) <= 3,
+                "native chart target aligns with the sampled pointer after window placement")
+        let location = D.window.convertPoint(fromScreen: placedTarget)
+        let moved = NSEvent.mouseEvent(with: .mouseMoved, location: location, modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: D.window.windowNumber,
+            context: nil, eventNumber: 0, clickCount: 0, pressure: 0)!
+        NSApp.postEvent(moved, atStart: true)
+        D.log("Hover native window: origin=\(D.window.frame.origin), pointer=\(NSEvent.mouseLocation), point=\(location)")
+        let deadline = Date().addingTimeInterval(3)
+        var readout = try accessibleText(readoutIdentifier)
+        while !(readout.contains("A") && readout.contains("B")) && Date() < deadline {
+            try await Task.sleep(nanoseconds: 50_000_000)
+            readout = try accessibleText(readoutIdentifier)
+        }
+        // Read before restoring the offscreen window, which legitimately ends hover.
+        return readout
+    }
+    static func dragChart(_ identifier: String, from start: Double, to end: Double) async throws {
+        try await activateWindow()
+        let frame = try accessibilityFrame(control(identifier))
+        for (index, type) in [NSEvent.EventType.leftMouseDown, .leftMouseDragged, .leftMouseDragged, .leftMouseUp].enumerated() {
+            let progress = Double(min(index, 2)) / 2
+            let fraction = start + (end - start) * progress
+            let point = NSPoint(x: frame.minX + frame.width * fraction, y: frame.midY)
+            let event = NSEvent.mouseEvent(with: type, location: D.window.convertPoint(fromScreen: point),
+                modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: D.window.windowNumber,
+                context: nil, eventNumber: index, clickCount: 1, pressure: type == .leftMouseUp ? 0 : 1)!
+            NSApp.postEvent(event, atStart: false)
+        }
+        try await D.pause()
     }
     static func press(_ identifier: String) async throws {
         let matches = objects().filter { string($0, "accessibilityIdentifier") == identifier }
@@ -207,8 +480,33 @@ import CrossDiffCore
     }
     static func string(_ object: NSObject, _ attribute: String) -> String {
         let selector = NSSelectorFromString(attribute)
-        guard object.responds(to: selector) else { return "" }
-        return object.perform(selector)?.takeUnretainedValue() as? String ?? ""
+        guard object.responds(to: selector), let value = object.perform(selector)?.takeUnretainedValue() else { return "" }
+        if let text = value as? String { return text }
+        if let text = value as? NSAttributedString { return text.string }
+        return ""
+    }
+    static func accessibleText(_ identifier: String) throws -> String {
+        let matches = objects().filter { string($0, "accessibilityIdentifier") == identifier }
+        guard !matches.isEmpty else { throw D.CheckError(description: "Missing accessible text: \(identifier)") }
+        var seen = Set<ObjectIdentifier>(), values: [String] = []
+        func collect(_ object: NSObject, depth: Int) {
+            guard depth < 8, seen.insert(ObjectIdentifier(object)).inserted else { return }
+            for attribute in ["accessibilityValue", "accessibilityLabel", "accessibilityAttributedValue"] {
+                let value = string(object, attribute)
+                if !value.isEmpty { values.append(value) }
+            }
+            if let field = object as? NSTextField { values.append(field.stringValue) }
+            if let text = object as? NSTextView { values.append(text.string) }
+            let selector = NSSelectorFromString("accessibilityChildren")
+            if object.responds(to: selector), let children = object.perform(selector)?.takeUnretainedValue() as? [NSObject] {
+                for child in children { collect(child, depth: depth + 1) }
+            }
+            if let view = object as? NSView {
+                for child in view.subviews { collect(child, depth: depth + 1) }
+            }
+        }
+        for match in matches { collect(match, depth: 0) }
+        return values.joined(separator: " ")
     }
     static func ready(_ model: PhotoComparisonModel) async throws {
         let deadline = Date().addingTimeInterval(45)
@@ -219,6 +517,15 @@ import CrossDiffCore
         }
         if let error = model.error { throw error }
     }
+    static func previewReady(_ model: PhotoComparisonModel) async throws {
+        let deadline = Date().addingTimeInterval(20)
+        while model.isPreviewing || model.leftDisplayImage == nil || model.rightDisplayImage == nil {
+            if let error = model.previewError { throw error }
+            if Date() > deadline { throw D.CheckError(description: "Photo preview timeout") }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        if let error = model.previewError { throw error }
+    }
     static func render(_ name: String, width: Double, dark: Bool) async throws {
         AppAppearance.shared.isDark = dark
         D.window.setContentSize(NSSize(width: width, height: 820)); D.window.orderFront(nil)
@@ -227,7 +534,7 @@ import CrossDiffCore
         let bitmap = try D.capture(view, rect: view.bounds, name: name)
         D.check(bitmap.pixelsWide >= Int(width), "\(name) renders full parent window")
     }
-    static func writeImage(_ url: URL, warm: Bool, curve: Int? = nil) throws {
+    static func writeImage(_ url: URL, warm: Bool, curve: Int? = nil, captureMetadata: Bool = false) throws {
         let context = CGContext(data: nil, width: 1200, height: 800, bitsPerComponent: 8, bytesPerRow: 1200 * 4,
             space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
         let sky: [CGFloat] = warm ? [0.97, 0.69, 0.43, 1.0] : [0.3, 0.6, 0.81, 1.0]
@@ -240,14 +547,30 @@ import CrossDiffCore
         context.move(to: .zero); context.addLine(to: CGPoint(x: 0, y: 340))
         context.addCurve(to: CGPoint(x: 1200, y: 70), control1: CGPoint(x: 400, y: 100), control2: CGPoint(x: 850, y: 430))
         context.addLine(to: CGPoint(x: 1200, y: 0)); context.closePath(); context.fillPath()
-        let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)!
+        let type = url.pathExtension == "tiff" ? UTType.tiff : UTType.png
+        let destination = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil)!
+        var properties: [String: Any] = [:]
+        if captureMetadata {
+            var exif: [String: Any] = [
+                kCGImagePropertyExifExposureTime as String: warm ? 1.0 / 250 : 1.0 / 125,
+                kCGImagePropertyExifFNumber as String: warm ? 5.6 : 2.8,
+                kCGImagePropertyExifISOSpeedRatings as String: [warm ? 800 : 200],
+                kCGImagePropertyExifFocalLength as String: warm ? 50 : 35
+            ]
+            if !warm { exif[kCGImagePropertyExifExposureBiasValue as String] = -1.0 / 3 }
+            properties[kCGImagePropertyExifDictionary as String] = exif
+            properties[kCGImagePropertyTIFFDictionary as String] = [
+                kCGImagePropertyTIFFMake as String: "CrossDiff Fixture",
+                kCGImagePropertyTIFFModel as String: "Deterministic Camera"
+            ]
+        }
         if let curve {
             let packet = Data("""
             <x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"><crs:ToneCurvePV2012><rdf:Seq><rdf:li>0, 0</rdf:li><rdf:li>128, \(curve)</rdf:li><rdf:li>255, 255</rdf:li></rdf:Seq></crs:ToneCurvePV2012></rdf:Description></rdf:RDF></x:xmpmeta>
             """.utf8)
             let metadata = CGImageMetadataCreateFromXMPData(packet as CFData)!
-            CGImageDestinationAddImageAndMetadata(destination, context.makeImage()!, metadata, nil)
-        } else { CGImageDestinationAddImage(destination, context.makeImage()!, nil) }
+            CGImageDestinationAddImageAndMetadata(destination, context.makeImage()!, metadata, properties as CFDictionary)
+        } else { CGImageDestinationAddImage(destination, context.makeImage()!, properties as CFDictionary) }
         if !CGImageDestinationFinalize(destination) { throw D.CheckError(description: "Cannot write image fixture") }
     }
 }
