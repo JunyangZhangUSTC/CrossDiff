@@ -167,13 +167,14 @@ import CrossDiffCore
         let videoROI = VideoROI(x: 0.1, y: 0.15, width: 0.6, height: 0.65)
         videoModel.setROI(videoROI, side: .left)
         try await videoReady(videoModel)
-        window.makeFirstResponder(nil)
-        try expect(videoModel.canUndo && menuEnabled(#selector(NativeMenuController.undo(_:))), "native Undo targets the selected video history")
-        try dispatch(#selector(NativeMenuController.undo(_:)))
+        try await focusComparison()
+        let videoUndoValidated = menuEnabled(#selector(NativeMenuController.undo(_:)))
+        try expect(videoModel.canUndo && videoUndoValidated, "native Undo targets the selected video history")
+        try await dispatch(#selector(NativeMenuController.undo(_:)))
         try await videoReady(videoModel)
         try expect(videoModel.leftROI == nil && text.right.text == editedText && undo.canUndo,
                    "video Undo changes video ROI without consuming the hidden text history")
-        try dispatch(#selector(NativeMenuController.redo(_:)))
+        try await dispatch(#selector(NativeMenuController.redo(_:)))
         try await videoReady(videoModel)
         try expect(videoModel.leftROI == videoROI, "native Redo restores only the video ROI")
         try await stage("integration-video-zh-dark-minimum", height: 580, dark: true, language: .simplifiedChinese,
@@ -181,9 +182,9 @@ import CrossDiffCore
 
         try await select(folder)
         try await folderReady(folder.folderComparisonModel)
-        window.makeFirstResponder(nil)
+        try await focusComparison()
         try expect(!menuEnabled(#selector(NativeMenuController.undo(_:))), "folder canvas does not expose hidden video/text Undo")
-        try dispatch(#selector(NativeMenuController.undo(_:)))
+        try await dispatch(#selector(NativeMenuController.undo(_:)))
         try expect(text.right.text == editedText && videoModel.leftROI == videoROI,
                    "a disabled Undo action cannot mutate another tab")
         try expect(folder.folderComparisonModel.scanCount == scanCount && folder.folderComparisonModel.query == "item-3" &&
@@ -191,12 +192,13 @@ import CrossDiffCore
 
         try await select(text)
         try await wait("restored native text editor") { editor.window === window && !text.calculating }
-        try expect(window.makeFirstResponder(editor), "text editor regains native command focus")
+        try await focusComparison(editor)
+        try expect(window.firstResponder === editor, "text editor regains native command focus")
         try expect(menuEnabled(#selector(NativeMenuController.undo(_:))), "text Undo remains available after video adjustments")
-        try dispatch(#selector(NativeMenuController.undo(_:)))
+        try await dispatch(#selector(NativeMenuController.undo(_:)))
         try await wait("text Undo") { text.right.text == "right β\n" && !text.calculating }
         try expect(videoModel.leftROI == videoROI, "text Undo leaves the video ROI unchanged")
-        try dispatch(#selector(NativeMenuController.redo(_:)))
+        try await dispatch(#selector(NativeMenuController.redo(_:)))
         try await wait("text Redo") { text.right.text == editedText && !text.calculating }
 
         // Reopening a photo tab cancels/resumes only its own work. A later image
@@ -371,7 +373,20 @@ import CrossDiffCore
         guard let item = menuItem(action) else { return false }
         return NativeMenuController.shared.validateMenuItem(item)
     }
-    static func dispatch(_ action: Selector) throws {
+    static func focusComparison(_ responder: NSResponder? = nil) async throws {
+        // A desktop user or another application may take focus while background
+        // comparisons finish. Native commands require this window to be active;
+        // disabled menus in an inactive application are correct product behavior.
+        if !NSApp.isActive || NSApp.keyWindow !== window {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        try await wait("active comparison window for native commands") { NSApp.isActive && NSApp.keyWindow === window }
+        guard window.makeFirstResponder(responder) else { throw Failure(description: "Cannot focus the native command responder") }
+        try await wait("native command responder") { window.firstResponder === (responder ?? window) }
+    }
+    static func dispatch(_ action: Selector) async throws {
+        try await focusComparison(window.firstResponder)
         guard let item = menuItem(action), NSApp.sendAction(action, to: NativeMenuController.shared, from: item) else {
             throw Failure(description: "Missing or unrouted native menu action: \(action)")
         }
@@ -412,20 +427,35 @@ import CrossDiffCore
         picker.selectedSegment = index
         try expect(picker.sendAction(picker.action, to: picker.target), "native \(id) dispatches selection")
     }
+    static func windowGeometry() -> String {
+        "frame=\(window.frame.size), min=\(window.minSize), contentMin=\(window.contentMinSize), content=\(window.contentView?.frame.size ?? .zero), fitting=\(window.contentView?.fittingSize ?? .zero)"
+    }
     static func stage(_ name: String, height: Double, dark: Bool, language: AppLanguage, identifiers: [String]) async throws {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            DispatchQueue.main.async {
-                AppSettings.shared.language = language
-                AppAppearance.shared.isDark = dark
-                window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-                window.setFrame(NSRect(x: -10000, y: -10000, width: 860, height: height), display: true)
-                window.contentView?.needsLayout = true
-                window.contentView?.layoutSubtreeIfNeeded()
-                continuation.resume()
-            }
-        }
+        AppSettings.shared.language = language
+        AppAppearance.shared.isDark = dark
+        window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         try await wait("native \(name) controls") { identifiers.allSatisfy { id in objects().contains { identifier($0) == id } } }
-        // One subsequent queue turn lets AppKit composite the newly rebuilt controls.
+        // NSHostingView updates the window minimum asynchronously after tab and
+        // language changes. Previous constraints may remain for one layout cycle
+        // even after the new controls are visible. Wait for stable, eligible
+        // native constraints without changing them.
+        let target = NSRect(x: -10000, y: -10000, width: 860, height: height)
+        var previousMinimum: NSSize?
+        do {
+            try await wait("native \(name) layout constraints", seconds: 5) {
+                window.contentView?.layoutSubtreeIfNeeded()
+                window.displayIfNeeded()
+                let minimum = window.minSize
+                let stable = previousMinimum == minimum
+                previousMinimum = minimum
+                return stable && minimum.width <= target.width && minimum.height <= target.height
+            }
+        } catch {
+            throw Failure(description: "Native layout cannot accept \(name) at \(target.size): \(windowGeometry())")
+        }
+        window.setFrame(target, display: true)
+        // Let AppKit composite the resized hierarchy before inspecting it. A real
+        // minimum-size regression must still fail the exact dimensions assertion.
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             DispatchQueue.main.async { window.contentView?.layoutSubtreeIfNeeded(); window.displayIfNeeded(); continuation.resume() }
         }
@@ -434,7 +464,7 @@ import CrossDiffCore
         guard let png = bitmap.representation(using: .png, properties: [:]) else { throw Failure(description: "Cannot encode native capture") }
         try png.write(to: output.appendingPathComponent(name + ".png"))
         try expect(abs(window.frame.width - 860) < 1 && abs(window.frame.height - height) < 1 && bitmap.pixelsWide >= 860,
-                   "\(name) renders actual parent window without expanding requested dimensions")
+                   "\(name) renders actual parent window without expanding requested dimensions (requested: 860×\(height), \(windowGeometry()))")
         try expect(bitmap.pixelsHigh > 0 && png.count > 10_000, "\(name) contains rendered native content")
     }
 }

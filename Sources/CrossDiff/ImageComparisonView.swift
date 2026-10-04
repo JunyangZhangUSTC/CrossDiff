@@ -276,7 +276,10 @@ struct ImageComparisonView: View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 7) {
                 Image(systemName: "photo").foregroundStyle(Color(nsColor: theme.secondaryText))
+                // Keep the short side label intact during minimum-width probes;
+                // wrapping English here otherwise inflates the window minimum.
                 Text(side.title).font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
+                    .fixedSize()
                 Text(url.lastPathComponent).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.middle)
                     .help(url.path)
                 Spacer(minLength: 0)

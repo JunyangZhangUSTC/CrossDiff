@@ -171,12 +171,25 @@ import CrossDiffCore
                 "\(name): visible row and status bar expose the same revision or neutral meaning to VoiceOver")
         let absentID = pair.left == nil ? "pdf.left.noPage" : "pdf.right.noPage"
         let absent = try element(absentID)
-        D.check(string(absent, "accessibilityValue") == expected.title,
-                "\(name): the empty source pane uses the same single-page meaning")
-        if expected.tone == .neutral {
-            D.check(string(absent, "accessibilityLabel") == L("此侧没有这个页码的页面", "There Is No Page at This Number on This Side"),
-                    "\(name): missing source page does not announce an inferred insertion or deletion")
+        let absenceMessage: String
+        switch expected {
+        case .onlyLeft, .onlyRight:
+            absenceMessage = L("此侧没有这个页码的页面", "There Is No Page at This Number on This Side")
+        case .comparison(.added):
+            absenceMessage = L("此页仅在右侧找到", "This Page Was Found Only on the Right")
+        case .comparison(.removed):
+            absenceMessage = L("此页仅在左侧找到", "This Page Was Found Only on the Left")
+        default: throw D.CheckError(description: "Expected a one-sided PDF pair for \(name)")
         }
+        // A static SwiftUI group exposes its description as AXLabel. Unlike a
+        // row button, it need not also expose a separate AXValue. Check the
+        // actual explanation and source side, including smart insertions and
+        // removals, rather than accepting an arbitrary nonempty AX string.
+        D.log("\(name): empty pane AX role=\(string(absent, "accessibilityRole")), label=\(string(absent, "accessibilityLabel").debugDescription), value=\(string(absent, "accessibilityValue").debugDescription)")
+        D.check(string(absent, "accessibilityLabel") == absenceMessage,
+                "\(name): the empty source pane exposes the precise neutral or inferred page explanation")
+        D.check(!has(pair.left == nil ? "pdf.right.noPage" : "pdf.left.noPage"),
+                "\(name): only the missing source side exposes an empty-page explanation")
         for (label, object) in [("row", row), ("status", status)] {
             let colors = try badgePixels(object, name: name + "-" + label)
             switch expected.tone {
