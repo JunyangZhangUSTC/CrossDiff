@@ -33,7 +33,10 @@ final class ArchiveStream {
     private let entryEncrypted: ArchiveCall
     private var closed = false
 
-    init(input: ArchiveInput, zip: Bool) throws {
+    convenience init(input: ArchiveInput, zip: Bool) throws {
+        try self.init(input: input, format: zip ? "zip_seekable" : "raw")
+    }
+    init(input: ArchiveInput, format: String) throws {
         self.input = input
         let library = try ArchiveLibrary(); self.library = library
         let free = try library.function("archive_read_free", ArchiveCall.self); self.free = free
@@ -54,11 +57,11 @@ final class ArchiveStream {
         initialized = true
         let signature = try input.read(offset: 0, count: 6)
         let filter: (code: Int32, symbol: String)
-        if !zip && signature.starts(with: [0x1f, 0x8b]) { filter = (1, "gzip") }
-        else if !zip && signature.starts(with: [0x42, 0x5a, 0x68]) { filter = (2, "bzip2") }
-        else if !zip && signature == Data([0xfd, 0x37, 0x7a, 0x58, 0x5a, 0]) { filter = (6, "xz") }
+        if format == "raw" && signature.starts(with: [0x1f, 0x8b]) { filter = (1, "gzip") }
+        else if format == "raw" && signature.starts(with: [0x42, 0x5a, 0x68]) { filter = (2, "bzip2") }
+        else if format == "raw" && signature == Data([0xfd, 0x37, 0x7a, 0x58, 0x5a, 0]) { filter = (6, "xz") }
         else { filter = (0, "none") }
-        for symbol in ["archive_read_support_filter_" + filter.symbol, zip ? "archive_read_support_format_zip_seekable" : "archive_read_support_format_raw"] {
+        for symbol in ["archive_read_support_filter_" + filter.symbol, "archive_read_support_format_" + format] {
             // WARN can mean an external program fallback. Only built-in OK is accepted.
             guard try library.function(symbol, ArchiveCall.self)(handle) == 0 else { throw ArchiveError.unsupported }
         }

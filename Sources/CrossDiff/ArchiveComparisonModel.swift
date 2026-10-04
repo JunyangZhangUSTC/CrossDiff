@@ -156,7 +156,15 @@ enum ArchivePluginResultValidator {
 @MainActor
 final class ArchiveComparisonModel: ObservableObject {
     static let pluginID = "org.crossdiff.archive"
-    static let fileExtensions = ["zip", "tar", "gz", "tgz", "bz2", "tbz", "tbz2", "xz", "txz"]
+    static let fileExtensions = ["zip", "tar", "gz", "tgz", "bz2", "tbz", "tbz2", "xz", "txz", "7z", "rar"]
+    private static var nativeReaderURL: URL {
+        #if CROSSDIFF_UI_CHECKS
+        if let path = ProcessInfo.processInfo.environment["CROSSDIFF_ARCHIVE_READER"] {
+            return URL(fileURLWithPath: path)
+        }
+        #endif
+        return Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/CrossDiffArchiveReader")
+    }
     @Published private(set) var leftSnapshot: ArchiveSnapshot?
     @Published private(set) var rightSnapshot: ArchiveSnapshot?
     @Published private(set) var rows: [ArchiveComparisonRow] = []
@@ -209,12 +217,13 @@ final class ArchiveComparisonModel: ObservableObject {
             self.phase = phase; self.progress = value
         }
         let progressGate = ArchiveProgressGate()
+        let readerURL = Self.nativeReaderURL
         let task = Task.detached(priority: .userInitiated) {
-            let l = try ArchiveCatalog.snapshot(url: left) { value in
+            let l = try ArchiveCatalog.snapshot(url: left, nativeReaderURL: readerURL) { value in
                 if progressGate.accept(value * 0.45) { Task { @MainActor in publish(value * 0.45, .left) } }
             }
             await publish(0.45, .right)
-            let r = try ArchiveCatalog.snapshot(url: right) { value in
+            let r = try ArchiveCatalog.snapshot(url: right, nativeReaderURL: readerURL) { value in
                 if progressGate.accept(0.45 + value * 0.45) { Task { @MainActor in publish(0.45 + value * 0.45, .right) } }
             }
             try Task.checkCancellation()

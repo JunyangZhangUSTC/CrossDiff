@@ -1,0 +1,3 @@
+import CrossDiffCore
+
+ArchiveCatalog.runNativeReader()

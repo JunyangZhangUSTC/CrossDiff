@@ -39,6 +39,20 @@ final class ArchiveInput {
         descriptor = fd; stamp = ArchiveSourceStamp(url: url, info: info)
         try stamp.verify(descriptor: fd)
     }
+    /// The parent passes an already opened, read-only source as the helper's stdin.
+    /// Never reopen an untrusted pathname in the decoding process.
+    init(url: URL, inheritedDescriptor: Int32) throws {
+        let fd = dup(inheritedDescriptor)
+        guard fd >= 0 else { throw ArchiveError.unreadable(url.lastPathComponent) }
+        var info = stat()
+        guard fstat(fd, &info) == 0, info.st_size >= 0,
+              info.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG),
+              fcntl(fd, F_GETFL) & O_ACCMODE == O_RDONLY else {
+            close(fd); throw ArchiveError.unreadable(url.lastPathComponent)
+        }
+        descriptor = fd; stamp = ArchiveSourceStamp(url: url, info: info)
+        try stamp.verify(descriptor: fd)
+    }
     deinit { close(descriptor) }
     func read(offset: Int64, count: Int) throws -> Data {
         try Task.checkCancellation()

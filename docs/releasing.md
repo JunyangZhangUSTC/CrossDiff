@@ -125,3 +125,7 @@ python3 scripts/audit-publication.py --history --app dist/CrossDiff.app
 应用尚未公证，ad-hoc 签名仅用于完整性验证，不证明发布者身份。首次打开方式见 [中文 README](../README.md#首次在-macos-上打开) 和 [English README](../README.en.md#first-launch-on-macos)。不要让用户全局关闭 macOS 安全保护。
 
 CrossDiff 使用 GNU AGPL v3。每个公开应用都附带同提交源码、`LICENSE` 和 `NOTICE`；保留这些文件，分发义务以许可证原文为准。自动敏感信息扫描只能减少遗漏，公开截图、示例和说明仍需人工检查。
+
+### 7z／RAR 读取组件
+
+`CrossDiffArchiveReader` 随 Base／Full 宿主放入 `Contents/Helpers/` 并独立签名，Archive 插件包仅提供清单与内容匹配脚本。新格式需要包含读取组件及预检代码的宿主，单独安装脚本不能升级旧宿主的解码能力。发布前运行 `check-archives-core.sh`、`check-archive-native.sh`、`check-archive-plugin.sh`、`check-office-import.sh`，在本机验证 `check-archive-workflow.sh`；检查完整应用及 helper 签名。兼容性受目标 macOS 系统 libarchive／liblzma 版本约束，未验证的系统版本不得宣称全格式支持。

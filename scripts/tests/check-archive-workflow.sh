@@ -27,14 +27,18 @@ swiftc "${crossdiff_photo_swift_flags[@]}" -swift-version 5 -D CROSSDIFF_UI_CHEC
   -I "$check_build" -L "$check_build" -lCrossDiffCore -Xlinker -rpath -Xlinker "$check_build" \
   "$compile_sources/app"/*.swift "$project_root/scripts/tests/DeletionPreviewChecks.swift" "$project_root/scripts/tests/ArchiveWorkflowChecks.swift" "$project_root/scripts/tests/ArchiveUIAssertions.swift" -o "$check_build/archive-workflow-checks"
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" "$project_root/Sources/CrossDiffPluginHost/main.swift" -o "$check_build/CrossDiffPluginHost"
+swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" \
+  -I "$check_build" -L "$check_build" -lCrossDiffCore -Xlinker -rpath -Xlinker "$check_build" \
+  "$project_root/Sources/CrossDiffArchiveReader/main.swift" -o "$check_build/CrossDiffArchiveReader"
 python3 scripts/package-pdf-plugin.py --output "$check_build/Plugins/PDF.crossdiffplugin"
 python3 scripts/package-archive-plugin.py --output "$check_build/Plugins/Archive.crossdiffplugin"
 python3 scripts/tests/make-archive-workflow-fixtures.py "$check_build/fixtures"
+python3 scripts/tests/fixtures/archive-native/generate.py "$check_build/fixtures/native"
 if [[ "${1:-}" == "--build-only" ]]; then
   echo "Built: $check_build/archive-workflow-checks"
   exit 0
 fi
-CROSSDIFF_DATA_DIR="$check_build/data" CROSSDIFF_RENDER_DIR="$check_build/renders" CROSSDIFF_PLUGIN_HELPER="$check_build/CrossDiffPluginHost" CROSSDIFF_BUNDLED_PLUGINS_DIR="$check_build/Plugins" \
+CROSSDIFF_DATA_DIR="$check_build/data" CROSSDIFF_RENDER_DIR="$check_build/renders" CROSSDIFF_PLUGIN_HELPER="$check_build/CrossDiffPluginHost" CROSSDIFF_BUNDLED_PLUGINS_DIR="$check_build/Plugins" CROSSDIFF_ARCHIVE_READER="$check_build/CrossDiffArchiveReader" \
 /usr/bin/python3 - "$check_build/archive-workflow-checks" <<'PY'
 import subprocess, sys
 try:

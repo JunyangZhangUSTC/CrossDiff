@@ -36,6 +36,9 @@ swift build --disable-sandbox --cache-path .build/cache --config-path .build/con
   -Xswiftc -file-prefix-map -Xswiftc "$PWD=." \
   -Xswiftc -debug-prefix-map -Xswiftc "$PWD=."
 swift build --disable-sandbox --cache-path .build/cache --config-path .build/config --security-path .build/security -c release --product CrossDiffAudioMatcher
+swift build --disable-sandbox --cache-path .build/cache --config-path .build/config --security-path .build/security -c release --product CrossDiffArchiveReader \
+  -Xswiftc -file-prefix-map -Xswiftc "$PWD=." \
+  -Xswiftc -debug-prefix-map -Xswiftc "$PWD=."
 binary_directory=$(swift build --disable-sandbox --cache-path .build/cache --config-path .build/config --security-path .build/security -c release --show-bin-path)
 mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Helpers" "$bundle/Contents/Resources/Plugins"
 # Replace the executable inode so a currently running preview keeps its mapped binary.
@@ -51,6 +54,10 @@ cp "$binary_directory/CrossDiffAudioMatcher" "$bundle/Contents/Helpers/.CrossDif
 xcrun strip -S "$bundle/Contents/Helpers/.CrossDiffAudioMatcher.new"
 codesign --force --sign - "$bundle/Contents/Helpers/.CrossDiffAudioMatcher.new"
 mv -f "$bundle/Contents/Helpers/.CrossDiffAudioMatcher.new" "$bundle/Contents/Helpers/CrossDiffAudioMatcher"
+cp "$binary_directory/CrossDiffArchiveReader" "$bundle/Contents/Helpers/.CrossDiffArchiveReader.new"
+xcrun strip -S "$bundle/Contents/Helpers/.CrossDiffArchiveReader.new"
+codesign --force --sign - "$bundle/Contents/Helpers/.CrossDiffArchiveReader.new"
+mv -f "$bundle/Contents/Helpers/.CrossDiffArchiveReader.new" "$bundle/Contents/Helpers/CrossDiffArchiveReader"
 cp Resources/Info.plist "$bundle/Contents/Info.plist"
 cp LICENSE NOTICE "$bundle/Contents/Resources/"
 mkdir -p "$bundle/Contents/Resources/ThirdParty/OpenCV"

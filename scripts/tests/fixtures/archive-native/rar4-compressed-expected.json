@@ -1,0 +1,17 @@
+{
+  "LibarchiveAddingTest.html": {
+    "size": 20111,
+    "sha256": "ee16390e87152d7dec632ae2b37566da6135966e46b5166e6f40a1c827fa61ad",
+    "crc32": "5e05a663"
+  },
+  "testdir/LibarchiveAddingTest.html": {
+    "size": 20111,
+    "sha256": "ee16390e87152d7dec632ae2b37566da6135966e46b5166e6f40a1c827fa61ad",
+    "crc32": "5e05a663"
+  },
+  "testdir/test.txt": {
+    "size": 20,
+    "sha256": "5a5f16e01faf8adf92eb4499a2d3e93010c4b41dbb7f698f4a8466d9f58e6dd2",
+    "crc32": "bec8a242"
+  }
+}

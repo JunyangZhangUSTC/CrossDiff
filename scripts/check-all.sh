@@ -7,6 +7,7 @@ python3 -m unittest discover -s scripts/tests -p 'test_plugin_inventory.py'
 bash scripts/check.sh
 bash scripts/tests/check-folder-browser.sh
 bash scripts/tests/check-archives-core.sh
+bash scripts/tests/check-archive-native.sh
 bash scripts/tests/check-archive-plugin.sh
 bash scripts/tests/check-binary-core.sh
 bash scripts/tests/check-binary-detection.sh
