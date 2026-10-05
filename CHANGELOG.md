@@ -1,5 +1,22 @@
 # 变更记录
 
+## 0.15.0 — 正式版
+
+- 摄影对比默认展开专业图表，仍可手动收起；修复高饱和颜色转换的浮点边界误差造成直方图像素漏计、近中性色误判及插件归一化报错的问题，保留严格的数据校验。Photography starts with professional charts expanded; bounded HSL conversion results preserve saturated samples and prevent false normalization errors without weakening validation.
+- 修复标签图标和留白处点击不响应的问题；标签选择与关闭按钮各有完整、独立的点击区域。Tab selection and close buttons now have complete, separate hit areas, including icon gaps and padding.
+- 标签栏溢出时，鼠标移入显示可拖动的横向滚动条，同时支持触控板和普通鼠标滚轮；新建、切换、关闭标签与缩放窗口后自动显示当前标签，保留手动浏览位置。
+
+- “新建比较”依次显示文本、文件夹、图片、Git、二进制、压缩包，其余项目顺序不变；停用或移除的插件隐藏。New Comparison starts with Text, Folders, Images, Git, Binary and Archives; remaining items keep their order, and disabled or removed plugins stay hidden.
+- Git 仓库扫描取消单文件 256 MiB、总计 1 GiB、50,000 个文件及固定扫描时限；目录流式读取、文件分块摘要、插件按文件对分批核验，支持后台取消。详情预览和远程下载仍保留独立边界。
+
+- 本地 Git 新增工作区与暂存区比较：“全部未提交”对应 HEAD → 工作区，“已暂存”对应 HEAD → 暂存区，“未暂存”对应暂存区 → 工作区；两侧也可自由组合。默认包含未跟踪文件并遵循可用忽略规则，空仓库支持首次提交前比较。
+- 暂存区读取真实已 add 的 blob，工作区详情核对扫描时的文件标识与内容摘要；文件外部变化提示刷新。保留旧版提交会话，比较不写索引、对象或原文件。
+- 新增基础版内置 Git 插件：选择本地仓库、裸仓库、worktree，或显式下载 HTTPS／SSH 远程仓库，比较分支、标签与提交。
+- 窄目录树支持仅差异／全部文件、路径查找和目录折叠；右侧复用原生双栏文本高亮、行对齐、同步滚动、差异导航与查找。
+- 支持重命名识别与共同祖先比较；提交快照只读，不 checkout，不修改工作区和索引。二进制以有界 Hex 预览呈现，符号链接和子模块只显示提交记录。
+- Git 插件随 Base 和 Full 内置，宿主负责有界 Git 对象读取，受限插件负责目录分类；会话仅保存来源和查看状态。远程认证、资源上限及系统 Git 要求见使用指南。
+- 后续新版本通过全部附件核验后自动发布正式 Release。
+
 ## 0.14.0 — 公开预览版
 
 - 集成文件夹、压缩包、图片、摄影、视频分支及办公兼容调研，保留各分支历史；下列 0.12.2／0.13.x 开发记录中的增强均随本版发布。Base、Full 与独立插件包同步提供，默认推荐预装七个官方插件的 Full。

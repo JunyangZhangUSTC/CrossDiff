@@ -108,6 +108,12 @@ jobs:
           bash scripts/tests/check-binary-detection.sh
           bash scripts/tests/check-binary-workflow.sh --build-only
 
+      - name: Git comparison checks
+        run: |
+          bash scripts/tests/check-git-core.sh
+          bash scripts/tests/check-git-plugin.sh
+          bash scripts/tests/check-git-workflow.sh --build-only
+
       - name: API comparison checks
         run: |
           bash scripts/tests/check-api-import.sh
@@ -158,6 +164,9 @@ jobs:
 
       - name: Compile native workflow checks
         run: bash scripts/tests/check-workflow.sh --build-only
+
+      - name: Compile session tab checks
+        run: bash scripts/tests/check-session-tabs.sh --build-only
 
       - name: Check image comparison
         run: |

@@ -56,6 +56,11 @@ int histograms(const float *rgba, int width, int height, double *output, size_t 
             *valid_count += count;
             cv::Mat hls, chromatic;
             cv::cvtColor(rgb, hls, cv::COLOR_RGB2HLS);
+            // SIMD conversion can round saturated sRGB to S=1+ULP. Restore
+            // the documented H/L/S bounds before both masking and binning;
+            // otherwise these valid pixels are lost and mislabeled neutral.
+            cv::max(hls, cv::Scalar(0, 0, 0), hls);
+            cv::min(hls, cv::Scalar(360, 1, 1), hls);
             cv::inRange(hls, cv::Scalar(0, 0, 0.02), cv::Scalar(360, 1, 1), chromatic);
             cv::bitwise_and(chromatic, mask, chromatic);
             chromaticCount += cv::countNonZero(chromatic);

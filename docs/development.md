@@ -6,7 +6,7 @@ For product behavior, see the [user guide](usage.md), [specification](specificat
 
 For separate image, photography, Office, video, folder and archive development checkouts with integration on `main`, follow the bilingual [parallel development workflow](parallel-development.md).
 
-The next framework direction is documented separately in the [product vision](product-vision.md), [architecture proposal](architecture/compare-everything.md), and [draft plugin guide](plugins/development.md). The broader architecture remains a proposal. The implemented experimental contract includes a JavaScriptCore helper and native table, document-page, archive-tree, photography, HTTP field, audio timeline and Office content renderers. Photography began in the 0.9.0 source preview, API Compare in 0.10.0, and Audio in 0.11.0. The current, unpublished 0.12.0 Full source build also bundles Office; all four use plugin version 0.1.0. Version 0.8.0 introduced Base and Full editions with a shared offline official-plugin catalog; see the [implemented API](plugins/development.en.md). Shared comparison terms are in the [glossary](../GLOSSARY.md), with accepted design decisions under [docs/adr](adr/0001-comparison-modes.md).
+The framework direction is documented in the [product vision](product-vision.md), [architecture proposal](architecture/compare-everything.md), and [plugin guide](plugins/development.md). The implemented experimental contract includes a JavaScriptCore helper and native table, document-page, archive-tree, Git-tree, photography, HTTP field, audio timeline, Office content and video renderers. Current source 0.15.0 bundles Archive and Git in Base, with PDF, Photography, API Compare, Audio, Office and Video added in Full. Editions share an offline official-plugin catalog; see the [implemented API](plugins/development.en.md). Shared terms are in the [glossary](../GLOSSARY.md), with accepted decisions under [docs/adr](adr/0001-comparison-modes.md).
 
 ## Requirements
 
@@ -36,13 +36,13 @@ codesign --verify --deep --strict dist/CrossDiff.app
 bash scripts/open-dev-app.command
 ```
 
-The default build is **Full**: text, folders, images, Hex, the Archive plugin, PDF, Photography, API Compare, Audio and Office. The output is `dist/CrossDiff.app`. You can also double-click `scripts/open-dev-app.command` in Finder. This launcher keeps runtime data local to the project. Opening the `.app` directly through Finder uses the ordinary application data directory, separate from development sessions.
+The default build is **Full**: text, folders, images, Hex, and the Archive, Git, PDF, Photography, API Compare, Audio, Office and Video plugins. The output is `dist/CrossDiff.app`. You can also double-click `scripts/open-dev-app.command` in Finder. This launcher keeps runtime data local to the project. Opening the `.app` directly through Finder uses the ordinary application data directory, separate from development sessions.
 
 The build script replaces the executable atomically and applies an ad-hoc signature. Quit an older app normally before opening the new build; an already running process does not acquire newly built code. Do not force-terminate it and risk unsaved work. This is a local development package, not a Developer ID signed or notarized release.
 
 ### Build an edition
 
-Both editions compile the same host and renderers. **Base** bundles Archive; **Full** adds PDF, Photography, API Compare, Audio and Office. The independently packaged JSON example is not bundled in either edition.
+Both editions compile the same host and renderers. **Base** bundles Archive and Git; **Full** adds PDF, Photography, API Compare, Audio, Office and Video. The independently packaged JSON example is not bundled in either edition.
 
 ```sh
 # Explicit Full build (the default).
@@ -77,7 +77,7 @@ source scripts/project-env.sh
 swift build --disable-sandbox --cache-path .build/cache --config-path .build/config --security-path .build/security
 ```
 
-The preparer downloads the checksum-pinned OpenCV 4.12.0 upstream archive into `.build/photo-deps/downloads/`, builds only static `core`/`imgproc`/`features2d`/`calib3d`/`flann`, and installs them into `.build/photo-deps/install-<architecture>/`. When CMake is unavailable, a pinned Kitware CMake archive is unpacked under the same project directory. No Homebrew, pip or global install is required. First-time dependency preparation needs network access; application comparisons do not. `CROSSDIFF_BUILD_JOBS` controls build parallelism (default 4); `CROSSDIFF_ARCH` selects `arm64` or `x86_64`, but selecting an architecture does not establish that it has been tested.
+The preparer downloads the checksum-pinned OpenCV 4.12.0 upstream archive into `.build/photo-deps/downloads/`, builds only static `core`/`imgproc`/`features2d`/`calib3d`/`flann`, and installs them into `.build/photo-deps/install-<architecture>/`. When CMake is unavailable, a pinned Kitware CMake archive is unpacked under the same project directory. No Homebrew, pip or global install is required. First-time dependency preparation needs network access; local comparison processing does not. Remote Git clone/fetch is a separate, explicit user action. `CROSSDIFF_BUILD_JOBS` controls build parallelism (default 4); `CROSSDIFF_ARCH` selects `arm64` or `x86_64`, but selecting an architecture does not establish that it has been tested.
 
 The host supplies these modules in both Base and Full so a compatible Base build can install the small restricted Photography package without native-code installation. [`PhotoCVBridge`](../Sources/PhotoCVBridge/) calls OpenCV `cvtColor(COLOR_RGB2HLS)` and `calcHist`; it does not implement substitute color-conversion or histogram algorithms. Apple ImageIO, Core Image and `CIRAWFilter` own image decoding, RAW rendering, orientation, profiles and resampling. Source attribution and licenses are under [`ThirdParty/OpenCV`](../ThirdParty/OpenCV/).
 
@@ -153,6 +153,9 @@ All commands below run from the repository root. Native window checks must run *
 | Cross-module window | `bash scripts/tests/check-integration-workflow.sh` | Five simultaneous comparison kinds, shared image/photo bridge, menu undo isolation, retained folder state, legacy/current session restore and source hashes |
 | Actual bundled helpers | `bash scripts/tests/check-bundled-helpers.sh` after building Full and Base | Required Mach-O executables and matching architectures, real packaged archive readers, catalog parity and no extracted files or input changes |
 | All behavioral suites | `bash scripts/check-all.sh` | Core, folders, image, plugin lifecycle/catalog, PDF, binary, archives, photography, API, Office, audio and video; release/inventory safeguards; serialized native and cross-module workflows |
+| Git engine and restricted plugin | `bash scripts/tests/check-git-core.sh` and `bash scripts/tests/check-git-plugin.sh` | Real commit/tree/blob reads, large working files, streamed catalogs above 50,000 files, batched plugin validation, source preservation, cancellation and remote URL policy; HTTPS integration is opt-in with `CROSSDIFF_GIT_NETWORK_CHECK=1` |
+| Session tabs | `bash scripts/tests/check-session-tabs.sh` | Foreground single-click selection/close from an editor, full card hit areas, active-card visibility, resize, hover scrollbar, drag and wheel input, manual position retention and bilingual light/dark windows |
+| Native Git workflows | `bash scripts/tests/check-git-workflow.sh` | Base plugin, repository setup, branch/commit selection, file detail, read-only search, session isolation and bilingual light/dark/narrow windows |
 | Edition packaging and plugin inventory | `source scripts/project-env.sh` then `python3 -m unittest discover -s scripts/tests -p 'test_plugin_inventory.py'` | Base/Full contents, matching standalone packages, catalog checksums and URLs, safe output locations, and invalid metadata rejection |
 | Release publishing | `source scripts/project-env.sh` then `python3 -m unittest discover -s scripts/tests -p 'test_github_release.py'` | Offline checks for version matching, draft retries, upload protection and download verification |
 
@@ -186,7 +189,7 @@ See [Preparing a release](releasing.md) for clean-commit Base/Full packaging, st
 
 [.github/workflows/check.yml](../.github/workflows/check.yml) configures a macOS runner to check patch formatting, audit repository history, run core, image-rendering, plugin/PDF, official-catalog, inventory, and release-publishing checks, run archive, binary, photography, API and audio engine/plugin/cache/matcher checks, compile the text, new-comparison, image, plugin, official-plugin, binary, archive, photography, API and audio native workflow checks, and build, verify, and audit the app. Compilation on CI does not replace native window interaction and pixel checks. Report a remote CI result only after that workflow has actually run.
 
-[.github/workflows/release.yml](../.github/workflows/release.yml) builds version tags, checks core, image, photography engine/metadata/plugin, API import/plugin, audio engine/plugin/cache/matcher, plugins/PDF, official-catalog and edition/release safeguards, compiles native workflow checks, and prepares verified draft prereleases containing Base, Full, standalone plugins, the catalog, matching source and checksums. Published and immutable releases are not overwritten by retries. See the [release guide](releasing.md) for tagging, reviewing, and publishing a preview.
+[.github/workflows/release.yml](../.github/workflows/release.yml) builds version tags, checks core, image, photography engine/metadata/plugin, API import/plugin, audio engine/plugin/cache/matcher, plugins/PDF, official-catalog and edition/release safeguards, compiles native workflow checks, and publishes verified stable releases containing Base, Full, standalone plugins, the catalog, matching source and checksums; manual draft mode remains available. Published and immutable releases are not overwritten by retries. See the [release guide](releasing.md) for tagging and publishing.
 
 Record release-specific results and unverified items under [docs/validation/](validation/README.md). Historical logs describe their original test run, not a guarantee for every subsequent commit.
 
@@ -262,3 +265,9 @@ bash scripts/tests/check-office-workflow.sh
 ```
 
 The native workflow uses only generated project-local DOCX/XLSX/PPTX fixtures. `--build-only` proves compilation, not native UI behavior. Scope and semantic limitations are in the [Office architecture](architecture/office-comparison.md).
+
+### Git repository comparison
+
+Git 0.1.0 ships in Base and Full from host 0.15.0. The native `GitRepository` module owns system Git commands, immutable commit/tree/blob reads, streamed stage-0 index and chunk-hashed working-tree snapshots, and an explicitly downloaded bare remote cache. The restricted plugin receives complete file pairs in bounded batches with explicit source identities, sanitized tree metadata and validated rename hints. `GitPluginContract` checks each response; the adapter validates global source coverage before publishing the aggregate result. No repository-wide JSON request is created. The host then shows a native directory tree and read-only text/Hex detail. It cannot execute Git, read files or connect to the network.
+
+System Git from Apple Command Line Tools or Xcode is required at runtime; it is not bundled or installed automatically. Local repositories are never checked out or changed. Public HTTPS and existing SSH credentials/trusted hosts are supported; private HTTPS repositories must first be cloned using an external Git client. See the [research and boundaries](research/git-comparison.md), [user guide](usage.md#git), and [local-changes validation](validation/git-local-changes-0.15.0.md), and [scan-scale validation](validation/git-scale-0.15.0.md).

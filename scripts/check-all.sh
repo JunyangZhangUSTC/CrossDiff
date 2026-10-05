@@ -11,6 +11,8 @@ bash scripts/tests/check-folder-performance.sh
 bash scripts/tests/check-archives-core.sh
 bash scripts/tests/check-archive-native.sh
 bash scripts/tests/check-archive-plugin.sh
+bash scripts/tests/check-git-core.sh
+bash scripts/tests/check-git-plugin.sh
 bash scripts/tests/check-binary-core.sh
 bash scripts/tests/check-binary-detection.sh
 bash scripts/tests/check-plugins-core.sh
@@ -45,6 +47,7 @@ bash scripts/tests/check-newline-workflow.sh
 bash scripts/tests/check-scroll-geometry.sh
 bash scripts/tests/check-deletion-preview.sh
 bash scripts/tests/check-workflow.sh
+bash scripts/tests/check-session-tabs.sh
 bash scripts/tests/check-new-comparison-workflow.sh
 bash scripts/tests/check-folder-workflow.sh
 bash scripts/tests/check-image-workflow.sh
@@ -52,6 +55,7 @@ bash scripts/tests/check-plugin-workflow.sh
 bash scripts/tests/check-official-plugin-ui.sh
 bash scripts/tests/check-binary-workflow.sh
 bash scripts/tests/check-archive-workflow.sh
+bash scripts/tests/check-git-workflow.sh
 bash scripts/tests/check-photo-workflow.sh
 bash scripts/tests/check-api-workflow.sh
 bash scripts/tests/check-audio-workflow.sh

@@ -20,8 +20,8 @@ import CrossDiffCore
         try FileManager.default.createDirectory(at: D.output, withIntermediateDirectories: true)
         let manager = PluginManager(directory: root.appendingPathComponent("catalog-data-" + UUID().uuidString),
             bundledDirectory: root.appendingPathComponent("Plugins"), catalogURL: root.appendingPathComponent("OfficialPlugins.json"))
-        D.check(manager.officialPlugins.count == 4 && manager.officialCatalogError == nil, "four official catalog cards load offline")
-        D.check(manager.plugin(id: "org.crossdiff.archive")?.bundled == true && manager.plugin(id: "org.crossdiff.pdf") == nil && manager.plugin(id: "org.crossdiff.photography") == nil && manager.plugin(id: "org.crossdiff.api") == nil, "Base shows bundled Archive and downloadable PDF, Photography and API")
+        D.check(manager.officialPlugins.count == 5 && manager.officialCatalogError == nil, "five fixture catalog cards load offline")
+        D.check(manager.plugin(id: "org.crossdiff.archive")?.bundled == true && manager.plugin(id: "org.crossdiff.git")?.bundled == true && manager.plugin(id: "org.crossdiff.pdf") == nil && manager.plugin(id: "org.crossdiff.photography") == nil && manager.plugin(id: "org.crossdiff.api") == nil, "Base shows bundled Archive/Git and downloadable PDF, Photography and API")
         let archiveURL = root.appendingPathComponent("Plugins/Archive.crossdiffplugin")
         let archiveBytes = try Data(contentsOf: archiveURL)
         manager.pendingPackage = try PluginPackage.load(from: root.appendingPathComponent("PDF.crossdiffplugin"))
@@ -40,7 +40,7 @@ import CrossDiffCore
                 for width in [720.0, 650.0] {
                     try await render("plugins-installed-\(english ? "en" : "zh")-\(dark ? "dark" : "light")-\(Int(width))", dark: dark, width: width)
                     D.check(has("plugins.remove.org.crossdiff.archive") && has("plugins.uninstall.org.crossdiff.pdf"), "installed controls remain accessible across language, appearance and width changes")
-                    D.check(manager.plugins.count == 2 && manager.pendingPackage == nil, "browsing Installed leaves installations unchanged")
+                    D.check(manager.plugins.count == 3 && manager.pendingPackage == nil, "browsing Installed leaves installations unchanged")
                 }
             }
         }
@@ -58,7 +58,7 @@ import CrossDiffCore
         try await press("plugins.removal.confirm", fallback: "卸载")
         try await D.wait("external plugin uninstalled") { manager.plugin(id: "org.crossdiff.pdf") == nil }
         D.check(!has("plugins.uninstall.org.crossdiff.pdf"), "confirmed uninstall removes external card from Installed")
-        D.check(manager.plugin(id: "org.crossdiff.archive")?.enabled == true, "external uninstall preserves bundled plugins")
+        D.check(manager.plugin(id: "org.crossdiff.archive")?.enabled == true && manager.plugin(id: "org.crossdiff.git")?.enabled == true, "external uninstall preserves both Base bundled plugins")
         AppSettings.shared.language = .english
         AppAppearance.shared.isDark = true
         try await D.pause()
@@ -84,13 +84,24 @@ import CrossDiffCore
             for dark in [false, true] {
                 for width in [720.0, 650.0] {
                     try await render("plugins-official-\(english ? "en" : "zh")-\(dark ? "dark" : "light")-\(Int(width))", dark: dark, width: width)
-                    D.check(!manager.downloading && manager.pendingPackage == nil && manager.plugins.count == 1, "viewing Discover changes no installation")
+                    D.check(!manager.downloading && manager.pendingPackage == nil && manager.plugins.count == 2, "viewing Discover changes no installation")
                 }
             }
         }
         try await selectPage("Installed")
         D.check(has("plugins.remove.org.crossdiff.archive"), "restored plugin returns to Installed with removal control")
         D.check(try Data(contentsOf: archiveURL) == archiveBytes, "full removal/restore workflow preserves bundled resources")
+        D.check(has("plugins.remove.org.crossdiff.git"), "Base Git card has the same removal action as other bundled plugins")
+        let gitBytes = try Data(contentsOf: root.appendingPathComponent("Plugins/Git.crossdiffplugin"))
+        try await press("plugins.remove.org.crossdiff.git")
+        try await press("plugins.removal.confirm", fallback: "Remove")
+        try await D.wait("bundled Git removed") { manager.plugin(id: "org.crossdiff.git") == nil }
+        D.check(manager.removedBundledPlugins.contains { $0.id == "org.crossdiff.git" }, "Git removal disables the capability and keeps offline recovery")
+        try await selectPage("Discover")
+        try await press("plugins.restore.org.crossdiff.git", fallback: "Restore")
+        try await D.wait("bundled Git restored") { manager.plugin(id: "org.crossdiff.git")?.enabled == true }
+        D.check(manager.plugin(id: "org.crossdiff.git")?.enabled == true, "Base Git restores offline")
+        D.check(try Data(contentsOf: root.appendingPathComponent("Plugins/Git.crossdiffplugin")) == gitBytes, "Git remove/restore never mutates the bundled package")
         D.window.orderOut(nil)
     }
     static func render(_ name: String, dark: Bool, width: Double) async throws {

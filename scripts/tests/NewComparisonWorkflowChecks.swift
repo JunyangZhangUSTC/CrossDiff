@@ -37,6 +37,9 @@ enum NewComparisonWorkflowChecks {
         let manager = PluginManager.shared
         manager.setEnabled(true, id: "org.crossdiff.pdf")
         manager.setEnabled(true, id: "org.crossdiff.archive")
+        let gitID = GitComparisonModel.pluginID
+        manager.restoreBundled(gitID)
+        manager.setEnabled(true, id: gitID)
         let original = ComparisonSession(left: .init(text: "既有左侧 👩🏽‍💻\r\n", savedText: ""), right: .init(text: "既有右侧 e\u{301}\n", savedText: ""))
         store.sessions = [original]; store.selectedID = original.id
         let existingBytes = try D.encoded(original)
@@ -67,8 +70,27 @@ enum NewComparisonWorkflowChecks {
         newButton.performClick(nil)
         let model = try await currentModel()
         check(model.selectedType == nil && store.sessions.count == 1 && store.selectedID == original.id, "New starts at type selection without mutating the current session")
-        let expected = Set(["text", "folder", "image", "binary", "org.crossdiff.archive", "org.crossdiff.pdf"])
-        check(expected.isSubset(of: Set(model.types.map(\.id))), "chooser contains four built-ins and enabled archive/PDF plugins")
+        let expected = Set(["text", "folder", "image", "binary", "org.crossdiff.archive", "org.crossdiff.pdf", gitID])
+        let orderedIDs = model.types.map(\.id)
+        check(expected.isSubset(of: Set(orderedIDs)), "chooser contains built-ins and enabled Git/archive/PDF plugins")
+        check(Array(orderedIDs.prefix(6)) == ["text", "folder", "image", gitID, "binary", ArchiveComparisonModel.pluginID]
+              && orderedIDs.filter { $0 == gitID }.count == 1,
+              "chooser starts with Text, Folders, Images, Git, Binary and Archives")
+        let otherIDs = ["text", "folder", "image", "binary", ArchiveComparisonModel.pluginID] +
+            manager.enabledPlugins.filter { $0.id != gitID && $0.id != ArchiveComparisonModel.pluginID }.map(\.id)
+        check(orderedIDs.filter { $0 != gitID } == otherIDs, "remaining plugins retain their relative order after the six basic choices")
+        manager.setEnabled(false, id: gitID)
+        try await D.wait("disabled Git leaves chooser") { control("new-comparison.type." + gitID) == nil }
+        check(model.types.map(\.id) == otherIDs, "disabled Git stays hidden while all other choices retain their order")
+        manager.setEnabled(true, id: gitID)
+        try await D.wait("enabled Git returns to chooser") { control("new-comparison.type." + gitID) != nil }
+        check(model.types.map(\.id) == orderedIDs, "re-enabled Git returns to its priority position without duplication")
+        manager.removeBundled(gitID)
+        try await D.wait("removed Git leaves chooser") { control("new-comparison.type." + gitID) == nil }
+        check(model.types.map(\.id) == otherIDs, "removed bundled Git is not reintroduced by priority ordering")
+        manager.restoreBundled(gitID)
+        try await D.wait("restored Git returns to chooser") { control("new-comparison.type." + gitID) != nil }
+        check(model.types.map(\.id) == orderedIDs, "restoring bundled Git restores its priority position")
         try await renderVariants(prefix: "new-types")
         for id in expected { check(control("new-comparison.type." + id) != nil, "native chooser exposes \(id)") }
         check(control("new-comparison.more") != nil, "native chooser exposes More Comparisons")
@@ -259,6 +281,14 @@ enum NewComparisonWorkflowChecks {
                 ? (language == .english ? ["New Comparison", "More Comparisons"] : ["新建比较", "更多对比项"])
                 : (language == .english ? ["Left", "Right", "Compare"] : ["左侧", "右侧", "开始比较"])
             check(localizedLabels.allSatisfy { tree.contains($0) }, "\(prefix)-\(suffix) exposes translated controls in the native accessibility tree")
+            if store.newComparison?.selectedType == nil {
+                let imageFrame = try accessibilityFrame("new-comparison.type.image")
+                let gitFrame = try accessibilityFrame("new-comparison.type." + GitComparisonModel.pluginID)
+                check(imageFrame.width > 0 && gitFrame.width > 0 && abs(imageFrame.midY - gitFrame.midY) < 3 && gitFrame.minX > imageFrame.maxX,
+                      "\(prefix)-\(suffix) places Git to the right of Images in the second row")
+                check(tree.contains(language == .english ? "Compare commits, staging area and working tree" : "比较提交、暂存区与工作区"),
+                      "\(prefix)-\(suffix) exposes the current Git source capabilities")
+            }
             try tree.write(to: D.output.appendingPathComponent(prefix + "-" + suffix + "-accessibility.txt"), atomically: true, encoding: .utf8)
             D.log("Rendered \(prefix)-\(suffix)")
         }
@@ -308,6 +338,15 @@ enum NewComparisonWorkflowChecks {
         if let native = matches.first(where: { $0 is NSControl }) { return native }
         if let cell = matches.first as? NSCell, let native = cell.controlView { return native }
         return matches.first
+    }
+    static func accessibilityFrame(_ id: String) throws -> NSRect {
+        guard let object = objects().first(where: { string($0, "accessibilityIdentifier") == id }) else {
+            throw D.CheckError(description: "Missing accessible control frame: \(id)")
+        }
+        let selector = NSSelectorFromString("accessibilityFrame")
+        guard object.responds(to: selector) else { throw D.CheckError(description: "Missing accessibility frame: \(id)") }
+        typealias Frame = @convention(c) (AnyObject, Selector) -> NSRect
+        return unsafeBitCast(object.method(for: selector), to: Frame.self)(object, selector)
     }
     static func objects() -> [NSObject] {
         var seen = Set<ObjectIdentifier>(), result: [NSObject] = []

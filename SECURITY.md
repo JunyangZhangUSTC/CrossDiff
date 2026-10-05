@@ -1,6 +1,6 @@
 # Security and privacy
 
-CrossDiff is a local comparison application. It has no account system, server component, analytics, telemetry or automatic update service. Built-in comparisons and restricted JavaScript plugins process documents on the Mac without uploading them. Plugin downloads are separate from comparison: they connect to GitHub Releases or a user-specified HTTPS address only when the user requests installation. Full-trust native plugins have their own local and network permissions, as described below.
+CrossDiff is a local comparison application. It has no account system, server component, analytics, telemetry or automatic update service. Built-in comparisons and restricted JavaScript plugins process documents on the Mac without uploading them. Plugin downloads are separate from comparison: they connect to GitHub Releases or a user-specified HTTPS address only when the user requests installation. Git comparison can explicitly clone or fetch a user-selected HTTPS/SSH repository into an application-owned local cache. It does not push content, check out files, run hooks or execute external diff/textconv commands. Local staging-area and working-tree comparisons do not stage files or write to the selected repository. Working files are opened without following symbolic-link ancestors and their identity/content is rechecked before detail is shown. Restoring a session never downloads a missing cache. Full-trust native plugins have their own local and network permissions, as described below.
 
 ## Report a security issue
 

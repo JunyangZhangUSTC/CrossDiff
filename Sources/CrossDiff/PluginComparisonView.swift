@@ -105,7 +105,9 @@ private struct PluginResultView: View {
     var body: some View {
         Group {
             if let execution {
-                if plugin.package.manifest.resultView == "apiExchange" {
+                if plugin.package.manifest.resultView == "gitTree" {
+                    GitComparisonView(model: session.gitComparisonModel, execution: execution, executionID: executionID)
+                } else if plugin.package.manifest.resultView == "apiExchange" {
                     APIComparisonView(left: session.left, right: session.right, model: session.apiComparisonModel,
                         execute: { try await execution.compare($0, options: $1) }, executionID: executionID)
                 } else if let leftPath = session.left.path, let rightPath = session.right.path {

@@ -14,7 +14,7 @@ struct NewComparisonView: View {
         VStack(spacing: 0) {
             header
             if let type = model.selectedType {
-                inputPage(type)
+                if type.isGit { gitInputPage } else { inputPage(type) }
             } else {
                 typePage
             }
@@ -51,7 +51,9 @@ struct NewComparisonView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(model.selectedType?.title ?? L("新建比较", "New Comparison"))
                     .font(.system(size: 20, weight: .semibold))
-                Text(model.selectedType == nil
+                Text(model.selectedType?.isGit == true
+                    ? L("选择一个仓库，比较提交、暂存区或工作区。", "Choose a repository to compare commits, staged changes or working files.")
+                    : model.selectedType == nil
                     ? L("选择想要比较的内容。", "Choose what you would like to compare.")
                     : L("准备好两侧内容，然后开始比较。", "Choose the two sides, then start comparing."))
                     .font(.system(size: 12))
@@ -203,7 +205,7 @@ struct NewComparisonView: View {
                     .keyboardShortcut(.cancelAction)
                     .accessibilityIdentifier("new-comparison.cancel")
                 if model.selectedType != nil {
-                    Button(L("开始比较", "Compare")) { model.create() }
+                    Button(model.selectedType?.isGit == true ? L("打开仓库", "Open Repository") : L("开始比较", "Compare")) { model.create() }
                         .keyboardShortcut(.defaultAction)
                         .disabled(!model.canCreate || model.busy)
                         .accessibilityIdentifier("new-comparison.create")
@@ -213,6 +215,52 @@ struct NewComparisonView: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 14)
         }
+    }
+
+    private var gitInputPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Picker(L("仓库来源", "Repository Source"), selection: $model.gitRemote) {
+                Text(L("本地仓库", "Local Repository")).tag(false)
+                Text(L("远程仓库", "Remote Repository")).tag(true)
+            }.pickerStyle(.segmented).labelsHidden().frame(width: 320).id(settings.language)
+                .accessibilityIdentifier("git.source-kind")
+            if model.gitRemote {
+                VStack(alignment: .leading, spacing: 10) {
+                    Label(L("仓库地址", "Repository URL"), systemImage: "network")
+                        .font(.system(size: 13, weight: .semibold))
+                    TextField("https://github.com/owner/repository.git", text: $model.gitRemoteURL)
+                        .textFieldStyle(.roundedBorder).font(.system(size: 13, design: .monospaced))
+                        .accessibilityIdentifier("git.remote-url")
+                    Text(L("GitHub、GitLab、Gitee 或自建 Git 服务的 HTTPS / SSH 克隆地址。", "An HTTPS / SSH clone URL from GitHub, GitLab, Gitee or a self-hosted Git service."))
+                    Text(L("点击打开后下载仓库历史到本机缓存。HTTPS 支持公开仓库；SSH 使用已配置的密钥和受信任的主机。私有 HTTPS 仓库可先克隆到本机。", "Opening downloads repository history to a local cache. HTTPS supports public repositories; SSH uses existing keys and trusted hosts. Clone private HTTPS repositories locally first."))
+                }.font(.system(size: 12)).foregroundStyle(Color(nsColor: theme.secondaryText))
+                    .padding(20).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(nsColor: theme.chrome), in: RoundedRectangle(cornerRadius: 10))
+            } else {
+                Button { model.chooseFile(side: .left) } label: {
+                    VStack(spacing: 12) {
+                        Image(systemName: "folder.badge.gearshape").font(.system(size: 36, weight: .ultraLight))
+                            .foregroundStyle(Color(nsColor: theme.accent))
+                        if case .file(let url) = model.left {
+                            Text(url.lastPathComponent).font(.system(size: 15, weight: .semibold))
+                            Text(url.path).font(.system(size: 11)).foregroundStyle(Color(nsColor: theme.secondaryText)).lineLimit(2)
+                            Text(L("点击更换仓库", "Click to choose another repository")).font(.caption)
+                        } else {
+                            Text(L("选择 Git 文件夹…", "Choose a Git Folder…")).font(.system(size: 14, weight: .medium))
+                            Text(L("普通仓库、裸仓库或 worktree", "Working repository, bare repository or worktree")).font(.caption)
+                        }
+                    }.frame(maxWidth: .infinity).frame(height: 150).padding(12).contentShape(Rectangle())
+                }.buttonStyle(NewComparisonCardStyle(theme: theme)).accessibilityIdentifier("git.choose-repository")
+            }
+            if let message = model.errorMessage {
+                Label(message, systemImage: "exclamationmark.circle")
+                    .foregroundStyle(Color(nsColor: theme.differenceForeground(isRemoval: true))).font(.caption)
+            } else {
+                Label(L("只读比较，不切换分支、不暂存，也不改动文件。", "Read-only comparison: no checkout, staging or file changes."), systemImage: "lock")
+                    .font(.caption).foregroundStyle(Color(nsColor: theme.secondaryText))
+            }
+            Spacer(minLength: 0)
+        }.padding(.horizontal, 24).padding(.bottom, 12).frame(maxHeight: .infinity)
     }
 }
 

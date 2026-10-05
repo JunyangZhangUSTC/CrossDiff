@@ -1,0 +1,13 @@
+{
+  "id": "org.crossdiff.git",
+  "version": "0.1.0",
+  "name": {"zhHans": "Git 比较", "en": "Git Comparison"},
+  "summary": {"zhHans": "比较提交、分支、暂存区与工作区，用目录树和双栏查看每一处变化。", "en": "Compare commits, branches, the index and working tree with a repository tree and side-by-side detail."},
+  "runtime": "restrictedJavaScript",
+  "inputKind": "gitRepository",
+  "fileExtensions": ["git"],
+  "resultView": "gitTree",
+  "supportedModes": ["pairwise"],
+  "minHostProtocol": 1,
+  "maxHostProtocol": 1
+}

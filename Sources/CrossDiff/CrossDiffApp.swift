@@ -55,13 +55,8 @@ struct WorkspaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             if store.sessions.count > 1 {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        ForEach(store.sessions) { session in
-                            SessionTab(session: session, selected: store.selectedID == session.id, select: { store.selectedID = session.id }, close: { store.close(session) })
-                        }
-                    }.padding(.horizontal, 12).padding(.vertical, 7)
-                }.background(Color(nsColor: theme.chrome))
+                SessionTabStrip(store: store, theme: theme, locale: settings.locale)
+                    .frame(height: 48)
                 Divider()
             }
             if let session = store.selected {
@@ -124,19 +119,30 @@ struct SessionTab: View {
     let select: () -> Void
     let close: () -> Void
     var body: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 0) {
             Button(action: select) {
                 HStack(spacing: 6) {
                     Image(systemName: session.kind.symbol)
                     Text(session.title).lineLimit(1).truncationMode(.middle)
                     if session.dirty { Circle().fill(.secondary).frame(width: 5, height: 5) }
                 }
+                // Plain buttons otherwise hit-test only their visible content.
+                // Include the card's padding in the selection button itself.
+                .padding(.leading, 10)
+                .frame(height: 29)
+                .contentShape(Rectangle())
             }.buttonStyle(.plain)
-            Button(action: close) { Image(systemName: "xmark").font(.system(size: 9, weight: .semibold)) }.buttonStyle(.plain).help(L("关闭比较", "Close Comparison"))
+            Button(action: close) {
+                Image(systemName: "xmark").font(.system(size: 9, weight: .semibold))
+                    .frame(width: 24, height: 29)
+                    .contentShape(Rectangle())
+            }.buttonStyle(.plain).help(L("关闭比较", "Close Comparison"))
         }
-        .font(.system(size: 12)).padding(.horizontal, 10).padding(.vertical, 7)
+        .font(.system(size: 12))
         .background(selected ? Color.accentColor.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
         .frame(maxWidth: 320).help(session.title)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("session-tab." + session.id.uuidString)
     }
 }
 

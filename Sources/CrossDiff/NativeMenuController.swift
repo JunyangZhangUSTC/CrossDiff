@@ -59,6 +59,14 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
         return window === comparisonWindow && window.attachedSheet == nil
     }
     private var canEditComparison: Bool { comparisonActive && session?.kind == .text }
+    private var searchableSession: ComparisonSession? {
+        guard comparisonActive, let session else { return nil }
+        if session.kind == .text { return session }
+        if session.isGitComparison, PluginManager.shared.plugin(id: session.pluginID)?.enabled == true {
+            return session.gitComparisonModel.detailSession
+        }
+        return nil
+    }
     private var activeUndoManager: UndoManager? { NSApp.keyWindow?.firstResponder?.undoManager }
     private var activeVideoHistory: VideoComparisonModel? {
         guard comparisonActive, NSApp.keyWindow === comparisonWindow,
@@ -233,17 +241,18 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
             return isUndo ? manager?.canUndo == true : manager?.canRedo == true
         case #selector(playVideo(_:)), #selector(previousVideoFrame(_:)), #selector(nextVideoFrame(_:)):
             return activeVideoHistory?.hasSources == true && activeVideoHistory?.isLoading == false && activeVideoHistory?.isSeeking == false
-        case #selector(save(_:)), #selector(saveAs(_:)), #selector(find(_:)), #selector(findAndReplace(_:)):
+        case #selector(save(_:)), #selector(saveAs(_:)), #selector(findAndReplace(_:)):
             return canEditComparison
+        case #selector(find(_:)): return searchableSession != nil
         case #selector(findNext(_:)), #selector(findPrevious(_:)):
-            return canEditComparison && session?.searching == false && session?.searchMatches.isEmpty == false
+            return searchableSession?.searching == false && searchableSession?.searchMatches.isEmpty == false
         case #selector(findSelection(_:)):
-            return canEditComparison && selectedSourceText()?.isEmpty == false
+            return searchableSession != nil && selectedSourceText()?.isEmpty == false
         case #selector(nextDifference(_:)), #selector(previousDifference(_:)):
             if comparisonActive, let session, session.kind == .binary {
                 return session.binaryComparisonModel.canNavigate
             }
-            return canEditComparison && session?.calculating == false && session?.result?.hunks.isEmpty == false
+            return searchableSession?.calculating == false && searchableSession?.result?.hunks.isEmpty == false
         case #selector(toggleDeletions(_:)):
             menuItem.state = session?.showDeletions == true ? .on : .off; return canEditComparison
         case #selector(toggleAlignment(_:)):
@@ -310,22 +319,22 @@ final class NativeMenuController: NSObject, NSMenuDelegate, NSMenuItemValidation
     @objc func find(_ sender: Any?) { beginFind(replacing: false) }
     @objc func findAndReplace(_ sender: Any?) { beginFind(replacing: true) }
     private func beginFind(replacing: Bool) {
-        guard canEditComparison, let session else { return }
+        guard let session = searchableSession, !replacing || canEditComparison else { return }
         session.showSearch(replacing: replacing)
         NotificationCenter.default.post(name: .crossDiffFocusSearch, object: session.id)
     }
-    @objc func findNext(_ sender: Any?) { if canEditComparison { session?.navigateSearch(1) } }
-    @objc func findPrevious(_ sender: Any?) { if canEditComparison { session?.navigateSearch(-1) } }
+    @objc func findNext(_ sender: Any?) { searchableSession?.navigateSearch(1) }
+    @objc func findPrevious(_ sender: Any?) { searchableSession?.navigateSearch(-1) }
     @objc func findSelection(_ sender: Any?) {
-        guard canEditComparison, let text = selectedSourceText(), !text.isEmpty else { return }
-        session?.searchQuery = text; beginFind(replacing: false)
+        guard let session = searchableSession, let text = selectedSourceText(), !text.isEmpty else { return }
+        session.searchQuery = text; beginFind(replacing: false)
     }
     @objc func nextDifference(_ sender: Any?) { navigateDifference(1) }
     @objc func previousDifference(_ sender: Any?) { navigateDifference(-1) }
     private func navigateDifference(_ direction: Int) {
         guard comparisonActive, let session else { return }
         if session.kind == .binary { session.binaryComparisonModel.navigate(direction) }
-        else if canEditComparison { session.navigate(direction) }
+        else { searchableSession?.navigate(direction) }
     }
     @objc func toggleDeletions(_ sender: Any?) { if canEditComparison { session?.showDeletions.toggle() } }
     @objc func toggleAlignment(_ sender: Any?) { if canEditComparison { session?.alignDifferences.toggle() } }

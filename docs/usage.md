@@ -1,6 +1,6 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio, Office and Video plugins. This guide covers the published 0.14.0 release. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, Git repositories, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio, Office and Video plugins. This guide covers the 0.15.0 stable release. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
@@ -9,6 +9,12 @@ Click **New… / 新建…** (`⌘N`) in the toolbar or File menu. Choose a comp
 **File → Open…** (`⌘O`) still selects multiple files or folders and detects their types. Two compatible items open as a comparison. When you select more items, assign explicit left/right pairs before opening each comparison in its own tab. Finder opening and dropping items into the comparison window retain this automatic routing. You can also paste directly into an existing text comparison.
 
 To try a synthetic example, open [CompareOptions-before.swift](../examples/CompareOptions-before.swift) and [CompareOptions-after.swift](../examples/CompareOptions-after.swift) together. They demonstrate character edits, inserted lines, and deleted lines.
+
+## Browse comparison tabs / 浏览比较标签
+
+从 0.15.0 起，标签超出窗口宽度时，将鼠标移到顶部标签栏即可显示横向滚动条；拖动滑块、使用触控板或普通鼠标滚轮均可左右浏览。新建、切换、关闭标签或调整窗口宽度后，当前标签会自动进入可见区域。手动浏览其他标签时，普通内容刷新不会反复拉回当前页；标签放得下时不显示滚动条。
+
+From version 0.15.0, hover over an overflowing tab bar to show its horizontal scroll bar. Drag the thumb, use a trackpad or scroll an ordinary mouse wheel to browse tabs. Creating, selecting or closing tabs and resizing the window bring the active tab into view. Ordinary content updates preserve deliberate manual scrolling. No scroll bar appears when all tabs fit.
 
 ## Read and edit text changes
 
@@ -147,13 +153,17 @@ Comparison uses an 8-bit sRGB preview with a maximum 1600-pixel longest edge. Im
 <a id="photography"></a>
 ## Photography / 摄影对比
 
-**摄影插件 Photography 0.1.0。** Full 预装，同版本 Base 可安装独立摄影包。0.14.0 应用已包含下述摄影分析增强。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
+**摄影插件 Photography 0.1.0。** Full 预装，同版本 Base 可安装独立摄影包。0.15.0 应用包含下述摄影分析能力。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
 
-**Photography 0.1.0.** Full bundles this plugin; a matching Base host can install its standalone package. The 0.14.0 app includes the photography analysis enhancements described below. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
+**Photography 0.1.0.** Full bundles this plugin; a matching Base host can install its standalone package. The 0.15.0 app includes the photography analysis features described below. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
 
 默认以双图和 **Lab 感知明度 L*** 直方图为主。摘要显示 L* 中位数、P90−P10 明度跨度和低／高明度区域占比；这些数值描述当前选区，不代表曝光调整值或作品质量。**专业图表**保留 HSL、实际记录的处理曲线以及拍摄与分析信息。Lab L* 的范围是 0–100，与 HSL 明度 L 分开；两者均不是物理亮度或曝光值。
 
 The default view pairs the photographs with **Lab perceptual lightness L*** histograms. Summaries show median L*, the P90−P10 lightness span, and low/high-lightness shares for the current regions; they do not represent exposure adjustments or quality scores. **More Analysis** retains HSL distributions, recorded processing curves, and capture/analysis information. Lab L* uses a 0–100 scale and remains separate from HSL lightness L. Neither is physical luminance or exposure.
+
+从 0.15.0 起，**专业图表默认展开**，可直接切换影调、色彩 · HSL、处理曲线和拍摄与分析信息。点击“收起专业图表”可回到简洁视图；当前视图中的重新分析、语言与外观切换保留收起状态。
+
+From version 0.15.0, **professional charts start expanded**, with Tone, Color · HSL, Recorded Curves, and Image & Analysis available directly. **Hide Details** returns to the compact view. Reanalysis, language changes and appearance changes preserve your collapsed choice within the current view.
 
 - **照片显示通道 / Photo display channel:** 默认显示原图，也可把红、绿或蓝通道显示为灰度图；灰度表示该 sRGB 通道的强度。它与下方直方图通道独立，不重新计算区域统计。The original image is the default. Red, green, or blue can be shown as grayscale sRGB channel intensities, independently of the chart channel and without recalculating region statistics.
 - **直方图 / Histograms:** 选择感知明度、RGB 总览或单个 RGB 通道；RGB 总览分为红、绿、蓝三图。直方图默认分开显示两侧，点击“叠加”按钮后切换为叠加；分开、叠加和差值使用一致的横轴；A／左侧用蓝色实线，B／右侧用橙色虚线。差值图为右减左：蓝色表示 A 占比更高，橙色表示 B 占比更高，单位为百分点。悬停在同一分箱位置联动读取两侧占比。Select perceptual lightness, an RGB overview, or one RGB channel. The overview has separate red, green, and blue plots. Histograms show the two sides separately by default; click Overlay to combine them. Separated, overlay, and difference layouts share their horizontal scales. A/left is solid blue and B/right is dashed orange. The difference plot shows right minus left in percentage points: blue means a higher fraction in A, orange a higher fraction in B. Hover reads both sides at the same bin.
@@ -255,9 +265,9 @@ Manual Pairing provides independent page-number fields and previous/next control
 
 Manage extensions under CrossDiff → Plugins…: choose or drop a `.crossdiffplugin` file, or enter an HTTPS URL and click Download & Inspect. Review the name, identifier, version, unverified publisher and runtime permissions before installation. Downloads from arbitrary URLs require review before installation. Changed packages must use a new version number.
 
-官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；完整版额外预装 PDF、摄影、API、音频、办公与视频。基础版可在“发现插件”页下载并安装兼容插件，也可导入对应 Release 的独立包。联网只发生在你主动下载时，比较内容仍在本机处理。
+官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包与 Git 插件；完整版额外预装 PDF、摄影、API、音频、办公与视频。基础版可在“发现插件”页下载并安装兼容插件，也可导入对应 Release 的独立包。插件下载与远程 Git 获取仅在主动操作时联网，比较内容仍在本机处理。
 
-The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full adds PDF, Photography, API Compare, Audio, Office and Video. Base can download and install compatible plugins from Discover, or import standalone packages from the matching Release. Network access occurs only when you request a download; comparison content stays on your Mac.
+The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive and Git. Full adds PDF, Photography, API Compare, Audio, Office and Video. Base can download and install compatible plugins from Discover, or import standalone packages from the matching Release. Plugin downloads and remote Git retrieval connect only on request; comparison content stays on your Mac.
 
 插件页默认打开**已安装**，卡片上直接提供启用开关与**卸载…**或**移除…**，可先确认再执行；**发现插件**页用于查找和安装。
 
@@ -351,7 +361,7 @@ Results cover the selected sections, not complete visual or file identity. Forma
 
 ## 视频对比 / Video Compare
 
-**Video 0.1.0。** 0.14.0 Full 预装；同版 Base 可在“发现插件”页下载并安装，或导入对应 Release 的独立 `.crossdiffplugin` 包。从 **新建… → 视频** 选择两个本地 MOV、MP4 或 M4V 文件；格式能否播放由 macOS 实际解码能力决定。
+**Video 0.1.0。** 0.15.0 Full 预装；同版 Base 可在“发现插件”页下载并安装，或导入对应 Release 的独立 `.crossdiffplugin` 包。从 **新建… → 视频** 选择两个本地 MOV、MP4 或 M4V 文件；格式能否播放由 macOS 实际解码能力决定。
 
 - 默认双画面、双时间线；点击时间线定位。点击画面后，用 **空格** 播放／暂停，**← / →** 逐帧；A/B 选择逐帧的基准侧。对应命令也在“比较”菜单中。
 - 默认按同时间联动，这不代表内容已匹配。关闭联动分别找对应画面，然后在 **时间对齐… → 将当前两帧设为对应** 配对。也可输入偏移：`B 时间 = A 时间 + 偏移`。调整支持撤销／重做。
@@ -362,6 +372,53 @@ Results cover the selected sections, not complete visual or file identity. Forma
 
 位置、偏移和区域在本机会话中恢复；切换标签或关闭比较会停止播放。原视频始终只读。首版不含自动剪辑匹配、视频导出或实时播放差异。
 
-**English.** Choose **New… → Video** and select two local MOV, MP4 or M4V files. The 0.14.0 Full edition includes Video 0.1.0. A matching Base host can use Download & Install in Discover, or import the standalone `.crossdiffplugin` package from the corresponding Release. Click either timeline to seek, then focus a frame to use **Space** and the **Left/Right arrows**. A/B chooses the reference for frame stepping. Unlink to find corresponding frames independently, then use **Time Alignment… → Pair Current Frames**, or enter `B time = A time + offset`. Undo/redo restores viewing adjustments.
+**English.** Choose **New… → Video** and select two local MOV, MP4 or M4V files. The 0.15.0 Full edition includes Video 0.1.0. A matching Base host can use Download & Install in Discover, or import the standalone `.crossdiffplugin` package from the corresponding Release. Click either timeline to seek, then focus a frame to use **Space** and the **Left/Right arrows**. A/B chooses the reference for frame stepping. Unlink to find corresponding frames independently, then use **Time Alignment… → Pair Current Frames**, or enter `B time = A time + offset`. Undo/redo restores viewing adjustments.
 
 Playback starts muted; choose A or B to hear only that source. Looping requires linked browsing and a range that exists in both videos. Wipe and difference inspect paused frames; playing returns to side-by-side. The difference preview requires explicit Rec.709 SDR tags and equal decoded/cropped dimensions. It is not a codec-quality score. Pause to select independent or linked regions and save up to 32 named pairs. Positions and viewing choices stay in the local session; switching tabs stops playback. Original media is never modified. Automatic edit matching and video export are not part of this milestone.
+
+
+<a id="git"></a>
+## Git 仓库 / Git repositories
+
+**新建…** 依次显示文本、文件夹、图片、Git、二进制、压缩包，其余项目顺序不变；停用或移除的插件隐藏。选择 **Git** 后，可选择本地仓库，或输入 GitHub、GitLab、Gitee、自建 Git 服务的 HTTPS／SSH 克隆地址。0.15.0 的 Base 与 Full 均内置 Git 插件。运行需要系统 Git（Apple Command Line Tools 提供），应用不会自动安装工具。
+
+**本地仓库默认显示“全部未提交”。** 无需先 commit 或 stash：
+
+| 快捷入口 | 左侧 → 右侧 | 用途 |
+| --- | --- | --- |
+| 全部未提交 | HEAD → 工作区 | 当前文件相对上次提交的全部变化，包含已暂存和未暂存的最终内容 |
+| 已暂存 | HEAD → 暂存区 | 已通过 `git add` 准备放入下一次提交的内容 |
+| 未暂存 | 暂存区 → 工作区 | 尚未 add 的修改，包括 add 后再次编辑的部分 |
+
+也可在两侧来源菜单自由选择“提交／分支”“暂存区”“工作区”，例如比较某个发布分支与当前工作区。没有首次提交时，HEAD 显示为空基准；远程缓存和裸仓库仅支持提交来源。选择快捷入口立即比较，自定义提交输入修改后点击“比较”。已打开的旧会话保留原来的两个提交。
+
+“包含未跟踪文件”默认开启，可在选项中关闭；遵循 `.gitignore`、`.git/info/exclude` 等可用忽略规则，不加载全局 Git 配置。暂存区和工作区都只读，不提供 add、reset 或 commit。显示的是上次比较时的快照；文件变化后点击“刷新”。若选中文件已不同于扫描时的内容，会提示刷新，不混用旧树和新内容。
+
+打开后在两侧版本选择器选择分支、标签或最近提交，也可以输入提交哈希。选择提交来源时，版本会解析为固定提交，再读取对象快照；不会切换当前分支或改动原仓库、索引。选择工作区来源时会读取当前未提交的内容。左侧目录树默认仅差异，可切换全部文件并搜索路径；选择文件后右侧显示成对内容、原生行号、字符差异和对齐的行。文本可选择、复制、查找（⌘F／⌘G／⇧⌘G），不支持编辑或写回历史。
+
+- **重命名识别**：默认开启，Git 相似度阈值 50%；关闭后移动表现为删除与新增。超过 1,000 个候选时，Git 可跳过昂贵的近似匹配，部分移动仍显示为删除与新增。暂存区／工作区参与比较时仅匹配内容完全相同且一一对应的重命名。
+- **共同祖先**：将两版本的共同祖先与右侧版本比较，适合审查某分支从分叉点以来的变化；普通模式直接比较左右两个提交。界面显示实际提交短哈希。
+- **文本查看**：换行、同步滚动、字符高亮、忽略空白和大小写仅影响详情视图；文件树仍依据完整对象与文件模式判断是否变化。
+- **非文本对象**：二进制显示前 64 KiB 的 Hex 预览，明确提示预览范围；符号链接显示目标文字，子模块显示固定提交号，不跟随链接、不展开子仓库；Git LFS 显示已提交的指针，不自动下载外部内容。
+- **范围**：仓库扫描不设固定的单文件大小、总大小或文件数量上限；每侧文件预览最多 2 MiB，超限显示提示，不以截断文本冒充完整比较。最近提交列表最多 200 条，较早的提交可直接输入哈希。不提供冲突解决或 Git 写入操作。暂存区有未解决合并阶段时明确提示，不猜测冲突版本。
+
+远程仓库首次打开时下载完整仓库历史到应用自己的本机缓存，不 checkout；大型仓库可能需要较长时间，可随时取消，单次下载超时为 5 分钟，缓存软限额为 2 GiB／200,000 项；之后只在点击刷新时 fetch。恢复会话时不会自动联网，缓存缺失需要明确重新连接。HTTPS 支持公开仓库，SSH 使用现有密钥和已信任主机，不自动接受主机指纹或弹出认证；私有 HTTPS 仓库请先用自己的 Git 工具克隆，再选择本地目录。不会保存 URL 中的令牌或密码，不执行仓库 hooks、外部 diff 或 textconv。
+
+**New…** starts with Text, Folders, Images, Git, Binary and Archives; remaining items keep their order, and disabled or removed plugins stay hidden. Choose **Git**, then a local repository or an HTTPS/SSH clone URL. Working repositories, bare repositories and worktrees are supported. Git is bundled as a plugin in Base and Full from version 0.15.0. System Git from Apple Command Line Tools is required and is never installed automatically.
+
+New local sessions default to **All Uncommitted** (HEAD → working tree). **Staged** compares HEAD → index, showing what `git add` prepared for the next commit. **Unstaged** compares index → working tree, isolating edits made after staging. Each side can also choose Commit / Branch, Staging Area or Working Tree independently. Presets compare immediately; custom revision edits use Compare. Earlier sessions keep their two commit sources. An unborn HEAD becomes an explicit empty baseline; bare repositories and remote caches offer committed revisions only.
+
+Include Untracked Files defaults on, respecting `.gitignore`, `.git/info/exclude` and other available exclusion rules without loading global Git configuration. These are read-only snapshots: no staging, reset or commit actions. Refresh rereads local changes; if a file differs from its captured identity/content when selected, the app asks for a refresh instead of mixing new content with an old tree.
+
+Select branches, tags, recent commits or enter a commit hash. Both selections resolve to fixed commits without checkout or changing the index or working tree. The narrow file tree offers changes-only/all-files and path filtering; select a file for paired read-only text, line alignment, character highlights and Find (⌘F/⌘G/⇧⌘G). Copying is supported; editing history is not.
+
+Rename detection defaults to a 50% similarity threshold. Git may skip expensive inexact matching above 1,000 candidates, leaving some moves as additions/deletions. Merge-base mode is available only for two committed revisions and compares the common ancestor against the right revision. Local-source rename matching is limited to unambiguous, byte-identical contents. Whitespace, case and wrapping options affect text detail only, while file status reflects the complete objects and file modes. Binary files show a labeled first-64-KiB Hex preview; each blob preview is limited to 2 MiB, and recent history to 200 entries. Repository scans have no fixed per-file size, total-byte or file-count ceiling. Older commits can be entered by hash. Symlinks, submodules and LFS pointers remain committed records and are not followed or downloaded.
+
+Remote repositories are downloaded only when explicitly opened and refreshed only on request, into a local application cache without checkout. Full history can take time to download; cancellation is available, with a five-minute deadline and polled soft limits of 2 GiB / 200,000 cache entries. Session restoration never initiates a download. HTTPS supports public repositories; SSH uses existing keys and trusted hosts without accepting new host keys or prompting. Clone private HTTPS repositories with your own Git client first, then open them locally. URLs containing credentials are rejected. Repository hooks, external diff and text conversion commands are not executed.
+
+本地快照边界 / Local snapshot boundaries:
+
+- 工作区按磁盘原始字节读取，不执行 `.gitattributes` clean/smudge、LFS 或换行转换。采用这些转换的仓库可能显示磁盘与已暂存字节的差异。子模块仅显示暂存的提交指针，不分析嵌套工作区；稀疏检出中缺失的 skip-worktree 文件保留其索引内容。
+- 仓库目录逐条读取，工作区文件分块计算摘要，插件按文件对分批核验；取消原有单文件 256 MiB、总计 1 GiB、50,000 个文件及扫描总时长的固定限制。比较在后台进行且可取消，状态栏显示扫描文件数、读取量和分批核验进度；耗时与实际文件量和磁盘速度有关，目录元数据仍需内存。详情预览独立保留每侧 2 MiB 上限。不支持的特殊文件、取消或读取失败不会作为完整结果发布。
+- Working files are read as raw bytes, without clean/smudge filters, LFS or line-ending conversion. Repositories using those conversions may show differences between on-disk and staged bytes. Submodules retain the index's commit pointer without inspecting nested working changes. Missing skip-worktree paths in sparse checkouts retain their indexed content.
+- Directory records are streamed, working files are hashed in chunks, and the plugin validates file pairs in batches. The former 256 MiB per-file, 1 GiB total, 50,000-file and total scan-time limits are removed. Background scans remain cancellable; the status bar reports scanned files, bytes read and batch validation progress. Time depends on file volume and disk speed, and directory metadata still uses memory. Detail previews separately retain their 2 MiB-per-side budget. Unresolved index stages, unsupported special files, cancellation or read failures never publish an incomplete comparison as a complete one.

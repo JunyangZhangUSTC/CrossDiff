@@ -61,6 +61,11 @@ import CrossDiffCore
                 "missing exposure compensation remains absent in decoded source metadata")
         AppSettings.shared.language = .simplifiedChinese
         try await render("photo-light", width: 1220, dark: false)
+        D.check(analysisPicker() != nil, "new photography comparison opens with professional analysis sections visible")
+        try await render("photo-default-professional-light-narrow", width: 860, dark: false)
+        try await render("photo-default-professional-dark-narrow", width: 860, dark: true)
+        try await press("photo.professional")
+        D.check(analysisPicker() == nil, "professional analysis can still be collapsed after opening by default")
         let sky = PhotoRegion(x: 0.08, y: 0.05, width: 0.7, height: 0.35)
         model.selectRegion(sky, side: .left)
         D.check(model.state.rightRegion == .full, "independent selection leaves other side unchanged")
@@ -101,7 +106,9 @@ import CrossDiffCore
         AppSettings.shared.language = .english
         try await render("photo-english-narrow", width: 860, dark: false)
         try await render("photo-english-dark-narrow", width: 860, dark: true)
+        D.check(analysisPicker() == nil, "analysis refresh, region changes, appearance and language keep the user's collapsed choice")
         try await press("photo.professional")
+        D.check(analysisPicker() != nil, "professional analysis expands again through its native control")
         for (section, name) in [(1, "color"), (2, "curves"), (3, "information")] {
             try selectAnalysis(section)
             for dark in [false, true] {
@@ -124,6 +131,7 @@ import CrossDiffCore
             PluginInput(id: "left", role: .left, name: "left", content: model.leftStatistics!.pluginContent),
             PluginInput(id: "right", role: .right, name: "right", content: model.rightStatistics!.pluginContent)])
         D.check(result.schema == "crossdiff.photography/1", "externally installed package runs its actual restricted algorithm")
+        try await saturationBoundaryChecks(root: root, right: right, execute: { try await execution.compare($0) })
         try await snapshotAndSchedulingChecks(root: root, right: right, execute: { try await execution.compare($0) })
         let hashesAfter = try sourceHashes([left, right])
         D.check(hashesAfter == originals, "all comparisons, previews, chart highlights and region operations preserve source SHA-256 hashes")
@@ -273,6 +281,36 @@ import CrossDiffCore
             }
             return true
         }
+    }
+
+    static func saturationBoundaryChecks(root: URL, right: URL, execute: @escaping PhotoComparisonModel.Execute) async throws {
+        let path = root.appendingPathComponent("saturation-boundary.png")
+        // Eight RGBA pixels enter OpenCV's vectorized conversion path. This color
+        // can round just above HLS saturation 1 and must retain all histogram mass.
+        let pixels = Data((0..<8).flatMap { _ in [UInt8(255), 1, 1, 255] })
+        let image = CGImage(width: 8, height: 1, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: 32,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+            provider: CGDataProvider(data: pixels as CFData)!, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
+        guard let destination = CGImageDestinationCreateWithURL(path as CFURL, UTType.png.identifier as CFString, 1, nil) else {
+            throw D.CheckError(description: "Unable to create saturation boundary fixture")
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            throw D.CheckError(description: "Unable to write saturation boundary fixture")
+        }
+        let original = try sourceHashes([path])
+        let model = PhotoComparisonModel()
+        defer { model.cancel() }
+        await model.load(left: path, right: right, execute: execute, executionID: "saturation-boundary")
+        try await ready(model)
+        D.check(model.error == nil && model.leftStatistics != nil && !model.findings.isEmpty,
+                "saturated PNG completes native decoding and restricted plugin analysis without a histogram normalization error")
+        let statistics = model.leftStatistics!
+        D.check(statistics.analyzedPixels == 8 && abs(statistics.saturation.reduce(0, +) - 1) < 0.000001,
+                "saturated PNG preserves every pixel in the normalized saturation histogram")
+        D.check(statistics.neutralFraction == 0 && abs(statistics.hue.reduce(0, +) - 1) < 0.000001,
+                "saturated PNG remains chromatic with a normalized hue distribution")
+        D.check(try sourceHashes([path]) == original, "boundary-color photo analysis preserves the original PNG bytes")
     }
 
     static func snapshotAndSchedulingChecks(root: URL, right: URL, execute: @escaping PhotoComparisonModel.Execute) async throws {
@@ -457,10 +495,13 @@ import CrossDiffCore
         }
         try await D.pause()
     }
-    static func selectAnalysis(_ index: Int) throws {
-        guard let picker = objects().compactMap({ $0 as? NSSegmentedControl }).first(where: {
+    static func analysisPicker() -> NSSegmentedControl? {
+        objects().compactMap({ $0 as? NSSegmentedControl }).first(where: {
             $0.segmentCount == 4 && ["影调", "Tone"].contains($0.label(forSegment: 0) ?? "")
-        }) else { throw D.CheckError(description: "Missing photographic analysis picker") }
+        })
+    }
+    static func selectAnalysis(_ index: Int) throws {
+        guard let picker = analysisPicker() else { throw D.CheckError(description: "Missing photographic analysis picker") }
         picker.selectedSegment = index
         D.check(picker.sendAction(picker.action, to: picker.target), "professional analysis section dispatches native action")
     }

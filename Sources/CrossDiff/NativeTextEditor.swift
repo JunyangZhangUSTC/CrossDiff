@@ -343,12 +343,14 @@ struct NativeTextEditor: NSViewRepresentable {
     @ObservedObject var session: ComparisonSession
     let scrollLink: EditorScrollLink
     let onChange: (String) -> Void
+    var readOnly = false
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSScrollView {
         let cached = side == .left ? session.leftEditorState : session.rightEditorState
         let state = cached ?? TextEditorState(text: text, side: side, wrapLines: session.wrapLines)
         if side == .left { session.leftEditorState = state } else { session.rightEditorState = state }
+        state.editor.isEditable = !readOnly
         context.coordinator.bind(to: state)
         scrollLink.register(state.scroll, side: side)
         return state.scroll
@@ -394,6 +396,7 @@ struct NativeTextEditor: NSViewRepresentable {
                 editor.breakUndoCoalescing(); editor.undoManager?.setActionName(L("合并差异", "Merge Difference"))
                 state?.applyingModelText = false
             }
+            editor.isEditable = !parent.readOnly
             editor.isHorizontallyResizable = !session.wrapLines
             editor.autoresizingMask = session.wrapLines ? [.width] : []
             scroll.hasHorizontalScroller = !session.wrapLines

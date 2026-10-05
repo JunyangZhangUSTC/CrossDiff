@@ -31,11 +31,12 @@ python3 scripts/package-pdf-plugin.py --output "$check_build/PDF.crossdiffplugin
 python3 scripts/package-photography-plugin.py --output "$check_build/Photography.crossdiffplugin"
 python3 scripts/package-api-plugin.py --output "$check_build/API.crossdiffplugin"
 python3 scripts/package-archive-plugin.py --output "$check_build/Plugins/Archive.crossdiffplugin"
+python3 scripts/package-git-plugin.py --output "$check_build/Plugins/Git.crossdiffplugin"
 python3 - "$check_build" <<'PYCAT'
 import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 entries = []
-for name, path in [('Archive', root / 'Plugins/Archive.crossdiffplugin'), ('PDF', root / 'PDF.crossdiffplugin'), ('Photography', root / 'Photography.crossdiffplugin'), ('API', root / 'API.crossdiffplugin')]:
+for name, path in [('Archive', root / 'Plugins/Archive.crossdiffplugin'), ('Git', root / 'Plugins/Git.crossdiffplugin'), ('PDF', root / 'PDF.crossdiffplugin'), ('Photography', root / 'Photography.crossdiffplugin'), ('API', root / 'API.crossdiffplugin')]:
     data = path.read_bytes(); manifest = json.loads(data)['manifest']
     asset = f"CrossDiff-Plugin-{name}-{manifest['version']}.crossdiffplugin"
     entries.append({key:manifest[key] for key in ('id', 'version', 'name', 'summary')} | {

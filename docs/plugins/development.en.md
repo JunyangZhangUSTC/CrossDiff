@@ -1,6 +1,6 @@
 # Plugin development · Experimental v1
 
-Status: 2026-10-04, for the unpublished CrossDiff 0.14.0 source preview (Photography/API/Audio/Office/Video 0.1.0 and PDF 0.2.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
+Status: 2026-10-05, for the CrossDiff 0.15.0 development source (Git/Photography/API/Audio/Office/Video 0.1.0, Archive 0.1.1 and PDF 0.2.0). The protocol, package format and host views are experimental. This describes the current implementation, without promising migration-free compatibility. [简体中文](development.md)
 
 The contract is implemented in [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift), [PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift), [PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) and [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift). Future capabilities discussed in the [architecture design](../architecture/compare-everything.md) are not automatically available in this preview.
 
@@ -13,6 +13,7 @@ Plugins supply comparison algorithms. The host reads inputs, runs tasks and disp
 | `text` | Decoded text `{text: "…"}` | `table`: a read-only results table |
 | `pdf` | Page text, dimensions and preview fingerprints | `documentPages`: native PDF pages and text differences; `table` is also accepted |
 | `archiveCatalog` | Virtual paths, kinds, sizes, full content digests and verification states from an archive or local folder | `archiveTree`: a read-only directory tree and content groups across paths |
+| `gitRepository` | Source identities, relative paths, object IDs and Git modes from commit/index/working-tree snapshots, plus rename evidence | `gitTree`: a repository tree and read-only paired details for the selected file |
 | `httpExchange` | Bounded HTTP/cURL/HAR records normalized to typed sections and fields | `apiExchange`: paired request/response field differences |
 | `photoAnalysis` | Bounded, normalized Apple/OpenCV RGB/HSL distributions, neutral share and analysis metadata | `photography`: paired photos, regions, histograms, recorded curves and capture information |
 | `audioAnalysis` | Bounded source metadata and host matching evidence; no PCM, waveform or spectral grids | `audioTimeline`: paired timelines, channel waveforms, spectrograms, regions and A/B audition |
@@ -23,7 +24,7 @@ The bundled [PDF plugin](../../Plugins/PDF/) contains the JavaScript algorithm t
 
 The application currently starts only `pairwise` tasks. Public types distinguish `threeWayMerge` and `multiSubject` and validate their roles, but this release provides no corresponding UI or algorithms. Do not advertise unsupported modes or silently compare only the first two inputs.
 
-Custom native views, arbitrary schema renderers, artifact/resource handles, companion libraries, plugin dependencies, remote sources, plugin exports and write-back are deferred. Existing text, folder, image and binary Hex comparisons remain host features.
+Custom native views, arbitrary schema renderers, artifact/resource handles, companion libraries, plugin dependencies, plugin-defined remote source providers, plugin exports and write-back are deferred. Local Git reads and user-initiated remote downloads are fixed host capabilities; they do not expose network APIs to scripts. Existing text, folder, image and binary Hex comparisons remain host features.
 
 ## 2. Start with the example
 
@@ -53,6 +54,15 @@ python3 scripts/package-archive-plugin.py --output dist/Plugins/Archive.crossdif
 ```
 
 The script in [Archive sources](../../Plugins/Official/Archive/) computes path classifications, directory states and content groups. `org.crossdiff.archive` is also a reserved bundled ID. Third-party algorithms use their own IDs and can reuse the same restricted runtime and native directory view. Ordinary ZIP/TAR files are comparison sources; only `.crossdiffplugin` files are installation packages.
+
+The official Git plugin is included in both Base and Full. Package it with:
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-git-plugin.py --output dist/Plugins/Git.crossdiffplugin
+```
+
+[Git sources and documentation](../../Plugins/Official/Git/) contain the actual tree-classification algorithm. `org.crossdiff.git` is a reserved bundled ID; custom implementations use their own IDs and require a 0.15.0 host or matching Git capabilities. `fileExtensions: ["git"]` identifies the manifest entry point; repository directory names need not end in `.git`. Git comparison selects one repository and a commit/branch, staging area or working tree for each side, rather than supplying two repository paths to the script. See `crossdiff.git-tree/1` below.
 
 Photography uses the normal package installation and restricted execution flow:
 
@@ -118,6 +128,8 @@ Example manifest:
 Use these camelCase field names exactly, including `zhHans` and `en`. IDs are at most 128 UTF-8 bytes, begin with a lowercase English letter, and contain lowercase letters and digits in segments separated by `.` or `-`. Versions use three numeric components with optional prerelease/build suffixes, up to 64 bytes. Each localized name is nonempty and at most 512 bytes; each summary is nonempty and at most 4096 bytes.
 
 `fileExtensions` contains 1–32 unique lowercase extensions without a leading dot. Each is at most 16 bytes and may contain letters, digits, `_` and `-`. `supportedModes` must be nonempty and unique. The host protocol range must include `1`. `documentPages` requires `pdf` input. `archiveCatalog` and `archiveTree` must be paired, with `supportedModes: ["pairwise"]`; archive input cannot use `table`. `photoAnalysis` likewise requires `photography` with `supportedModes: ["pairwise"]` and cannot use `table`. The host supplies its reserved identifier list explicitly; an official-looking name does not grant official status.
+
+`gitRepository` must pair with `gitTree` and `supportedModes: ["pairwise"]`; other result views are not accepted.
 
 ## 4. Requests and the JavaScript entry point
 
@@ -255,6 +267,79 @@ Each input entry appears exactly once on its side. Non-null pairs must share a p
 
 `sameContentGroups` contains complete cohorts of verified regular files sharing size + SHA-256. Both sides must be nonempty and the union must contain at least two distinct paths. Return side-specific ID lists without a Cartesian product. A same-path-only pair is not a content group. Groups show identical content, without asserting a unique rename or move. The host independently validates coverage, classification, directory aggregation and complete cohorts against the current catalogs before rendering; unknown rows require partial status. Compression methods, timestamps and permission metadata do not participate in content equality.
 
+### `crossdiff.git-tree/1`
+
+Git 0.1.0 requires the Git host capability introduced in 0.15.0. The experimental protocol remains v1; matching that number alone does not make earlier hosts understand the new domain. Declare `inputKind: "gitRepository"`, `resultView: "gitTree"` and `supportedModes: ["pairwise"]`. The host resolves committed sources to immutable hashes or captures staging-area/working-tree snapshots. Every input explicitly identifies its source. A committed source is:
+
+```json
+{
+  "source": "commit",
+  "snapshot": "commit:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "emptyBaseline": false,
+  "entries": [
+    {"path": "Sources/Main.swift", "objectID": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "mode": "100644"},
+    {"path": "bin/run.sh", "objectID": "cccccccccccccccccccccccccccccccccccccccc", "mode": "100755"}
+  ]
+}
+```
+
+`source` is `commit`, `index` or `workingTree`. `snapshot` is a nonempty host-generated identity, at most 256 UTF-8 bytes with no ASCII control characters. It is a data identity, not a revision, executable Git argument or publisher signature. `commit` contains a real 40- or 64-character lowercase object ID only for committed sources. Local state must never borrow HEAD's hash and pretend to be a commit:
+
+```json
+{
+  "source": "index",
+  "snapshot": "index:host-generated-fingerprint",
+  "commit": null,
+  "emptyBaseline": false,
+  "entries": [{"path": "README.md", "objectID": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "mode": "100644"}]
+}
+```
+
+A working-tree source uses `source: "workingTree"` and its independently captured identity. Both index and working-tree sources require `commit: null` and `emptyBaseline: false`. Before the first commit, the host can represent HEAD as an explicit empty baseline: `source: "commit"`, `commit: null`, `emptyBaseline: true` and `entries: []`. It never invents a commit hash. Other committed sources require a real hash and `emptyBaseline: false`.
+
+Legacy `{commit, entries}` inputs remain accepted and normalize to source `commit` with snapshot `commit:<OID>`. The new form requires all five fields shown; unknown content metadata is rejected. Entry object IDs remain 40- or 64-character lowercase hexadecimal strings in a consistent Git object format within one comparison. Empty snapshots do not invent an object format. Working-tree IDs describe actual Git blobs without implying writes to the original object database.
+
+The host batches complete file pairs/rename units: each helper invocation contains at most 128 pairs and 128 entries per side. This is a transport boundary, **not a repository file-count limit**. Entries are files, symbolic links and submodules, with directories implicit in paths. Modes are `100644` (regular file), `100755` (executable file), `120000` (symbolic link) and `160000` (submodule). The host neither follows links nor initializes submodules. Commit trees retain committed content; local changes enter only explicitly selected index or working-tree snapshots. Untracked files follow the user's selection.
+
+Paths are at most 4096 UTF-8 bytes and 128 components, without absolute paths, empty components, `.`, `..` or NUL. A file cannot also be the parent of another entry. **Paths retain exact UTF-8 byte identity**; do not apply the Archive contract's NFC matching. Valid tabs, newlines and backslashes remain filename data. The current host explicitly rejects non-UTF-8 Git paths instead of silently omitting them.
+
+The only allowed `options` key is `renameHints`, defaulting to an empty array:
+
+```json
+{"renameHints": [{"left": "old/name.swift", "right": "new/name.swift"}]}
+```
+
+Hints come from native Git rename detection. Each is a one-to-one pairing of distinct, type-compatible removed/added paths: the left path exists only in the left tree and the right path only in the right tree, with no repeated sources or destinations. Rename thresholds, merge-base selection and revision resolution belong to the host, not executable plugin-supplied Git arguments. A script cannot invent a rename without host evidence. When local state is involved, the current host supplies exact-content rename hints only. Similarity thresholds and merge-base comparison apply only to two committed sources.
+
+The result payload is:
+
+```json
+{
+  "rows": [
+    {"left": "old/name.swift", "right": "new/name.swift", "state": "renamed"},
+    {"left": null, "right": "README.md", "state": "added"}
+  ],
+  "counts": {"unchanged": 0, "added": 1, "deleted": 0, "modified": 0, "renamed": 1, "typeChanged": 0},
+  "snapshots": {
+    "left": {"source": "index", "snapshot": "index:left-fingerprint", "commit": null, "emptyBaseline": false},
+    "right": {"source": "workingTree", "snapshot": "working-tree:right-fingerprint", "commit": null, "emptyBaseline": false}
+  }
+}
+```
+
+Every source entry is covered exactly once. Absent sides use null, and both sides cannot be null. States are: a hinted cross-path pair is `renamed`; a one-sided entry is `added`/`deleted`; different regular-file/symbolic-link/submodule kinds at the same path are `typeChanged`; different object IDs or modes within a kind are `modified`; otherwise the entry is `unchanged`. Modes `100644` and `100755` are one kind, so an executable-bit change is `modified`. Renamed files may also have content changes, displayed separately by the host's file-detail view. `counts` has exactly the six fields shown and must match the actual rows.
+
+`snapshots` contains exactly `left` and `right`. Each side echoes the normalized request's `source`, `snapshot`, `commit` and `emptyBaseline`, without extra fields. Snapshot identities match by exact UTF-8 bytes; missing, malformed, stale or relabeled source descriptors are rejected.
+
+Before slicing, the host verifies global source coverage: every input appears once, a same-path pair cannot become a fake deletion/addition in separate batches, renames remain indivisible, files cannot collide with descendants, and object formats agree. It then runs the actual restricted helper for each batch and verifies its coverage, snapshot identities, source references, classification, rename evidence and counts. Any mismatch rejects the whole comparison.
+
+All batches retain the same source snapshot identities and use independent run IDs. Per-invocation limits remain 16 MiB per request, 8 MiB per result and 32 MiB for the helper envelope, with unchanged execution budgets. The 128-pair batch size accommodates even worst-case JSON escaping of 4096-byte paths. **There is no whole-repository JSON serialization or total file-count limit.** A script receives the subset of complete pairs in its batch; `completed` describes that batch, not the entire repository. An empty comparison still executes one empty batch.
+
+Only after all batches validate does the host assemble globally ordered rows, counts and a bilingual total summary. Plugin summaries describe individual batches; verified progress does not expose partial comparison results. Cancellation, obsolete work or any failed batch cannot return partial success, and silent `partial` truncation is rejected. `check-git-plugin.sh` exercises the production adapter with more than 50,000 files through real helpers, complete rename pairs, worst-case escaped paths and cancellation during batching.
+
+Scripts receive only the selected snapshots' tree metadata, not remote URLs, local paths, credentials, full history or blob contents. The host streams local snapshot reads, resolves selected files on demand and provides read-only text/Hex details, without checking out branches or modifying local repositories. Bare repositories have no index or working tree. Changes detected during local reads require refreshing instead of silently mixing generations. Remote downloads and refreshes are explicit user actions in the host. Third-party JavaScript cannot request arbitrary Git commands, networking or file reads. The [contract validator](../../Sources/CrossDiffCore/GitPluginContract.swift), [host adapter](../../Sources/CrossDiff/GitPluginComparison.swift), [official algorithm](../../Plugins/Official/Git/compare.js) and [usage limits](../usage.md#git) define the implemented capability.
+
 ### `crossdiff.photography/1`
 
 Declare `inputKind: "photoAnalysis"`, `resultView: "photography"` and `supportedModes: ["pairwise"]`. The host reads user-authorized photographs using Apple color management/RAW decoding and OpenCV 4.12.0 conversion/statistics on background tasks. Each input `content` has this shape (arrays are abbreviated; valid requests require the lengths below):
@@ -354,6 +439,9 @@ bash scripts/tests/check-plugin-runtime.sh
 bash scripts/tests/check-pdf.sh
 bash scripts/tests/check-pdf-workflow.sh
 bash scripts/tests/check-archive-plugin.sh
+bash scripts/tests/check-git-core.sh
+bash scripts/tests/check-git-plugin.sh
+bash scripts/tests/check-git-workflow.sh
 bash scripts/tests/check-plugin-workflow.sh
 bash scripts/tests/check-api-import.sh
 bash scripts/tests/check-api-plugin.sh

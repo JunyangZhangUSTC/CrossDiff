@@ -60,7 +60,7 @@ public struct PluginLocalizedText: Codable, Equatable, Sendable {
 }
 
 public enum PluginRuntimeProfile: String, Codable, Sendable { case restrictedJavaScript, trustedExecutable }
-public enum PluginInputKind: String, Codable, Sendable { case text, pdf, archiveCatalog, photoAnalysis, httpExchange, audioAnalysis, officeDocument, videoAnalysis }
+public enum PluginInputKind: String, Codable, Sendable { case text, pdf, archiveCatalog, photoAnalysis, httpExchange, audioAnalysis, officeDocument, videoAnalysis, gitRepository }
 public enum PluginComparisonMode: String, Codable, Sendable { case pairwise, threeWayMerge, multiSubject }
 public enum PluginInputRole: String, Codable, Sendable { case left, right, base, ours, theirs, peer }
 public enum PluginResultStatus: String, Codable, Sendable { case completed, partial }
@@ -98,6 +98,7 @@ public struct PluginManifest: Codable, Equatable, Sendable {
         case "audioTimeline": return "crossdiff.audio/1"
         case "officeDocuments": return "crossdiff.office/1"
         case "videoTimeline": return "crossdiff.video/1"
+        case "gitTree": return "crossdiff.git-tree/1"
         default: return ""
         }
     }
@@ -166,6 +167,7 @@ public struct PluginComparisonRequest: Codable, Equatable, Sendable {
             for input in inputs { try VideoContract.validateInput(input.content) }
             try VideoContract.validateOptions(options)
         }
+        if manifest.inputKind == .gitRepository { try GitPluginContract.validateRequest(self) }
         let roles = inputs.map(\.role)
         switch mode {
         case .pairwise:
@@ -234,6 +236,7 @@ public struct PluginComparisonResult: Codable, Equatable, Sendable {
         if schema == "crossdiff.audio/1" { try AudioContract.validateResult(self, request: request) }
         if schema == "crossdiff.office/1" { try OfficeContract.validateResult(self, request: request) }
         if schema == "crossdiff.video/1" { try VideoContract.validateResult(self, request: request) }
+        if schema == "crossdiff.git-tree/1" { try GitPluginContract.validateResult(self, request: request) }
         if schema == "crossdiff.photography/1" {
             guard let findings = payload["findings"]?.arrayValue, findings.count <= 8,
                   findings.allSatisfy({ value in

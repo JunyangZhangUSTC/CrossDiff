@@ -1,6 +1,6 @@
 # 插件开发 · 实验 v1
 
-状态：2026-10-04，面向尚未发布的 CrossDiff 0.14.0 源码预览（Photography/API/Audio/Office/Video 0.1.0，PDF 0.2.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
+状态：2026-10-05，面向 CrossDiff 0.15.0 开发源码（Git/Photography/API/Audio/Office/Video 0.1.0，Archive 0.1.1，PDF 0.2.0）。协议、包格式与宿主视图仍是实验接口；本文描述当前实现，不承诺未来版本无需迁移。[English](development.en.md)
 
 实现依据为 [PluginProtocol.swift](../../Sources/CrossDiffCore/PluginProtocol.swift)、[PluginPackage.swift](../../Sources/CrossDiffCore/PluginPackage.swift)、[PluginStore.swift](../../Sources/CrossDiffCore/PluginStore.swift) 与 [PluginRunner.swift](../../Sources/CrossDiff/PluginRunner.swift)。早期[框架设计](../architecture/compare-everything.md)描述的远期能力不代表本版本已经支持。
 
@@ -13,6 +13,7 @@
 | `text` | 已解码文字 `{text: "…"}` | `table`：只读结果表格 |
 | `pdf` | 页面文字、尺寸与预览指纹 | `documentPages`：原生 PDF 页面与文字差异；也可返回 `table` |
 | `archiveCatalog` | 压缩包或本地文件夹的虚拟路径、类型、大小、完整内容摘要与验证状态 | `archiveTree`：只读目录树与跨路径同内容组 |
+| `gitRepository` | 两侧提交／暂存区／工作区快照的来源身份、相对路径、对象 ID、Git 模式及重命名证据 | `gitTree`：仓库目录树与所选文件的只读双栏差异 |
 | `httpExchange` | 有界 HTTP／cURL／HAR 导入，规范化为带类型的分区与字段 | `apiExchange`：请求／响应字段双栏差异 |
 | `photoAnalysis` | Apple／OpenCV 管线生成的有界归一化 RGB／HSL 分布、中性色比例及分析说明 | `photography`：双图、选区、直方图、记录曲线与拍摄信息 |
 | `audioAnalysis` | 有界源元数据与宿主匹配证据；不含 PCM、波形或谱图网格 | `audioTimeline`：双时间线、声道波形、时频图、选区与 A/B 试听 |
@@ -23,7 +24,7 @@
 
 当前应用只发起 `pairwise` 两方任务。公共类型同时区分 `threeWayMerge` 与 `multiSubject` 并验证角色，但本版没有它们的用户界面或比较/合并算法。不得声明一个插件实际不支持的模式，也不得收到多个输入时静默只比较前两个。
 
-自定义原生视图、任意 schema 渲染、工件/资源句柄、伴随动态库、插件依赖、远程来源、插件导出及写回尚未提供。现有文本、文件夹、图片与二进制 Hex 比较保持宿主功能。
+自定义原生视图、任意 schema 渲染、工件/资源句柄、伴随动态库、插件依赖、插件自定义远程来源提供器、插件导出及写回尚未提供。Git 的本地仓库读取和用户主动发起的远程下载由固定宿主能力提供，不向脚本开放网络接口。现有文本、文件夹、图片与二进制 Hex 比较保持宿主功能。
 
 ## 2. 从示例开始
 
@@ -53,6 +54,15 @@ python3 scripts/package-archive-plugin.py --output dist/Plugins/Archive.crossdif
 ```
 
 [Archive 源码](../../Plugins/Official/Archive/)中的脚本实际计算路径分类、目录状态和内容组。`org.crossdiff.archive` 同样是内置保留 ID；第三方实现使用自己的 ID，并可复用相同的受限运行时和原生目录视图。普通 ZIP/TAR 是比较来源，`.crossdiffplugin` 才是安装包，两者用途不同。
+
+官方 Git 插件同时内置于基础版和完整版，开发打包入口为：
+
+```sh
+source scripts/project-env.sh
+python3 scripts/package-git-plugin.py --output dist/Plugins/Git.crossdiffplugin
+```
+
+[Git 源码与说明](../../Plugins/Official/Git/)包含真实目录分类算法。`org.crossdiff.git` 为内置保留 ID；自定义实现需使用自己的 ID，并配套 0.15.0 或具备相同 Git 宿主能力的版本。`fileExtensions: ["git"]` 是清单入口标识，不要求仓库目录以 `.git` 结尾。新建 Git 比较时选择一个仓库，再为每侧选择提交／分支、暂存区或工作区；不是给脚本传入两个仓库路径。接口详见下方 `crossdiff.git-tree/1`。
 
 摄影插件同样通过普通包安装与受限进程运行：
 
@@ -117,7 +127,7 @@ Full 预装 `org.crossdiff.audio`，同版本 Base 可安装独立包。音频�
 
 字段名严格使用上述 camelCase，双语字段是 `zhHans` / `en`。ID 最多 128 UTF-8 字节，以小写英文字母开头，由小写字母、数字及分隔段的 `.` / `-` 组成。版本为最多 64 字节的三段版本号，可带 prerelease/build 后缀。名称每种语言最多 512 字节，说明最多 4096 字节，均不能为空。
 
-`fileExtensions` 为 1–32 个不重复、小写且不带点号的扩展名；单项最多 16 字节，可含字母、数字、`_`、`-`。`supportedModes` 非空且无重复；协议范围必须覆盖当前宿主版本 `1`。`documentPages` 只接受 `pdf` 输入。`archiveCatalog` 与 `archiveTree` 必须配套，且 `supportedModes` 必须为 `["pairwise"]`；不能把该输入交给 `table`。`photoAnalysis` 同样必须配套 `photography` 和 `supportedModes: ["pairwise"]`，不能返回 `table`。标识保留名单由宿主明确提供，不会因为第三方填写了类似官方的名称就授予官方身份。
+`fileExtensions` 为 1–32 个不重复、小写且不带点号的扩展名；单项最多 16 字节，可含字母、数字、`_`、`-`。`supportedModes` 非空且无重复；协议范围必须覆盖当前宿主版本 `1`。`documentPages` 只接受 `pdf` 输入。`archiveCatalog` 与 `archiveTree` 必须配套，且 `supportedModes` 必须为 `["pairwise"]`；不能把该输入交给 `table`。`photoAnalysis` 同样必须配套 `photography` 和 `supportedModes: ["pairwise"]`，不能返回 `table`。`gitRepository` 必须配套 `gitTree` 和 `supportedModes: ["pairwise"]`，不能返回其他视图。标识保留名单由宿主明确提供，不会因为第三方填写了类似官方的名称就授予官方身份。
 
 ## 4. 请求与 JavaScript 入口
 
@@ -255,6 +265,79 @@ JSON 示例按解析后的值比较，忽略对象键顺序与空白；重复键
 
 `sameContentGroups` 按 verified 普通文件的 size + SHA-256 分组，左右均非空且至少有两个不同路径；每组必须包括该摘要与大小的全部成员。只返回左右 ID 列表，不生成笛卡尔积；同路径的一对相同文件不单独成组。组表示相同内容，不推断唯一重命名或移动。宿主会独立验证覆盖、分类、父目录汇总与分组完整性，且只展示当前 catalog 中的条目；unknown 结果必须为 partial。压缩方式、时间和权限元数据不参与当前内容相等判断。
 
+### `crossdiff.git-tree/1`
+
+Git 0.1.0 需要 0.15.0 的 Git 宿主能力；实验协议仍为 v1，旧宿主不会因协议号相同就认识新类型。清单声明 `inputKind: "gitRepository"`、`resultView: "gitTree"` 与 `supportedModes: ["pairwise"]`。宿主把提交来源解析为固定哈希，或捕获暂存区／工作区快照；每侧 `content` 显式说明来源。下面是提交来源：
+
+```json
+{
+  "source": "commit",
+  "snapshot": "commit:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "emptyBaseline": false,
+  "entries": [
+    {"path": "Sources/Main.swift", "objectID": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "mode": "100644"},
+    {"path": "bin/run.sh", "objectID": "cccccccccccccccccccccccccccccccccccccccc", "mode": "100755"}
+  ]
+}
+```
+
+`source` 为 `commit`、`index` 或 `workingTree`。`snapshot` 是宿主提供的非空快照身份，最多 256 UTF-8 字节，不含 ASCII 控制字符；它是数据身份，不是 revision、Git 命令或发布者签名。`commit` 仅在真实提交来源时为 40 或 64 位小写十六进制哈希。本地状态不能借用 HEAD 的哈希冒充提交：
+
+```json
+{
+  "source": "index",
+  "snapshot": "index:host-generated-fingerprint",
+  "commit": null,
+  "emptyBaseline": false,
+  "entries": [{"path": "README.md", "objectID": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "mode": "100644"}]
+}
+```
+
+工作区使用 `source: "workingTree"` 及自己的快照身份；暂存区和工作区均要求 `commit: null`、`emptyBaseline: false`。尚无首次提交时，宿主可把 HEAD 表达为明确的空基准：`source: "commit"`、`commit: null`、`emptyBaseline: true`，且 `entries: []`；绝不生成假提交哈希。其他提交来源必须带真实哈希、`emptyBaseline: false`。
+
+旧版 `{commit, entries}` 输入仍可使用，规范化为 `source: "commit"` 和 `snapshot: "commit:<OID>"`。新格式必须同时具备上面五个字段，不接受未知内容元数据。所有条目 `objectID` 仍为 40 或 64 位小写十六进制字符串，同一次比较保持单一 Git 对象格式；空快照没有条目时不凭空推断格式。工作区内容 ID 是实际 Git blob 标识，不代表将对象写入了原仓库。
+
+宿主按完整文件对／重命名单元分批，每次 helper 请求最多 128 个文件对、每侧最多 128 个条目；这只是传输批次边界，**不是仓库文件数上限**。条目包含文件、符号链接和子模块，目录由路径隐式组成。`mode` 为 `100644`（普通文件）、`100755`（可执行文件）、`120000`（符号链接）或 `160000`（子模块）。宿主不跟随链接、不初始化子模块。提交树始终保持提交内容；未提交变化仅在明确选择暂存区或工作区时进入对应快照，未跟踪文件遵循用户选项。
+
+路径最多 4096 UTF-8 字节、128 层，无绝对路径、空段、`.`、`..` 或 NUL；文件不能同时成为另一个条目的父目录。**路径按原始 UTF-8 字节区分**，不能像 Archive 契约一样进行 NFC 合并。有效文件名中的制表符、换行和反斜线保留为数据。当前宿主对非 UTF-8 Git 路径明确失败，不生成有遗漏的成功结果。
+
+唯一可用的 `options` 字段为 `renameHints`，缺省为空数组：
+
+```json
+{"renameHints": [{"left": "old/name.swift", "right": "new/name.swift"}]}
+```
+
+提示来自宿主的 Git 重命名检测。每项必须是不同路径间、类型兼容的一对一删除／新增配对；左路径必须只存在于左树，右路径只存在于右树，不能重复使用。重命名阈值、共同祖先基准和引用选择由宿主处理，不是插件可执行的 Git 参数。脚本不得凭空补充无宿主证据的重命名。涉及暂存区或工作区时，当前宿主只提供内容完全一致的重命名提示；相似度阈值与共同祖先比较仅适用于两个提交来源。
+
+结果 payload 为：
+
+```json
+{
+  "rows": [
+    {"left": "old/name.swift", "right": "new/name.swift", "state": "renamed"},
+    {"left": null, "right": "README.md", "state": "added"}
+  ],
+  "counts": {"unchanged": 0, "added": 1, "deleted": 0, "modified": 0, "renamed": 1, "typeChanged": 0},
+  "snapshots": {
+    "left": {"source": "index", "snapshot": "index:left-fingerprint", "commit": null, "emptyBaseline": false},
+    "right": {"source": "workingTree", "snapshot": "working-tree:right-fingerprint", "commit": null, "emptyBaseline": false}
+  }
+}
+```
+
+每侧每个输入条目恰好覆盖一次；空侧使用 null，不能双 null。状态依次表示：有提示的异路径配对 `renamed`；单侧 `added`／`deleted`；同路径的文件／符号链接／子模块类型不同 `typeChanged`；同类型对象 ID 或模式不同 `modified`；两者均一致 `unchanged`。`100644` 与 `100755` 属于同类型，其权限变化为 `modified`。重命名可能同时包含内容修改，所选文件的正文差异由宿主独立展示。`counts` 必须恰好包含上述六个字段，并准确汇总实际行。
+
+`snapshots` 必须恰好含 `left`、`right`，每侧准确回传请求规范化后的 `source`、`snapshot`、`commit`、`emptyBaseline`，无多余字段。快照身份按 UTF-8 字节匹配；缺失、错误类型、过期身份或把工作区说成提交均拒绝。
+
+宿主先验证整个快照的全局配对：来源恰好覆盖一次、同路径的左右项不能拆成两个批次的假删除／新增、重命名两侧不能分离、文件与子路径不能冲突、Git 对象格式必须统一。然后逐批执行真实受限 helper，核对本批覆盖、快照身份、引用身份、分类、重命名证据与计数，任一不符则拒绝整个比较。
+
+所有批次保留同一来源快照身份，各自使用独立 `runID`。单批请求 16 MiB、结果 8 MiB、helper envelope 32 MiB 与执行预算保持不变；128 对的批次大小包含 4096 字节路径最坏 JSON 转义的空间。**不存在把整个仓库序列化成一个 JSON 的总大小门槛，也没有仓库总文件数限制。**脚本看到的 `entries` 是本批完整配对的子集；`completed` 表示本批已完成，不能据此宣称整个仓库完成。空比较仍执行一个空批次。
+
+宿主仅在全部批次通过后，按全局目录顺序汇总行、计数和双语总述。插件自己的 summary 描述单批；核验进度不等于可发布的部分结果。取消、过期或任何一批失败时不返回部分成功，不接受用 `partial` 静默截断。`check-git-plugin.sh` 通过生产适配器和真实 helper 验证超过 50,000 个文件、完整重命名配对、最长转义路径以及批次中途取消。
+
+脚本只获得选定来源快照的树元信息，不接收远程 URL、本机目录、凭据、完整提交历史或文件正文。宿主流式读取本地状态、按需解析选中文件并提供只读文本／Hex 详情，不检出分支、不修改本地仓库。裸仓库无暂存区或工作区，读取到本地状态变化时宿主要求刷新，不静默混用两次状态。远程下载与刷新是用户主动发起的宿主操作；第三方 JavaScript 不能请求任意 Git 命令、网络访问或文件读取。[契约验证](../../Sources/CrossDiffCore/GitPluginContract.swift)、[宿主适配器](../../Sources/CrossDiff/GitPluginComparison.swift)、[官方算法](../../Plugins/Official/Git/compare.js)与[使用限制](../usage.md#git)共同定义当前能力。
+
 ### `crossdiff.photography/1`
 
 声明 `inputKind: "photoAnalysis"`、`resultView: "photography"`、`supportedModes: ["pairwise"]`。宿主读取用户授权的照片，在后台使用 Apple 颜色管理、RAW 解码和 OpenCV 4.12.0 现成转换／统计接口；脚本收到的 `content` 如下（数组长度见表，不能直接用省略数组作为有效请求）：
@@ -340,6 +423,9 @@ bash scripts/tests/check-plugin-runtime.sh
 bash scripts/tests/check-pdf.sh
 bash scripts/tests/check-pdf-workflow.sh
 bash scripts/tests/check-archive-plugin.sh
+bash scripts/tests/check-git-core.sh
+bash scripts/tests/check-git-plugin.sh
+bash scripts/tests/check-git-workflow.sh
 bash scripts/tests/check-plugin-workflow.sh
 bash scripts/tests/check-api-import.sh
 bash scripts/tests/check-api-plugin.sh

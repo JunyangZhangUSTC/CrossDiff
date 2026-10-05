@@ -4,15 +4,15 @@
 
 普通 `main` 推送运行检查，不发布版本；推送版本标签才会触发发行流程。正式版本使用 GitHub 的 `make_latest: legacy`，由 GitHub 按创建时间与语义版本选择 Latest，不强制让补发的旧版本覆盖新版本。所有版本均免费，无需注册。两个发行版使用同一套本地比较引擎与会话格式，没有付费功能区别。[GitHub Release API](https://docs.github.com/en/rest/releases/releases#update-a-release)
 
-当前应用版本为 **0.14.0**（构建号 30），已按当时配置公开为预览版。这份指南调整后续版本的发布策略，不修改已有 Release、附件或标签；历史显式配置仍从原提交读取。下面的附件清单以 0.14.0 为例，创建下一版前先更新版本号。
+当前发行版本为 **0.15.0**（构建号 37），[本版发布配置](releases/0.15.0.json)明确采用 `publish: true`、`prerelease: false`：附件验证完成后公开为正式 Release。下面列出本版的 15 个附件；下一版需同步更新版本和清单，保留历史 Release、附件与标签。
 
 ## 版本包含什么
 
 | 发行内容 | 当前包含 |
 | --- | --- |
-| **Base 基础版** | 文本与文本文件、文件夹、图片、二进制 / Hex，以及官方压缩包插件。 |
-| **Full 完整版** | 基础版的全部内容，加上 PDF、Photography、API、Audio、Office 与 Video 插件，即当前源码的全部官方插件。 |
-| **独立官方插件** | 压缩包、PDF、Photography、API、Audio、Office、Video 各自的 `.crossdiffplugin` 包；同版本基础版可单独安装 PDF／摄影／API／音频／办公／视频，当前内置插件随应用升级。 |
+| **Base 基础版** | 文本与文本文件、文件夹、图片、二进制 / Hex，以及官方 Git 和压缩包插件。 |
+| **Full 完整版** | 基础版的全部内容，加上 PDF、Photography、API、Audio、Office 与 Video 插件，合计八个官方插件。 |
+| **独立官方插件** | 压缩包、Git、PDF、Photography、API、Audio、Office、Video 各自的 `.crossdiffplugin` 包；同版本基础版可单独安装 PDF／摄影／API／音频／办公／视频，当前内置插件随应用升级。 |
 | **开发示例** | 独立的 JSON 示例插件；文件名明确标记 `Example`，不预装进 Full，也不进入官方插件目录。 |
 
 “完整版”指本版本所有已实现的官方插件，**不包含路线图里尚未实现的模型插件，也不代表音频自动变速／变调或视频自动剪辑片段匹配已经实现**。添加新插件时，在 [plugin_inventory.py](../scripts/plugin_inventory.py) 的显式清单中登记发行范围、身份和来源，避免把实验示例误装进正式版本。
@@ -29,7 +29,7 @@
    ```json
    {
      "formatVersion": 1,
-     "version": "0.14.1",
+     "version": "0.15.0",
      "publish": true,
      "prerelease": false
    }
@@ -60,9 +60,10 @@ git push origin "v${crossdiff_release_version}"
 ## Release 的全部附件
 
 ```text
-CrossDiff-0.14.0-base-macOS-arm64.zip
-CrossDiff-0.14.0-full-macOS-arm64.zip
+CrossDiff-0.15.0-base-macOS-arm64.zip
+CrossDiff-0.15.0-full-macOS-arm64.zip
 CrossDiff-Plugin-Archive-0.1.1.crossdiffplugin
+CrossDiff-Plugin-Git-0.1.0.crossdiffplugin
 CrossDiff-Plugin-PDF-0.2.0.crossdiffplugin
 CrossDiff-Plugin-Photography-0.1.0.crossdiffplugin
 CrossDiff-Plugin-API-0.1.0.crossdiffplugin
@@ -70,19 +71,19 @@ CrossDiff-Plugin-Audio-0.1.0.crossdiffplugin
 CrossDiff-Plugin-Office-0.1.0.crossdiffplugin
 CrossDiff-Plugin-Video-0.1.0.crossdiffplugin
 CrossDiff-Example-JSON-0.1.0.crossdiffplugin
-CrossDiff-0.14.0-source.tar.gz
+CrossDiff-0.15.0-source.tar.gz
 plugins.json
 BUILD-INFO.txt
 SHA256SUMS
 ```
 
-这里的插件版本来自各自的 manifest，后续独立递增。Photography、API、Audio 分别需要宿主提供 `photoAnalysis`、`httpExchange`、`audioAnalysis` 能力，最初在 0.9.0、0.10.0、0.11.0 源码中引入；Office 的 `officeDocument`/`officeDocuments` 在 0.12.0 加入；Video 的 `videoAnalysis`/`videoTimeline` 在 0.14.0 加入。本次包配合 0.14.0 宿主使用；同为实验协议 v1 不表示旧版支持新增输入和视图，更新插件目录也不能补上旧宿主缺少的能力。所有附件都由脚本生成；不要手动重命名插件包或只上传应用 ZIP。`SHA256SUMS` 覆盖除自身之外的每一个附件。`BUILD-INFO.txt` 记录应用版本、构建号、完整源码提交、架构、两版应用文件名和签名状态，不包含开发者的本机路径。
+这里的插件版本来自各自的 manifest，后续独立递增。Photography、API、Audio 分别需要宿主提供 `photoAnalysis`、`httpExchange`、`audioAnalysis` 能力，最初在 0.9.0、0.10.0、0.11.0 源码中引入；Office 的 `officeDocument`/`officeDocuments` 在 0.12.0 加入；Video 的 `videoAnalysis`/`videoTimeline` 在 0.14.0 加入。Git 的 `gitRepository`/`gitTree` 在 0.15.0 加入。本次包配合 0.15.0 宿主使用；同为实验协议 v1 不表示旧版支持新增输入和视图，更新插件目录也不能补上旧宿主缺少的能力。所有附件都由脚本生成；不要手动重命名插件包或只上传应用 ZIP。`SHA256SUMS` 覆盖除自身之外的每一个附件。`BUILD-INFO.txt` 记录应用版本、构建号、完整源码提交、架构、两版应用文件名和签名状态，不包含开发者的本机路径。
 
 ## 官方插件目录与应用内安装
 
 [plugin_inventory.py](../scripts/plugin_inventory.py) 是打包清单的唯一来源，同时生成确定性的插件包与 `plugins.json`：
 
-- 目录格式为 `formatVersion: 1`，`releaseTag` 固定到本次应用版本，例如 `v0.14.0`。
+- 目录格式为 `formatVersion: 1`，`releaseTag` 固定到本次应用版本，例如 `v0.15.0`。
 - 每项包含 `id`、插件 `version`、中英文 `name` / `summary`、`asset`、`url`、**完整插件包字节**的 `sha256` 与 `size`。
 - 地址固定到本仓库 `releases/download/<releaseTag>/<asset>`；不用会随最新版本变化的地址。
 - 两版应用都内置**逐字节相同**的 `Contents/Resources/OfficialPlugins.json`，与 Release 的 `plugins.json` 相同。基础版因此可以离线展示尚未安装的官方插件。

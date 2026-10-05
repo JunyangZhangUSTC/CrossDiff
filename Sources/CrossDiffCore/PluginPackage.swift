@@ -113,13 +113,14 @@ extension PluginManifest {
                 || (resultView == "apiExchange" && inputKind == .httpExchange)
                 || (resultView == "audioTimeline" && inputKind == .audioAnalysis)
                 || (resultView == "officeDocuments" && inputKind == .officeDocument)
-                || (resultView == "videoTimeline" && inputKind == .videoAnalysis) else {
+                || (resultView == "videoTimeline" && inputKind == .videoAnalysis)
+                || (resultView == "gitTree" && inputKind == .gitRepository) else {
             throw PluginValidationError.invalidField("resultView")
         }
         guard !supportedModes.isEmpty, Set(supportedModes).count == supportedModes.count else {
             throw PluginValidationError.invalidField("supportedModes")
         }
-        guard (inputKind != .archiveCatalog && inputKind != .photoAnalysis && inputKind != .httpExchange && inputKind != .audioAnalysis && inputKind != .officeDocument && inputKind != .videoAnalysis) || supportedModes == [.pairwise] else {
+        guard (inputKind != .archiveCatalog && inputKind != .photoAnalysis && inputKind != .httpExchange && inputKind != .audioAnalysis && inputKind != .officeDocument && inputKind != .videoAnalysis && inputKind != .gitRepository) || supportedModes == [.pairwise] else {
             throw PluginValidationError.unsupportedMode
         }
         guard minHostProtocol >= 1, maxHostProtocol >= minHostProtocol,

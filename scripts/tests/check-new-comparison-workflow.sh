@@ -29,6 +29,7 @@ swiftc "${crossdiff_photo_swift_flags[@]}" -swift-version 5 -D CROSSDIFF_UI_CHEC
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" "$project_root/Sources/CrossDiffPluginHost/main.swift" -o "$check_build/CrossDiffPluginHost"
 python3 scripts/package-pdf-plugin.py --output "$check_build/Plugins/PDF.crossdiffplugin"
 python3 scripts/package-archive-plugin.py --output "$check_build/Plugins/Archive.crossdiffplugin"
+python3 scripts/package-git-plugin.py --output "$check_build/Plugins/Git.crossdiffplugin"
 python3 scripts/tests/make-archive-workflow-fixtures.py "$check_build/fixtures"
 if [[ "${1:-}" == "--build-only" ]]; then
   echo "Built: $check_build/new-comparison-workflow-checks"

@@ -16,6 +16,57 @@ struct PhotoEngineChecks {
             checks += 1
         }
         func near(_ a: Double, _ b: Double) -> Bool { abs(a - b) < 0.00001 }
+        func expectNormalized(_ value: PhotoStatistics, _ label: String) throws {
+            for (name, bins, expected) in [
+                ("red", value.red, 1.0), ("green", value.green, 1.0), ("blue", value.blue, 1.0),
+                ("HSL lightness", value.lightness, 1.0), ("saturation", value.saturation, 1.0),
+                ("Lab lightness", value.perceptualLightness, 1.0),
+                ("hue", value.hue, 1.0 - value.neutralFraction)
+            ] {
+                let total = bins.reduce(0, +)
+                try expect(bins.allSatisfy { $0.isFinite && (0...1).contains($0) } && near(total, expected),
+                    "\(label): \(name) counts all valid samples (sum=\(total), expected=\(expected))")
+            }
+        }
+        let saturatedFile = directory.appendingPathComponent("saturated-red-strip.png")
+        try save(Array(repeating: [UInt8](arrayLiteral: 255, 1, 1, 255), count: 8).flatMap { $0 },
+                 width: 8, height: 1, to: saturatedFile)
+        let saturated = try PhotoAnalysisEngine.analyze(PhotoAnalysisEngine.load(saturatedFile), region: .full)
+        try expect(near(saturated.saturation.reduce(0, +), 1),
+            "Saturated PNG retains every sample in the HSL histogram (sum=\(saturated.saturation.reduce(0, +)))")
+        try expect(near(saturated.saturation[255], 1) && near(saturated.neutralFraction, 0),
+            "Saturated red samples reach the final bin and are never mislabeled neutral")
+        try expectNormalized(saturated, "Saturated PNG strip")
+        // Repeat endpoint colors across SIMD lanes and 128-row processing blocks.
+        // These match ordinary landscape/screenshot sizes, not only tiny swatches.
+        let endpointTile: [UInt8] = [255, 1, 1, 255, 255, 255, 255, 255, 0, 0, 0, 0, 1, 255, 1, 128]
+        for (width, height) in [(1912, 1434), (1376, 768)] {
+            let file = directory.appendingPathComponent("saturated-endpoints-\(width)x\(height).png")
+            try save(Array(repeating: endpointTile, count: width * height / 4).flatMap { $0 },
+                     width: width, height: height, to: file)
+            let image = try PhotoAnalysisEngine.load(file)
+            let full = try PhotoAnalysisEngine.analyze(image, region: .full)
+            try expectNormalized(full, "\(width)x\(height) full image")
+            try expect(full.analyzedPixels == width * height * 3 / 4
+                && near(full.neutralFraction, 1.0 / 3) && near(full.saturation[255], 2.0 / 3),
+                "Full image excludes transparent pixels and retains saturated partial-alpha samples")
+            let roi = try PhotoAnalysisEngine.analyze(image, region: .init(x: 0.25, y: 0.25, width: 0.5, height: 0.5))
+            try expectNormalized(roi, "\(width)x\(height) cropped region")
+            try expect(roi.analyzedPixels == roi.sampleWidth * roi.sampleHeight * 3 / 4
+                && near(roi.neutralFraction, 1.0 / 3),
+                "Cropped regions use their own valid-pixel denominator across processing blocks")
+        }
+        let gradientFile = directory.appendingPathComponent("saturated-alpha-gradient.png")
+        var gradient: [UInt8] = []
+        for y in 0..<257 { for x in 0..<193 {
+            gradient += [255, UInt8((x * 3 + y) % 256), UInt8((x + y * 5) % 256),
+                         (x + y) % 7 == 0 ? 0 : ((x + y) % 2 == 0 ? 128 : 255)]
+        } }
+        try save(gradient, width: 193, height: 257, to: gradientFile)
+        let gradientImage = try PhotoAnalysisEngine.load(gradientFile)
+        for region in [PhotoRegion.full, .init(x: 0.13, y: 0.27, width: 0.61, height: 0.42)] {
+            try expectNormalized(PhotoAnalysisEngine.analyze(gradientImage, region: region), "Saturated alpha gradient")
+        }
         let swatches: [UInt8] = [255,0,0,255, 0,255,0,255, 0,0,255,255, 255,255,255,255]
         let colors = directory.appendingPathComponent("colors.png")
         try save(swatches, width: 2, height: 2, to: colors)

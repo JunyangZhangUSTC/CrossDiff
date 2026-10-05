@@ -14,6 +14,7 @@ python3 "$project_root/scripts/tests/PluginHostChecks.py" "$check_build/CrossDif
 swiftc -swift-version 5 -module-cache-path "$check_build/module-cache" -emit-module -emit-library -module-name CrossDiffCore \
   "$project_root/Sources/CrossDiffCore/Localization.swift" \
   "$project_root/Sources/CrossDiffCore/PluginProtocol.swift" \
+  "$project_root/Sources/CrossDiffCore/GitPluginContract.swift" \
   "$project_root/Sources/CrossDiffCore/AudioComparison.swift" \
   "$project_root/Sources/CrossDiffCore/VideoComparison.swift" \
   "$project_root/Sources/CrossDiffCore/OfficeComparison.swift" \

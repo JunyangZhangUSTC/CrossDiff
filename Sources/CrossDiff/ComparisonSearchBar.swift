@@ -3,6 +3,7 @@ import CrossDiffCore
 
 struct ComparisonSearchBar: View {
     @ObservedObject var session: ComparisonSession
+    var readOnly = false
     @ObservedObject private var settings = AppSettings.shared
     private enum Field: Hashable { case find, replacement }
     @FocusState private var focused: Field?
@@ -21,15 +22,17 @@ struct ComparisonSearchBar: View {
                 Text(session.searchStatus).font(.system(size: 11)).foregroundStyle(.secondary).monospacedDigit()
                     .lineLimit(1)
                     .help(session.searchLimited
-                        ? L("每侧仅显示前 10,000 个匹配；全部替换仍会处理所选范围内的所有匹配。", "Up to 10,000 matches are shown per side. Replace All still processes every match in the selected scope.")
+                        ? (readOnly ? L("每侧仅显示前 10,000 个匹配。", "Up to 10,000 matches are shown per side.") : L("每侧仅显示前 10,000 个匹配；全部替换仍会处理所选范围内的所有匹配。", "Up to 10,000 matches are shown per side. Replace All still processes every match in the selected scope."))
                         : L("查找原文，不包含删除预览中额外显示的已删除内容。", "Find searches the source text, excluding deleted text shown only in the preview."))
                 if session.searching { ProgressView().controlSize(.mini) }
                 Spacer(minLength: 4)
+                if !readOnly {
                 Button { session.showSearch(replacing: !session.isReplaceVisible) } label: {
                     Label(L("替换", "Replace"), systemImage: session.isReplaceVisible ? "chevron.down" : "chevron.right")
                 }
                 .help(L("显示或隐藏替换选项", "Show or hide replacement options"))
                 .accessibilityIdentifier("comparison.toggleReplace")
+                }
                 Button { session.navigateSearch(-1) } label: { Image(systemName: "chevron.up") }
                     .help(L("上一个匹配（⇧⌘G）", "Previous Match (⇧⌘G)"))
                     .accessibilityLabel(L("上一个搜索匹配", "Previous Search Match"))
@@ -42,7 +45,7 @@ struct ComparisonSearchBar: View {
                     .help(L("关闭查找（Esc）", "Close Find (Esc)"))
                     .accessibilityLabel(L("关闭查找", "Close Find"))
             }
-            if session.isReplaceVisible {
+            if session.isReplaceVisible && !readOnly {
                 HStack(spacing: 10) {
                     Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.secondary).frame(width: 14)
                     TextField(L("替换为（留空即删除）", "Replace With (Empty Deletes)"), text: $session.replacementText)

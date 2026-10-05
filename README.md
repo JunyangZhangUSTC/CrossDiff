@@ -15,11 +15,11 @@
 [![Swift](https://img.shields.io/badge/Built_with-Swift-F05138?style=flat-square)](Package.swift)
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 
-[快速开始](#快速开始) · [下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [界面一览](#不同对象同一个工作台) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上)
+[快速开始](#快速开始) · [下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.0/CrossDiff-0.15.0-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [界面一览](#不同对象同一个工作台) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上)
 
 </div>
 
-> 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.14.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip)。**
+> 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.15.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.0/CrossDiff-0.15.0-full-macOS-arm64.zip)。**
 >
 > 适用于 macOS 14+ 的 Apple 芯片 Mac。预装本版本全部官方插件，打开即可比较。
 
@@ -44,9 +44,9 @@
 | :--- | :--- |
 | **为 Mac 原生打造**<br>SwiftUI + AppKit，原生编辑器、标准菜单和熟悉的快捷键。无需内置浏览器运行环境。 | **文件留在本机**<br>比较内容无需上传，无遥测或追踪。安装好插件后，可以一直离线比较。 |
 | **免费开源，无需注册**<br>没有账号、订阅或付费解锁。AGPL v3 开源，源码可审查、构建和修改。 | **原文件由你掌握**<br>文本逐块合并、独立撤销、手动保存；图片与媒体调整仅影响查看，不改写源文件。 |
-| **清晰，也赏心悦目**<br>浅深色主题，中英文界面，多标签与同步滚动。不同内容沿用熟悉的原生操作。 | **用插件继续扩展**<br>完整版预装七个官方插件；也可从基础版开始，在应用内下载或拖入插件安装。 |
+| **清晰，也赏心悦目**<br>浅深色主题，中英文界面，多标签与同步滚动。不同内容沿用熟悉的原生操作。 | **用插件继续扩展**<br>完整版预装八个官方插件；也可从基础版开始，在应用内下载或拖入插件安装。 |
 
-**0.14.0**：对齐的文件夹双栏、更多压缩包格式、图片智能对齐、摄影分析增强、PDF 配对改进，以及全新视频对比。[查看本版更新](docs/releases/0.14.0.md)
+**0.15.0 正式版**：Git 比较加入基础版，提交、分支、暂存区和工作区都能对照；多标签浏览更顺畅，摄影专业图表默认展开，并修复直方图分析报错。[查看本版更新](docs/releases/0.15.0.md)
 
 ## 不同对象，同一个工作台
 
@@ -75,7 +75,7 @@
   <img src="docs/assets/screenshots/photography-zh-CN-light.png" alt="CrossDiff 摄影分析：照片对照、影调直方图与区域分析" width="100%">
 </picture>
 </a>
-<p>RGB／Lab L* 直方图、HSL 分布和独立区域比较，让照片风格有据可看；支持由 macOS 解码的 RAW。</p>
+<p>专业图表默认展开：RGB／Lab L* 直方图、HSL 分布与独立区域比较，让照片风格有据可看；支持由 macOS 解码的 RAW。</p>
 <p><a href="docs/usage.md#photography">使用指南 →</a></p>
 </td>
 </tr>
@@ -136,6 +136,8 @@
 
 ### 文件与开发
 
+**Git · 从提交历史到眼前的修改。** 打开本地仓库或远程克隆地址，选择分支、标签、提交，或一键查看全部未提交／已暂存／未暂存的变化。目录树定位文件，右侧双栏查看细节；全过程只读，无需切换分支。[使用指南 →](docs/usage.md#git)
+
 <table>
 <tr>
 <td width="50%" valign="top">
@@ -191,6 +193,7 @@
 <summary><b>格式与能力范围</b></summary>
 
 - **文本与代码**：支持 TXT、Markdown、HTML、JSON、XML、YAML 等文本文件；查找替换、撤销重做和“显示删除”只读审阅均可用。
+- **Git 仓库**：本地仓库、裸仓库与 worktree，或主动获取 HTTPS／SSH 远程仓库。支持历史与未提交修改，只读查看；需要系统 Git，单文件详情预览最多 2 MiB。
 - **压缩包与办公文档**：支持 ZIP、TAR 与常见压缩 TAR，以及无密码、单卷 7z 和受限 RAR；Office 支持 DOCX／XLSX／PPTX，旧格式需先转换。
 - **图片与摄影**：智能对齐面向有足够共同细节的同源图片；RAW 解码取决于机型、编码和系统版本。摄影分析不反推拍摄参数，有记录才显示处理曲线。
 - **音频与视频**：音频的自动变速／变调识别、视频的自动剪辑匹配尚未实现。视频差异图要求同像素尺寸与明确的 Rec.709 SDR 标记，HDR 保留视觉浏览。
@@ -200,13 +203,13 @@
 
 ## 选择适合你的版本
 
-**上方下载对应 0.14.0 · macOS 14+ · Apple 芯片（arm64）**
+**上方下载对应 0.15.0 · macOS 14+ · Apple 芯片（arm64）**
 
-本版功能与限制见[发布说明](docs/releases/0.14.0.md)，集成检查与本地验证范围见[验收记录](docs/validation/integration-2026-10-04.md)。
+本版功能与限制见[发布说明](docs/releases/0.15.0.md)，本地验证范围见[验收记录](docs/validation/README.md)。
 
-**推荐完整版 Full：基础功能与本版本全部官方插件一次备齐。** 包含压缩包、PDF、摄影、API、音频、办公与视频七个官方插件，下载后即可使用。
+**推荐完整版 Full：基础功能与本版本全部官方插件一次备齐。** 包含压缩包、Git、PDF、摄影、API、音频、办公与视频八个官方插件，下载后即可使用。
 
-只需要文本、文件夹、图片、Hex 和压缩包比较时，可以选择基础版 Base。两版均免费、开源，无需账号。
+只需要文本、文件夹、图片、Git、Hex 和压缩包比较时，可以选择基础版 Base。两版均免费、开源，无需账号。
 
 <details>
 <summary><b>查看基础版、独立插件和其他下载文件</b></summary>
@@ -216,7 +219,7 @@
 | 下载 | 包含内容 | GitHub Release 文件 |
 | :--- | :--- | :--- |
 | **完整版 Full（推荐）** | 基础版加对应版本的全部官方插件，具体内容见上方版本说明。 | `CrossDiff-<版本>-full-macOS-arm64.zip` |
-| **基础版 Base** | 文本、文件夹、图片、Hex，以及内置压缩包插件。轻装开始，按需添加插件。 | `CrossDiff-<版本>-base-macOS-arm64.zip` |
+| **基础版 Base** | 文本、文件夹、图片、Hex，以及内置 Git 与压缩包插件。轻装开始，按需添加插件。 | `CrossDiff-<版本>-base-macOS-arm64.zip` |
 | **独立插件** | 按宿主版本安装兼容插件；已内置的插件随应用升级。 | `CrossDiff-Plugin-<名称>-<插件版本>.crossdiffplugin` |
 
 **[前往 GitHub Releases 下载 →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
@@ -236,16 +239,16 @@ Intel 构建尚未实测。也可按下方说明从源码构建。
 - **管理已安装插件：** 插件页默认显示“已安装”，卡片上可直接启用、停用或**卸载**本地安装的插件，更新后也可回退。
 - **整理预装插件：** 完整版等预装插件可**移除**并随时离线**恢复**。移除状态会保留，原文件和比较会话不受影响；预装文件仍随应用保留，不会减小应用体积。
 
-官方插件列表可以离线查看。**仅在你主动下载插件时联网；文件比较继续留在本机。** 不需要注册或登录 GitHub。
+官方插件列表可以离线查看。**文件比较留在本机；插件下载和远程 Git 仓库获取仅在你主动操作时联网。** 不需要注册 CrossDiff 账号。
 
-压缩包等基础能力也由内置插件提供，不同领域沿用一致的原生工作台。希望开发新的比较方式？查看[中文插件规范](docs/plugins/development.md)、[English guide](docs/plugins/development.en.md) 和 [JSON 示例](Plugins/Examples/JSON/compare.js)。
+Git、压缩包等基础能力也由内置插件提供，不同领域沿用一致的原生工作台。希望开发新的比较方式？查看[中文插件规范](docs/plugins/development.md)、[English guide](docs/plugins/development.en.md) 和 [JSON 示例](Plugins/Examples/JSON/compare.js)。
 
 ## 快速开始
 
-下载[完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
+下载[完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.0/CrossDiff-0.15.0-full-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
 
-1. 点击 **新建…**（⌘N），选择文本、文件夹、压缩包、图片、二进制或已安装的插件比较。
-2. 分别准备左右内容，点击 **开始比较**。文本可直接粘贴，也可选择文件。
+1. 点击 **新建…**（⌘N），选择文本、文件夹、图片、Git、二进制、压缩包或其他已安装插件。
+2. 分别准备左右内容，点击 **开始比较**。文本可直接粘贴或选择文件；Git 则先打开仓库，再选择两侧来源。
 3. 查看差异；文本可编辑任意一侧、逐块合并，并在准备好后手动保存。
 
 **文件 → 打开…**（⌘O）支持一次选入多个文件或文件夹，明确配对后各自打开标签页。“清空两侧”方便开始下一次文本比较，并提供即时恢复。完整说明见[使用指南](docs/usage.md)，也可用仓库内的 [Swift 示例](examples/) 体验。
@@ -297,7 +300,7 @@ bash scripts/open-dev-app.command
 
 ## 文件留在你的 Mac 上
 
-内置比较与受限插件在本机处理文件，**不上传比较内容**。没有账号系统、遥测、分析追踪或云端同步；安装插件后，断网也能继续比较。联网仅服务于你主动发起的插件下载。
+内置比较与受限插件在本机处理文件，**不上传比较内容**。没有账号系统、遥测、分析追踪或云端同步；安装插件后，断网也能继续比较。联网仅服务于你主动发起的插件下载或远程 Git 仓库获取；本地仓库比较无需联网。
 
 临时比较可在本机恢复，也可通过“会话”菜单清除记录。会话以明文保存文本与路径；存储位置、第三方插件权限及安全报告方式见 [SECURITY.md](SECURITY.md)。
 
@@ -307,7 +310,7 @@ bash scripts/open-dev-app.command
 
 | 已经可以使用 | 接下来探索 |
 | :--- | :--- |
-| 文本、文件夹、图片、Hex、压缩包、PDF、摄影、API、音频与办公文档；视频手动对照 | 远程文件夹来源、文本三方合并、多对象比较 |
+| 文本、文件夹、图片、Git、Hex、压缩包、PDF、摄影、API、音频与办公文档；视频手动对照 | 远程文件夹来源、文本三方合并、多对象比较 |
 | 原生工作台、插件安装管理、基础版与完整版 | 旧版 Office 与完整视觉比较、网络包、数据库、摄影高级分析、模型结构与张量插件；音频自动变速／变调识别、视频自动片段对应 |
 | 中英文界面、浅深色主题、本机会话恢复 | 面向摄影师、媒体工作者与开发者的插件组合 |
 

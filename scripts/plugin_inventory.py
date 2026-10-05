@@ -30,6 +30,8 @@ APP_LICENSE_FILES = ("LICENSE", "NOTICE", "ThirdParty/OpenCV/LICENSE",
 PLUGINS = (
     {"source": "Plugins/Official/Archive", "id": "org.crossdiff.archive", "label": "Archive", "official": True,
      "bundled": "dev.crossdiff.archive.crossdiffplugin", "editions": ("base", "full")},
+    {"source": "Plugins/Official/Git", "id": "org.crossdiff.git", "label": "Git", "official": True,
+     "bundled": "dev.crossdiff.git.crossdiffplugin", "editions": ("base", "full")},
     {"source": "Plugins/PDF", "id": "org.crossdiff.pdf", "label": "PDF", "official": True,
      "bundled": "dev.crossdiff.pdf.crossdiffplugin", "editions": ("full",)},
     {"source": "Plugins/Official/Photography", "id": "org.crossdiff.photography", "label": "Photography", "official": True,

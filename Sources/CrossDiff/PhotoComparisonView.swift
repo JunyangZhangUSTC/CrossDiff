@@ -11,7 +11,7 @@ struct PhotoComparisonView: View {
     let executionID: String
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var appearance = AppAppearance.shared
-    @State private var showsProfessional = false
+    @State private var showsProfessional = true
     @State private var section = Section.tone
     @State private var showsSaveRegion = false
     @State private var regionName = ""

@@ -16,6 +16,7 @@ struct NewComparisonType: Identifiable, Equatable {
         case .image: return L("图片", "Images")
         case .binary: return L("二进制", "Binary")
         case .plugin:
+            if isGit { return "Git" }
             if pluginID == ArchiveComparisonModel.pluginID { return L("压缩包", "Archives") }
             if pluginID == "org.crossdiff.pdf" { return L("PDF 文档", "PDF Documents") }
             if pluginID == "org.crossdiff.photography" { return L("摄影", "Photography") }
@@ -33,6 +34,7 @@ struct NewComparisonType: Identifiable, Equatable {
         case .image: return L("并排、叠加与像素差异", "Side by side, overlays and pixel differences")
         case .binary: return L("逐字节查看十六进制差异", "Inspect byte differences in hexadecimal")
         case .plugin:
+            if isGit { return L("比较提交、暂存区与工作区", "Compare commits, staging area and working tree") }
             if acceptsFolders { return L("压缩包之间，或与本地文件夹比较", "Compare archives with archives or folders") }
             if pluginID == "org.crossdiff.pdf" { return L("页面对照与可提取文字差异", "Compare pages and extractable text") }
             if manifest?.inputKind == .photoAnalysis { return L("影调、配色与局部区域分析", "Analyze tone, color and selected regions") }
@@ -44,6 +46,7 @@ struct NewComparisonType: Identifiable, Equatable {
         }
     }
     @MainActor var symbol: String {
+        if isGit { return "arrow.triangle.branch" }
         if manifest?.inputKind == .photoAnalysis { return "camera.aperture" }
         if isAPI { return "arrow.left.arrow.right.square" }
         if manifest?.inputKind == .videoAnalysis { return "film" }
@@ -52,10 +55,11 @@ struct NewComparisonType: Identifiable, Equatable {
         if kind == .plugin { return acceptsFolders ? "archivebox" : pluginID == "org.crossdiff.pdf" ? "doc.richtext" : "puzzlepiece.extension" }
         return kind.symbol
     }
+    @MainActor var isGit: Bool { pluginID == GitComparisonModel.pluginID || manifest?.inputKind == .gitRepository }
     @MainActor var isAPI: Bool { manifest?.inputKind == .httpExchange }
     @MainActor var isOffice: Bool { manifest?.inputKind == .officeDocument }
     @MainActor var acceptsTextInput: Bool { kind == .text || isAPI }
-    @MainActor var acceptsFolders: Bool { kind == .folder || manifest?.inputKind == .archiveCatalog }
+    @MainActor var acceptsFolders: Bool { kind == .folder || isGit || manifest?.inputKind == .archiveCatalog }
 
     @MainActor func validate(_ url: URL) throws {
         guard url.isFileURL else { throw PluginAppError(zh: "请选择本地文件或文件夹。", en: "Choose a local file or folder.") }
@@ -103,6 +107,8 @@ final class NewComparisonModel: ObservableObject, Identifiable {
     @Published private(set) var selectedType: NewComparisonType?
     @Published var left: NewComparisonInput = .empty
     @Published var right: NewComparisonInput = .empty
+    @Published var gitRemote = false
+    @Published var gitRemoteURL = ""
     @Published private(set) var busy = false
     @Published private var failure: Error?
     var errorMessage: String? { failure.map(localizedErrorDescription) }
@@ -124,11 +130,18 @@ final class NewComparisonModel: ObservableObject, Identifiable {
     deinit { task?.cancel() }
 
     var types: [NewComparisonType] {
-        [.init(kind: .text), .init(kind: .folder), .init(kind: .image), .init(kind: .binary)] +
+        let available: [NewComparisonType] = [.init(kind: .text), .init(kind: .folder), .init(kind: .image), .init(kind: .binary)] +
             PluginManager.shared.enabledPlugins.map { .init(kind: .plugin, pluginID: $0.id) }
+        let leadingIDs = ["text", "folder", "image", GitComparisonModel.pluginID, "binary", ArchiveComparisonModel.pluginID]
+        return leadingIDs.compactMap { id in available.first { $0.id == id } } +
+            available.filter { !leadingIDs.contains($0.id) }
     }
     var canCreate: Bool {
         guard !busy, let type = selectedType, types.contains(type) else { return false }
+        if type.isGit {
+            if gitRemote { return !gitRemoteURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            if case .file = left { return true }; return false
+        }
         if type.isOffice, case .file(let first) = left, case .file(let second) = right,
            OfficeDocumentKind.from(fileExtension: first.pathExtension) != OfficeDocumentKind.from(fileExtension: second.pathExtension) { return false }
         return [left, right].allSatisfy {
@@ -143,6 +156,7 @@ final class NewComparisonModel: ObservableObject, Identifiable {
     func select(_ type: NewComparisonType) {
         guard !busy, types.contains(type) else { return }
         if previousTypeID != type.id {
+            gitRemote = false; gitRemoteURL = ""
             left = type.acceptsTextInput ? .text("") : .empty
             right = type.acceptsTextInput ? .text("") : .empty
         }
@@ -176,9 +190,9 @@ final class NewComparisonModel: ObservableObject, Identifiable {
     func chooseFile(side: Side) {
         guard !busy, let type = selectedType else { return }
         let panel = NSOpenPanel()
-        panel.title = side == .left ? L("选择左侧项目", "Choose Left Item") : L("选择右侧项目", "Choose Right Item")
+        panel.title = type.isGit ? L("选择 Git 仓库", "Choose a Git Repository") : side == .left ? L("选择左侧项目", "Choose Left Item") : L("选择右侧项目", "Choose Right Item")
         panel.prompt = L("选择", "Choose")
-        panel.canChooseFiles = type.kind != .folder
+        panel.canChooseFiles = type.kind != .folder && !type.isGit
         panel.canChooseDirectories = type.acceptsFolders
         panel.allowsMultipleSelection = false
         if type.kind == .image { panel.allowedContentTypes = [.image] }
@@ -199,9 +213,24 @@ final class NewComparisonModel: ObservableObject, Identifiable {
         do {
             guard types.contains(type) else { throw PluginAppError(zh: "所选插件已停用，请返回选择其他比较类型。", en: "The selected plugin is disabled. Go back and choose another comparison type.") }
             guard canCreate else { return }
-            for input in [left, right] { if case .file(let url) = input { try type.validate(url) } }
+            let inputs = type.isGit ? (gitRemote ? [] : [left]) : [left, right]
+            for input in inputs { if case .file(let url) = input { try type.validate(url) } }
         } catch { failure = error; return }
         busy = true; failure = nil
+        if type.isGit {
+            do {
+                let source: String
+                if gitRemote { source = try GitRemote.parse(gitRemoteURL).url }
+                else if case .file(let url) = left { source = url.path }
+                else { throw GitError.notRepository }
+                let state = GitWorkspaceState(source: source, isRemote: gitRemote)
+                let session = ComparisonSession(kind: .plugin, pluginID: type.pluginID, gitState: state)
+                session.gitComparisonModel.allowInitialNetwork = gitRemote
+                store?.attach(session); store?.selectedID = session.id; store?.schedulePersistence()
+                busy = false; store?.newComparison = nil
+            } catch { busy = false; failure = error }
+            return
+        }
         let leftInput = left, rightInput = right, kind = type.kind, pluginID = type.pluginID
         task = Task { [weak self] in
             do {

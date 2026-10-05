@@ -173,6 +173,18 @@ final class ComparisonSession: ObservableObject, Identifiable {
         }
         return model
     }()
+    private var storedGitState: GitWorkspaceState?
+    private var hasCreatedGitModel = false
+    lazy var gitComparisonModel: GitComparisonModel = {
+        hasCreatedGitModel = true
+        let model = GitComparisonModel(state: storedGitState ?? .init(source: left.path ?? "", isRemote: false))
+        model.onStateChanged = { [weak self, weak model] in
+            guard let self, let model else { return }
+            self.storedGitState = model.state
+            self.changed?()
+        }
+        return model
+    }()
     private struct ClearedText {
         let left: String
         let right: String
@@ -181,13 +193,14 @@ final class ComparisonSession: ObservableObject, Identifiable {
     @Published private var clearedText: ClearedText?
     private var changingClearAction = false
 
-    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil, audioState: AudioWorkspaceState? = nil, officeState: OfficeWorkspaceState? = nil, videoState: VideoWorkspaceState? = nil) {
+    init(id: UUID = UUID(), kind: ComparisonKind = .text, left: StoredTextSide = .init(), right: StoredTextSide = .init(), pluginID: String? = nil, photoState: PhotoWorkspaceState? = nil, apiState: APIWorkspaceState? = nil, audioState: AudioWorkspaceState? = nil, officeState: OfficeWorkspaceState? = nil, videoState: VideoWorkspaceState? = nil, gitState: GitWorkspaceState? = nil) {
         self.id = id; self.kind = kind; self.left = left; self.right = right; self.pluginID = pluginID
         storedPhotoState = photoState?.isValid == true ? photoState : nil
         storedAPIState = apiState?.isValid == true ? apiState : nil
         storedAudioState = audioState?.isValid == true ? audioState : nil
         storedOfficeState = officeState?.isValid == true ? officeState : nil
         storedVideoState = videoState?.isValid == true ? videoState : nil
+        storedGitState = gitState?.isValid == true ? gitState : nil
         if kind == .text { compare() }
     }
     deinit {
@@ -196,7 +209,15 @@ final class ComparisonSession: ObservableObject, Identifiable {
         replacementTask?.cancel()
         deletionPreviewTask?.cancel()
     }
+    var isGitComparison: Bool {
+        kind == .plugin && (storedGitState != nil || pluginID == GitComparisonModel.pluginID ||
+            PluginManager.shared.plugin(id: pluginID)?.package.manifest.inputKind == .gitRepository)
+    }
     var title: String {
+        if isGitComparison {
+            let source = storedGitState?.source ?? left.path ?? "Git"
+            return "Git · " + (source.split(separator: "/").last.map(String.init) ?? "Git")
+        }
         let l = left.path.map { URL(fileURLWithPath: $0).lastPathComponent }
         let r = right.path.map { URL(fileURLWithPath: $0).lastPathComponent }
         if pluginID == "org.crossdiff.api", l == nil, r == nil { return L("API 对比", "API Compare") }
@@ -204,7 +225,7 @@ final class ComparisonSession: ObservableObject, Identifiable {
         return l == nil && r == nil ? L("临时文本", "Untitled Comparison") : "\(l ?? unnamed) ↔ \(r ?? unnamed)"
     }
     var dirty: Bool { !left.text.utf16.elementsEqual(left.savedText.utf16) || !right.text.utf16.elementsEqual(right.savedText.utf16) }
-    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState, audioState: storedAudioState, officeState: storedOfficeState, videoState: hasCreatedVideoModel ? videoComparisonModel.persistedState : storedVideoState) }
+    var snapshot: StoredComparison { .init(id: id, kind: kind.rawValue, left: left, right: right, pluginID: pluginID, photoState: storedPhotoState, apiState: storedAPIState, audioState: storedAudioState, officeState: storedOfficeState, videoState: hasCreatedVideoModel ? videoComparisonModel.persistedState : storedVideoState, gitState: hasCreatedGitModel ? gitComparisonModel.state : storedGitState) }
     var canClearText: Bool { kind == .text && (!left.text.isEmpty || !right.text.isEmpty) }
     var canRestoreClearedText: Bool { clearedText != nil && left.text.isEmpty && right.text.isEmpty }
     func value(_ side: Side) -> StoredTextSide { side == .left ? left : right }
@@ -559,7 +580,7 @@ final class WorkspaceStore: ObservableObject {
         do {
             for record in try SessionFile.load(from: sessionURL) {
                 guard let kind = ComparisonKind(rawValue: record.kind) else { continue }
-                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState, audioState: record.audioState, officeState: record.officeState, videoState: record.videoState))
+                attach(ComparisonSession(id: record.id, kind: kind, left: record.left, right: record.right, pluginID: record.pluginID, photoState: record.photoState, apiState: record.apiState, audioState: record.audioState, officeState: record.officeState, videoState: record.videoState, gitState: record.gitState))
             }
         } catch {
             recoveryFailed = true
@@ -612,6 +633,7 @@ final class WorkspaceStore: ObservableObject {
         if session.kind == .plugin, session.pluginID == "org.crossdiff.video" || PluginManager.shared.plugin(id: session.pluginID)?.package.manifest.inputKind == .videoAnalysis {
             session.videoComparisonModel.cancel()
         }
+        if session.isGitComparison { session.gitComparisonModel.cancel() }
         sessions.removeAll { $0.id == session.id }
         if selectedID == session.id { selectedID = sessions.last?.id }
         if sessions.isEmpty { newText() }
@@ -882,7 +904,11 @@ final class WorkspaceStore: ObservableObject {
         do {
             try persistence.clearAndWait(); recoveryFailed = false
             openGeneration += 1; openingBatches = 0; opening = false; candidates = []; pairing = false
-            sessions.forEach { $0.changed = nil }; sessions = []; newText()
+            sessions.forEach {
+                if $0.isGitComparison { $0.gitComparisonModel.cancel() }
+                $0.changed = nil
+            }
+            sessions = []; newText()
         } catch { presentError(error) }
     }
 }

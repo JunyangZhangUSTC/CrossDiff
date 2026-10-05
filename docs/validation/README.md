@@ -4,6 +4,11 @@ These records describe checks performed for specific development previews, inclu
 
 | Preview | Record |
 | --- | --- |
+| 0.15.0 photography | [Saturated-color normalization repair and default professional charts](photography-normalization-0.15.0.md) |
+| 0.15.0 session tabs | [Hover scrollbar, active-tab visibility and native input regression](session-tabs-0.15.0.md) |
+| 0.15.0 Git scan scale | [Streaming catalogs, large files, batched plugin validation and chooser placement](git-scale-0.15.0.md) |
+| 0.15.0 Git local changes | [Staged / unstaged changes, source identities and native presets](git-local-changes-0.15.0.md) |
+| 0.15.0 Git | [Commit comparison, restricted plugin and native Git workspace](git-comparison-0.15.0.md) |
 | 0.14.0 integration | [Combined branches, regression checks and distribution validation](integration-2026-10-04.md) |
 | 0.13.0 archives | [Native 7z/RAR reader and resource limits](archive-7z-rar.md) |
 | 0.13.2 | [Complete crop extent, continuous content and native workflow](image-crop-regions-0.13.2.md) |
