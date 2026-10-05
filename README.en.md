@@ -1,114 +1,200 @@
 <div align="center">
 
-<img src="Resources/Brand/hero.png" alt="CrossDiff — Compare everything. Native to macOS, local and private, no sign-up, free and open source." width="100%">
+<img src="Resources/Brand/hero.png" alt="CrossDiff — Compare everything. See every change." width="100%">
+
+<h1>CrossDiff</h1>
 
 **Compare everything. See every change.**
 
 A free, open-source comparison workspace built for the Mac.<br>
-Local processing. Native interaction. No sign-up. Ready when you are. Extend it with plugins.
+From text and code to documents, photographs, sound and video. Native. Local. No sign-up.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-304A68?style=flat-square)](#get-started)
+[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-304A68?style=flat-square)](#quick-start)
 [![Swift](https://img.shields.io/badge/Built_with-Swift-F05138?style=flat-square)](Package.swift)
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
-[![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[Download Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Choose an edition](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac) · [Roadmap](#compare-everything-one-step-at-a-time)
+[Quick start](#quick-start) · [Download Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Screenshots](#different-inputs-one-workspace) · [Editions](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac)
 
 </div>
 
 > 🌟 **Not sure which edition to choose? Download Full: [CrossDiff-0.14.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip).**
 >
-> For Apple silicon Macs running macOS 14+. Every official plugin for this version is preinstalled and ready to use. Choose Base only if you need the essentials.
->
-> Draft assets become available after publication. If the link above is not available yet, get the current public version from [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases).
+> For Apple silicon Macs running macOS 14+. Every official plugin for this version is preinstalled and ready to use.
 
 <table>
 <tr><td>
+<a href="docs/assets/screenshots/text-en-light.png">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/text-en-dark.png">
-  <img src="docs/assets/screenshots/text-en-light.png" alt="CrossDiff comparing code in a native window with aligned rows and precise red and green character highlights" width="100%">
+  <img src="docs/assets/screenshots/text-en-light.png" alt="CrossDiff comparing text and code with aligned rows, character highlights, block merging and native editors" width="100%">
 </picture>
+</a>
 </td></tr>
 </table>
 
-<p align="center"><sub>A real app window with sample text. Screenshots follow your GitHub light or dark theme.</sub></p>
+<p align="center"><sub>Text and code: see everything from a single character to a changed passage, then choose what to merge.</sub></p>
 
 ## One workspace, every change in focus
 
-From a quick text paste to code directories, archives, images, and research PDFs. CrossDiff brings different comparisons into one native Mac workspace: clear differences, direct controls, and files that stay in your hands.
+Paste two passages, inspect a release, study a photograph, or check an edit frame by frame. CrossDiff gives each kind of content a view that helps you find the changes that matter.
 
 | | |
 | :--- | :--- |
-| **Built for the Mac**<br>SwiftUI + AppKit, a native editor, standard menus, and familiar keyboard shortcuts. No bundled browser runtime. | **Local and private**<br>Compare files on your Mac without uploading them. No telemetry or tracking. Keep working offline. |
-| **Free and open source**<br>AGPL v3 source you can inspect, build, and modify. No subscriptions, trial clocks, or feature paywalls. | **No sign-up. Ready to use.**<br>No account, login, or activation. Open the app, choose the two inputs, and start comparing. |
-| **Precise differences, deliberate edits**<br>Character highlights, aligned rows, block merging, independent undo, and explicit saving. Comparing never overwrites your source files. | **Considered design, room to grow**<br>Light and dark themes, English and Simplified Chinese, tabs, and synchronized scrolling. Add plugins when you need more. |
+| **Built for the Mac**<br>SwiftUI + AppKit, a native editor, standard menus and familiar shortcuts. No bundled browser runtime. | **Your files stay local**<br>No uploads, telemetry or tracking. Once plugins are installed, keep comparing offline. |
+| **Free. Open source. No sign-up.**<br>No accounts, subscriptions or feature paywalls. AGPL v3 source you can inspect, build and modify. | **Your originals, under your control**<br>Merge text blocks, undo independently and save explicitly. Image and media adjustments affect viewing, never the source. |
+| **Clear and considered**<br>Light and dark themes, English and Simplified Chinese, tabs and synchronized scrolling. Familiar native controls across views. | **Room to grow with plugins**<br>Full includes seven official plugins. Or start with Base, then download plugins in the app or drag in a package. |
 
-**0.14.0** brings aligned folder panes, more archive formats, smart image alignment, deeper photography analysis and more reliable PDF pairing, plus the new Video plugin. [What’s new](docs/releases/0.14.0.md)
+**0.14.0**: aligned folder panes, more archive formats, smart image alignment, deeper photography analysis, improved PDF pairing, and a new Video plugin. [What’s new](docs/releases/0.14.0.md)
 
-**Review video versions together.** Inspect edited, graded, captioned or compressed versions of the same material with paired pictures and timelines, shared playback, frame stepping and manual time alignment. Pause for a wipe or difference view, and save local regions for later inspection. Native, local and read-only, with no additional large decoder or model download. [Video guide](docs/usage.md#video) · [Capabilities and limits](docs/architecture/video-comparison.md#video-m1)
+## Different inputs. One workspace.
 
-Video is bundled with Full and separately installable on matching Base hosts. This first version supports manual comparison; automatic correspondence across edits remains planned.
+Real app windows using programmatically generated demo images, audio, video and example files, shown in your GitHub light or dark theme. Click a screenshot to open the full-size light version and inspect the details.
 
-## See changes in sound
-
-Inspect waveforms and STFT spectrograms, select and save regions, and switch between A/B auditions. Find fixed-speed excerpts from the same recording, including reordered edits and repeated candidates. Rate and pitch can be adjusted manually for audition; automatic recognition of those changes remains research work. [Audio guide](docs/usage.md#audio)
+### Images and media
 
 <table>
-<tr><td>
+<tr>
+<td width="50%" valign="top">
+<p><b>Images · Find the shared view</b></p>
+<a href="docs/assets/screenshots/image-en-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/image-en-dark.png">
+  <img src="docs/assets/screenshots/image-en-light.png" alt="CrossDiff Image Compare showing aligned images and corresponding content" width="100%">
+</picture>
+</a>
+<p>Align cropped, rotated or scaled versions offline, then inspect similar regions, wipe views and pixel differences.</p>
+<p><a href="docs/usage.md#compare-images">Usage guide →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>Photography · Understand tone and color</b></p>
+<a href="docs/assets/screenshots/photography-en-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/photography-en-dark.png">
+  <img src="docs/assets/screenshots/photography-en-light.png" alt="CrossDiff Photography showing paired photographs, tone histograms and regional analysis" width="100%">
+</picture>
+</a>
+<p>Compare RGB/Lab L* histograms, HSL distributions and independent regions, with RAW support through macOS decoding.</p>
+<p><a href="docs/usage.md#photography">Usage guide →</a></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p><b>Video · Review edits together</b></p>
+<a href="docs/assets/screenshots/video-en-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/video-en-dark.png">
+  <img src="docs/assets/screenshots/video-en-light.png" alt="CrossDiff Video Compare with paired pictures, timelines and shared playback controls" width="100%">
+</picture>
+</a>
+<p>Paired pictures and timelines with manual alignment, frame stepping and looped passages; pause for wipe or frame differences.</p>
+<p><a href="docs/usage.md#video">Usage guide →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>Audio · See changes in sound</b></p>
+<a href="docs/assets/screenshots/audio-en-light.png">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/audio-en-dark.png">
-  <img src="docs/assets/screenshots/audio-en-light.png" alt="CrossDiff's native Audio Compare window with paired timelines, channel waveforms, matching passages and region audition" width="100%">
+  <img src="docs/assets/screenshots/audio-en-light.png" alt="CrossDiff Audio Compare with channel waveforms, paired timelines and passage comparison" width="100%">
 </picture>
-</td></tr>
+</a>
+<p>Explore waveforms, STFT spectrograms and A/B audition, and find fixed-speed matching passages from the same recording.</p>
+<p><a href="docs/usage.md#audio">Usage guide →</a></p>
+</td>
+</tr>
 </table>
 
-## Compare APIs field by field
-
-Import HTTP, cURL or HAR to inspect headers, parameters, and JSON value and type differences. Explicitly ignore changing fields such as timestamps to focus on what needs investigation. Parsing stays local; no requests are sent. [API guide](docs/usage.md#api)
+### Documents and Office
 
 <table>
-<tr><td>
+<tr>
+<td width="50%" valign="top">
+<p><b>PDF · Check the pages and the words</b></p>
+<a href="docs/assets/screenshots/pdf-en-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/pdf-en-dark.png">
+  <img src="docs/assets/screenshots/pdf-en-light.png" alt="CrossDiff PDF Compare with paired page numbers and original page previews" width="100%">
+</picture>
+</a>
+<p>Keep the original layout while reviewing extractable text differences, with page order, Smart Match or manual pairing.</p>
+<p><a href="docs/usage.md#pdf-文档与插件--pdf-documents-and-plugins">Usage guide →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>Office · Match rows, even after reordering</b></p>
+<a href="docs/assets/screenshots/office-en-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/office-en-dark.png">
+  <img src="docs/assets/screenshots/office-en-light.png" alt="CrossDiff Office Compare showing Excel row matching and cell changes" width="100%">
+</picture>
+</a>
+<p>Compare Word paragraphs, Excel rows across positions or by key columns, and PowerPoint content, alongside original previews.</p>
+<p><a href="docs/usage.md#office">Usage guide →</a></p>
+</td>
+</tr>
+</table>
+
+### Files and development
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<p><b>Folders · Keep both sides aligned</b></p>
+<a href="docs/assets/screenshots/folder-en-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/folder-en-dark.png">
+  <img src="docs/assets/screenshots/folder-en-light.png" alt="CrossDiff Folder Compare with aligned trees, file status and linked expansion" width="100%">
+</picture>
+</a>
+<p>Linked trees, sorting and filters make large folders easier to browse; preview selected copies and revalidate files before writing.</p>
+<p><a href="docs/usage.md#compare-folders">Usage guide →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>Archives · Look inside without extracting</b></p>
+<a href="docs/assets/screenshots/archive-en-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/archive-en-dark.png">
+  <img src="docs/assets/screenshots/archive-en-light.png" alt="CrossDiff Archive Compare with virtual folders, changed files and identical content across paths" width="100%">
+</picture>
+</a>
+<p>Compare archives with each other or local folders, inspect path differences, and find identical files across different locations.</p>
+<p><a href="docs/usage.md#archives">Usage guide →</a></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p><b>API · Compare field by field</b></p>
+<a href="docs/assets/screenshots/api-en-light.png">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/api-en-dark.png">
-  <img src="docs/assets/screenshots/api-en-light.png" alt="CrossDiff's native API Compare window showing response headers, JSON field differences, types and ignore rules" width="100%">
+  <img src="docs/assets/screenshots/api-en-light.png" alt="CrossDiff API Compare with response headers, JSON fields, type changes and ignore rules" width="100%">
 </picture>
-</td></tr>
+</a>
+<p>Import HTTP, cURL or HAR locally to inspect headers, parameters and JSON values and types, with explicit ignore rules.</p>
+<p><a href="docs/usage.md#api">Usage guide →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>Binary · Give every byte its place</b></p>
+<a href="docs/assets/screenshots/binary-en-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/binary-en-dark.png">
+  <img src="docs/assets/screenshots/binary-en-light.png" alt="CrossDiff Binary Compare with paired hexadecimal, ASCII and insertion/deletion alignment" width="100%">
+</picture>
+</a>
+<p>Paired hex and ASCII views preserve source addresses, align inserted or deleted bytes, and jump straight to a difference or offset.</p>
+<p><a href="docs/usage.md#binary-hex">Usage guide →</a></p>
+</td>
+</tr>
 </table>
-
-## Different inputs. A familiar workflow.
-
-| Compare | Available today |
-| :--- | :--- |
-| **Text & code** | Paste text or open files; inspect character or line changes; align rows; edit either side; merge blocks; find and replace; undo independently. Works with text formats such as TXT, Markdown, HTML, JSON, XML, and YAML. |
-| **Local folders** | Aligned panes, linked expansion, sortable headers and status filters. See clear differences before content verification; preview and revalidate selected copies. [Folder guide](docs/usage.md#compare-folders) |
-| **Archives** | Treat ZIP, TAR, and common compressed TAR formats as virtual folders. Also supports unencrypted, single-volume 7z and a limited RAR subset. Compare an archive with another archive or a local folder, verify contents, and find identical files across paths without extracting to disk. Bundled with Base. |
-| **Images** | Side-by-side, overlay, wipe, and pixel differences. Offline Smart Align for rotated, scaled and cropped versions. Shows a crop’s full corresponding extent and continuous similar content, with linked selection, match points, manual refinement and one-click restore. |
-| **Binary / Hex** | Native paired hex and ASCII, real source addresses, insertion/deletion alignment, change navigation, address jumps, and selected copy. Read-only, with on-demand reads. |
-| **PDF documents** | Native page previews and extractable text differences. Supports page order, evidence-based matching and manual page selection, with safe fallback for unrelated documents. Bundled with Full; available as an official plugin for Base. |
-| **Office documents** | Word paragraphs and tables, Excel rows matched across positions or by key columns, and PowerPoint slide content. Character highlights, formulas and saved results, plus original previews. Read-only DOCX/XLSX/PPTX support. [Office guide](docs/usage.md#office) |
-| **API** | Compare locally saved requests and responses as structured fields to investigate changes. |
-| **Audio** | Compare recordings and edited versions on paired timelines, with a closer look at selected passages. |
-| **Video** | Native MOV/MP4/M4V side-by-side viewing, source-time frame stepping, manual offset, mute or A/B audio, looped passages and saved local regions. Wipe and difference views pause playback; differences require equal pixel dimensions and explicit Rec.709 SDR tags. |
-| **Photography** | Read-only paired photographs, named region pairs, HSL, and recorded curves. RGB channel grayscale previews, Lab L*/RGB histograms with region highlighting, and side-by-side capture metadata. Uses Apple RAW decoding and OpenCV statistics. [Photography guide](docs/usage.md#photography) |
 
 <details>
-<summary><b>The details make a difference</b></summary>
+<summary><b>Formats and capability boundaries</b></summary>
 
-- **See removals as well as additions.** Turn on Show Deletions to display removed text as red strikethroughs on the right. This read-only review never writes markup into your source. Standard copy includes original text only; revision copy is an explicit action.
-- **Find a common view for your images.** Use Smart Align to find shared content, or drag a corner to resize with the aspect ratio locked by default, or unlock it to stretch width and height independently. Size and rotation also accept numeric values. Changes affect the preview only. [Image alignment guide](docs/usage.md#compare-images)
-- **Make byte changes readable.** Hex keeps independent source offsets, aligns insertion/deletion gaps, and supports 8 or 16 bytes per row. Inputs can be up to 8 GiB each; complex regions are explicitly marked as approximately aligned. [Hex guide](docs/usage.md#binary-hex)
-- **Skip the extraction folder.** Compare ZIP, TAR, TAR.GZ/TGZ, TAR.BZ2, and TAR.XZ, plus unencrypted, single-volume 7z and a limited RAR subset. By Path reveals directory changes; Same Content finds matching files across paths. Read-only streaming never extracts files to disk. [Archive guide](docs/usage.md#archives)
-
-<table>
-<tr><td>
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/deletions-en-dark.png">
-  <img src="docs/assets/screenshots/deletions-en-light.png" alt="CrossDiff displaying removed text as red strikethroughs in the right-hand read-only review" width="100%">
-</picture>
-</td></tr>
-</table>
+- **Text and code:** TXT, Markdown, HTML, JSON, XML, YAML and other text files, with find and replace, undo/redo and a read-only Show Deletions view.
+- **Archives and Office:** ZIP, TAR and common compressed TAR formats, plus unencrypted, single-volume 7z and a limited RAR subset. Office supports DOCX/XLSX/PPTX; convert legacy formats first.
+- **Images and photography:** Smart Align needs enough shared detail in related images. RAW support depends on the camera, encoding and macOS version. Analysis does not infer capture settings; processing curves are shown only when recorded.
+- **Audio and video:** Automatic audio tempo/pitch recognition and video edit correspondence are not yet supported. Video differences require equal pixel dimensions and explicit Rec.709 SDR tags; HDR remains available for visual browsing.
+- **PDF and Hex:** PDF has no OCR yet. Hex accepts up to 8 GiB per side and explicitly marks approximate alignment in complex regions. See the [user guide](docs/usage.md) and [implementation limits](docs/development.md#current-implementation-limits).
 
 </details>
 
@@ -135,11 +221,11 @@ Base and Full differ only in their preinstalled plugins. You can add more plugin
 
 **[Download from GitHub Releases →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
 
-Choose files under a release's **Assets**; matching source, build information, and `SHA256SUMS` are included. Plugins require a compatible host, and draft assets are not public downloads. JSON is a separate developer example, not a Full bundle component.
+Choose files under a release's **Assets**; matching source, build information, and `SHA256SUMS` are included. Plugins require a compatible host. JSON is a separate developer example, not a Full bundle component.
 
 </details>
 
-Intel builds have not yet been verified. CrossDiff is an actively developed preview; you can also build it from source using the instructions below.
+Intel builds have not yet been verified. You can also build from source using the instructions below.
 
 ## Extend your comparison workspace
 
@@ -154,7 +240,7 @@ Browse the official list offline. **The app connects only when you choose to dow
 
 Base features such as Archive also ship as plugins, keeping different domains in one native workspace. Build a new comparison with the [English plugin guide](docs/plugins/development.en.md), [中文规范](docs/plugins/development.md), and [JSON example](Plugins/Examples/JSON/compare.js).
 
-## Get started
+## Quick start
 
 Download [Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
 
@@ -166,7 +252,7 @@ Download [Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/
 
 ### First launch on macOS
 
-This preview does not yet have an Apple Developer ID signature or notarization. Builds use an ad-hoc signature. The developer program's annual cost means that, for now, you may need to approve your first launch manually.
+The current downloads do not yet have an Apple Developer ID signature or notarization. Builds use an ad-hoc signature. The developer program's annual cost means that, for now, you may need to approve your first launch manually.
 
 After confirming that the download came from this repository's Release:
 

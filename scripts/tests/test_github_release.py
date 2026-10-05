@@ -30,6 +30,7 @@ class FakeGitHub:
     def __init__(self, existing=None):
         self.release = deepcopy(existing)
         self.calls = []
+        self.payloads = []
         self.contents = {}
         self.next_id = 1
         self.assert_remote_tag = Mock()
@@ -42,6 +43,7 @@ class FakeGitHub:
 
     def api(self, method, path, payload=None):
         self.calls.append((method, path))
+        self.payloads.append((method, path, deepcopy(payload)))
         if method == "POST":
             self.release = dict(payload, id=1, assets=[], published_at=None, immutable=False,
                                 upload_url="https://uploads.github.com/repos/JunyangZhangUSTC/CrossDiff/releases/1/assets{?name,label}",
@@ -165,6 +167,7 @@ class ReleaseTests(unittest.TestCase):
                 self.write_manifest()
 
     def test_creates_draft_with_all_verified_downloads_and_can_retry(self):
+        self.set_intent(publish=False)
         package = self.package()
         github = FakeGitHub()
         result = release.publish(github, self.root, package)
@@ -180,6 +183,42 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual((github.upload_count, github.download_count), (2 * asset_count, 2 * asset_count))
         self.assertEqual(len(github.release["assets"]), asset_count)
         self.assertEqual(sum(method == "POST" for method, _ in github.calls), 1)
+
+    def test_default_publishes_stable_only_after_verification_and_uses_version_based_latest(self):
+        package, github = self.package(), FakeGitHub()
+        result = release.publish(github, self.root, package)
+        self.assertEqual(result, {"url": "https://github.com/JunyangZhangUSTC/CrossDiff/releases/tag/v0.4.0",
+                                  "published": True, "prerelease": False})
+        self.assertEqual(github.publications, [{"downloads": len(package["names"]),
+                                               "uploads": len(package["names"])}])
+        created = next(payload for method, _, payload in github.payloads if method == "POST")
+        self.assertTrue(created["draft"])
+        self.assertFalse(created["prerelease"])
+        self.assertEqual(created["make_latest"], "false")
+        self.assertEqual(github.release["make_latest"], "legacy")
+        self.assertEqual(github.payloads[-1][2], {"draft": False, "prerelease": False, "make_latest": "legacy"})
+
+    def test_explicit_stable_intent_uses_version_based_latest(self):
+        self.set_intent(prerelease=False)
+        package, github = self.package(), FakeGitHub()
+        result = release.publish(github, self.root, package)
+        self.assertTrue(result["published"])
+        self.assertFalse(result["prerelease"])
+        self.assertEqual(github.release["make_latest"], "legacy")
+
+    def test_stable_published_retry_is_read_only_and_does_not_reset_latest(self):
+        package, github = self.package(), FakeGitHub()
+        release.publish(github, self.root, package)
+        github.calls.clear()
+        github.payloads.clear()
+        before = deepcopy(github.release)
+        uploads = github.upload_count
+        result = release.publish(github, self.root, package)
+        self.assertTrue(result["published"])
+        self.assertFalse(result["prerelease"])
+        self.assertEqual(github.upload_count, uploads)
+        self.assertEqual(github.release, before)
+        self.assertTrue(all(method == "GET" and payload is None for method, _, payload in github.payloads))
 
     def test_published_and_immutable_releases_are_never_modified(self):
         for draft, immutable, published_at in [(True, True, None), (True, False, "2026-10-01")]:
@@ -230,12 +269,13 @@ class ReleaseTests(unittest.TestCase):
                     self.assertEqual(release.main(), 1)
                     client.assert_not_called()
 
-    def test_only_confirmed_missing_committed_intent_defaults_to_draft(self):
+    def test_only_confirmed_missing_committed_intent_defaults_to_stable_publication(self):
         # A local file has no authority; only the fixed commit is consulted.
         local = self.root / "docs/releases/0.4.0.json"
         local.parent.mkdir(parents=True)
-        local.write_text('{"formatVersion":1,"version":"0.4.0","publish":true,"prerelease":true}')
-        self.assertFalse(self.package()["intent"]["publish"])
+        local.write_text('{"formatVersion":1,"version":"0.4.0","publish":false,"prerelease":true}')
+        self.assertEqual(self.package()["intent"], {"formatVersion": 1, "version": "0.4.0",
+                                                   "publish": True, "prerelease": False})
         with patch.object(release, "git", side_effect=release.ReleaseError("Git failed")):
             with self.assertRaisesRegex(release.ReleaseError, "Git failed"):
                 release.release_intent(self.root, COMMIT, "0.4.0")
@@ -418,6 +458,7 @@ class ReleaseTests(unittest.TestCase):
             self.package()
 
     def test_validated_payload_changed_before_retry_preserves_existing_draft(self):
+        self.set_intent(publish=False)
         package = self.package()
         github = FakeGitHub()
         release.publish(github, self.root, package)

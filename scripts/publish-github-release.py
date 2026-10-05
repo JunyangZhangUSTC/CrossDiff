@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upload verified releases; publish only with matching committed per-version intent."""
+"""Publish verified stable releases, honoring committed historical release intent."""
 
 from __future__ import annotations
 
@@ -143,10 +143,10 @@ def git_bytes(root: Path, *arguments: str) -> bytes:
 
 
 def release_intent(root: Path, commit: str, version: str) -> dict:
-    """Only absence in the fixed commit defaults to a draft; invalid intent fails closed."""
+    """New versions default to stable publication; fixed-commit overrides remain authoritative."""
     path = f"docs/releases/{version}.json"
     entry = git(root, "ls-tree", "-z", commit, "--", path)
-    defaults = {"formatVersion": 1, "version": version, "publish": False, "prerelease": True}
+    defaults = {"formatVersion": 1, "version": version, "publish": True, "prerelease": False}
     if not entry:
         return defaults
     if not re.fullmatch(r"100644 blob [a-f0-9]{40}\t" + re.escape(path) + r"\x00", entry):
@@ -366,9 +366,11 @@ def publish(github: GitHub, root: Path, package: dict) -> dict:
     if package["intent"]["publish"]:
         # The only publication mutation comes after every uploaded byte has been read back.
         github.assert_remote_tag(package["tag"], package["commit"])
+        # Let GitHub consider semantic version and creation date for stable releases,
+        # instead of forcing a backfilled older version to replace Latest.
         published = github.api("PATCH", f"/releases/{release_id}",
                                {"draft": False, "prerelease": package["intent"]["prerelease"],
-                                "make_latest": "false"})
+                                "make_latest": "false" if package["intent"]["prerelease"] else "legacy"})
         assert_release_metadata(published, package)
         assert_complete_assets(published, package)
         if (published.get("draft") is not False or not published.get("published_at")

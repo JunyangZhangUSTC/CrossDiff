@@ -12,7 +12,7 @@ enum ReadmeRenders {
         Task {
             do {
                 try await render()
-                print("Rendered bilingual light/dark comparison, deletion-preview and new-comparison windows.")
+                print("Rendered requested bilingual light/dark native README windows.")
                 exit(0)
             } catch {
                 print("README rendering failed: \(error)")
@@ -27,8 +27,12 @@ enum ReadmeRenders {
             D.window = NSApp.windows.first { $0.identifier?.rawValue == "crossdiff-main" }
             return D.window != nil
         }
-        D.window.setFrame(NSRect(x: -10000, y: -10000, width: 1160, height: 720), display: true)
+        D.window.setFrame(NSRect(x: -10000, y: -10000, width: 1200, height: 790), display: true)
         D.window.orderFront(nil)
+        if requestedKinds.isDisjoint(with: ["text", "deletions", "new"]) {
+            try await renderFeatures()
+            return
+        }
         let left = """
         // A small change. A clearer picture.
         struct CompareOptions {
@@ -72,6 +76,8 @@ enum ReadmeRenders {
                 AppAppearance.shared.isDark = dark
                 D.window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
                 for preview in [false, true] {
+                    NSApp.activate(ignoringOtherApps: true); D.window.makeKeyAndOrderFront(nil)
+                    try await D.wait("active text screenshot window") { NSApp.isActive && NSApp.keyWindow === D.window }
                     session.showDeletions = preview
                     if preview { try await D.ready(session) } else { try await D.pause() }
                     D.window.makeFirstResponder(nil)
@@ -81,6 +87,7 @@ enum ReadmeRenders {
                     let name = "\(preview ? "deletions" : "text")-\(locale)-\(dark ? "dark" : "light")"
                     _ = try D.capture(full, rect: full.bounds, name: name)
                 }
+                NSApp.activate(ignoringOtherApps: true); D.window.makeKeyAndOrderFront(nil)
                 WorkspaceStore.shared.beginNewComparison()
                 try await D.wait("new comparison sheet") { D.window.attachedSheet?.contentView != nil }
                 try await D.pause()
@@ -93,5 +100,6 @@ enum ReadmeRenders {
                 try await D.wait("type chooser dismissed") { D.window.attachedSheet == nil }
             }
         }
+        try await renderFeatures()
     }
 }

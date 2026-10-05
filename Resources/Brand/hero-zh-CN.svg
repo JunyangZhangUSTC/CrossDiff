@@ -1,65 +1,92 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="640" viewBox="0 0 1600 640" role="img" aria-label="CrossDiff">
-<rect x="0.0" y="0.0" width="1600.0" height="640.0" rx="28.0" fill="#F4F7FA" opacity="1.0"/>
-<text x="88.0" y="109.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#667A91">为 Mac 而生的比较工作台</text>
-<text x="82.0" y="224.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="104.0" font-weight="700" letter-spacing="-0.5" fill="#233952">CrossDiff</text>
-<text x="88.0" y="308.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="59.0" font-weight="600" letter-spacing="-0.5" fill="#233952">对比一切。</text>
-<text x="90.0" y="366.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="25.0" font-weight="400" letter-spacing="-0.5" fill="#536A84">看清每一处变化，文件留在本机。</text>
-<text x="90.0" y="411.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20.0" font-weight="400" letter-spacing="-0.5" fill="#667A91">从日常比较，到可以不断扩展的专业工作台。</text>
-<rect x="88.0" y="491.0" width="151.0" height="45.0" rx="22.5" fill="#E6EDF3" opacity="1.0"/>
-<text x="106.0" y="520.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">原生 macOS</text>
-<rect x="260.0" y="491.0" width="131.0" height="45.0" rx="22.5" fill="#E6EDF3" opacity="1.0"/>
-<text x="278.0" y="520.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">本地隐私</text>
-<rect x="412.0" y="491.0" width="131.0" height="45.0" rx="22.5" fill="#E6EDF3" opacity="1.0"/>
-<text x="430.0" y="520.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">无需注册</text>
-<rect x="564.0" y="491.0" width="131.0" height="45.0" rx="22.5" fill="#E6EDF3" opacity="1.0"/>
-<text x="582.0" y="520.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">免费开源</text>
-<rect x="922.0" y="57.0" width="590.0" height="524.0" rx="28.0" fill="#233952" opacity="0.045"/>
-<rect x="922.0" y="50.0" width="590.0" height="524.0" rx="28.0" fill="#DEE7EF" opacity="1.0"/>
-<rect x="923.0" y="51.0" width="588.0" height="522.0" rx="27.0" fill="#FFFFFF" opacity="1.0"/>
-<rect x="1111.0703125" y="84.9609375" width="209.859375" height="209.859375" rx="48.2109375" fill="#14263E" opacity="0.08"/>
-<rect x="1110.125" y="82.125" width="211.75" height="211.75" rx="48.2109375" fill="#DCE3EC" opacity="1.0"/>
-<rect x="1110.833984375" y="82.833984375" width="210.33203125" height="209.859375" rx="47.501953125" fill="#F4F7FB" opacity="1.0"/>
-<rect x="1111.54296875" y="83.306640625" width="208.9140625" height="207.96875" rx="46.79296875" fill="#F8FAFC" opacity="1.0"/>
-<rect x="1147.46484375" y="124.6640625" width="59.5546875" height="132.34375" rx="9.453125" fill="#14263E" opacity="0.075"/>
-<rect x="1147.46484375" y="118.9921875" width="59.5546875" height="132.34375" rx="9.453125" fill="#273D58" opacity="1.0"/>
-<rect x="1147.9375" y="119.46484375" width="58.609375" height="131.3984375" rx="8.98046875" fill="#304A68" opacity="1.0"/>
-<rect x="1157.86328125" y="136.716796875" width="38.7578125" height="6.6171875" rx="3.30859375" fill="#E1EAF4" opacity="1.0"/>
-<rect x="1157.86328125" y="150.1875" width="25.5234375" height="5.671875" rx="2.8359375" fill="#8FA6C0" opacity="1.0"/>
-<rect x="1157.86328125" y="227.939453125" width="31.66796875" height="5.671875" rx="2.8359375" fill="#8FA6C0" opacity="1.0"/>
-<rect x="1224.98046875" y="124.6640625" width="59.5546875" height="132.34375" rx="9.453125" fill="#14263E" opacity="0.075"/>
-<rect x="1224.98046875" y="118.9921875" width="59.5546875" height="132.34375" rx="9.453125" fill="#273D58" opacity="1.0"/>
-<rect x="1225.453125" y="119.46484375" width="58.609375" height="131.3984375" rx="8.98046875" fill="#304A68" opacity="1.0"/>
-<rect x="1235.37890625" y="136.716796875" width="38.7578125" height="6.6171875" rx="3.30859375" fill="#E1EAF4" opacity="1.0"/>
-<rect x="1235.37890625" y="150.1875" width="25.5234375" height="5.671875" rx="2.8359375" fill="#8FA6C0" opacity="1.0"/>
-<rect x="1235.37890625" y="227.939453125" width="31.66796875" height="5.671875" rx="2.8359375" fill="#8FA6C0" opacity="1.0"/>
-<rect x="1141.79296875" y="170.748046875" width="70.8984375" height="38.28515625" rx="8.03515625" fill="#F2A2A8" opacity="1.0"/>
-<rect x="1219.30859375" y="170.748046875" width="70.8984375" height="38.28515625" rx="8.03515625" fill="#8FD4BE" opacity="1.0"/>
-<rect x="1162.58984375" y="186.58203125" width="29.3046875" height="6.6171875" rx="3.30859375" fill="#713846" opacity="1.0"/>
-<rect x="1240.10546875" y="186.58203125" width="29.3046875" height="6.6171875" rx="3.30859375" fill="#215B50" opacity="1.0"/>
-<rect x="1251.44921875" y="175.23828125" width="6.6171875" height="29.3046875" rx="3.30859375" fill="#215B50" opacity="1.0"/>
-<text x="1095.0" y="330.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22.0" font-weight="600" letter-spacing="-0.5" fill="#536A84">多种比较，同样顺手。</text>
-<rect x="956.0" y="364.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
-<rect x="968.0" y="380.0" width="40.0" height="36.0" rx="8.0" fill="#EEF2F7" opacity="1.0"/>
-<text x="977.0" y="404.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#506981">Aa</text>
-<text x="1018.0" y="405.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">文本</text>
-<rect x="1134.0" y="364.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
-<rect x="1146.0" y="380.0" width="40.0" height="36.0" rx="8.0" fill="#EEF2F7" opacity="1.0"/>
-<text x="1163.0" y="404.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#506981">/</text>
-<text x="1196.0" y="405.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">文件夹</text>
-<rect x="1312.0" y="364.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
-<rect x="1324.0" y="380.0" width="40.0" height="36.0" rx="8.0" fill="#EEF2F7" opacity="1.0"/>
-<text x="1329.0" y="404.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14.0" font-weight="600" letter-spacing="-0.5" fill="#506981">ZIP</text>
-<text x="1374.0" y="405.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">压缩包</text>
-<rect x="956.0" y="447.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
-<rect x="968.0" y="463.0" width="40.0" height="36.0" rx="8.0" fill="#EDF6F1" opacity="1.0"/>
-<text x="973.0" y="487.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14.0" font-weight="600" letter-spacing="-0.5" fill="#3D7460">IMG</text>
-<text x="1018.0" y="488.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">图片</text>
-<rect x="1134.0" y="447.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
-<rect x="1146.0" y="463.0" width="40.0" height="36.0" rx="8.0" fill="#FAEEEE" opacity="1.0"/>
-<text x="1151.0" y="487.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#A35766">0F</text>
-<text x="1196.0" y="488.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Hex</text>
-<rect x="1312.0" y="447.0" width="165.0" height="68.0" rx="12.0" fill="#F3F6F9" opacity="1.0"/>
-<rect x="1324.0" y="463.0" width="40.0" height="36.0" rx="8.0" fill="#F1EDF8" opacity="1.0"/>
-<text x="1329.0" y="487.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14.0" font-weight="600" letter-spacing="-0.5" fill="#806699">PDF</text>
-<text x="1374.0" y="488.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">PDF 插件</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="700" viewBox="0 0 1600 700" role="img" aria-label="CrossDiff">
+<rect x="0.0" y="0.0" width="1600.0" height="700.0" rx="28.0" fill="#F4F7FA" opacity="1.0"/>
+<rect x="1150.0" y="-160.0" width="580.0" height="580.0" rx="290.0" fill="#D8E9E3" opacity="0.38"/>
+<rect x="-160.0" y="540.0" width="520.0" height="520.0" rx="260.0" fill="#E2EAF5" opacity="0.55"/>
+<text x="78.0" y="105.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#667A91">为 Mac 而生的比较工作台</text>
+<text x="72.0" y="232.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="106.0" font-weight="700" letter-spacing="-0.5" fill="#233952">CrossDiff</text>
+<text x="78.0" y="324.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="64.0" font-weight="600" letter-spacing="-0.5" fill="#233952">对比一切。</text>
+<text x="80.0" y="390.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="27.0" font-weight="400" letter-spacing="-0.5" fill="#536A84">文件、画面、声音、数据。</text>
+<text x="80.0" y="435.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24.0" font-weight="400" letter-spacing="-0.5" fill="#536A84">看清每一处变化，文件始终留在本机。</text>
+<rect x="78.0" y="510.0" width="164.0" height="44.0" rx="22.0" fill="#E4ECF4" opacity="1.0"/>
+<text x="98.0" y="538.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">原生 macOS</text>
+<rect x="254.0" y="510.0" width="144.0" height="44.0" rx="22.0" fill="#E4ECF4" opacity="1.0"/>
+<text x="274.0" y="538.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">本地隐私</text>
+<rect x="78.0" y="568.0" width="144.0" height="44.0" rx="22.0" fill="#E4EFEA" opacity="1.0"/>
+<text x="98.0" y="596.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#356451">免费开源</text>
+<rect x="234.0" y="568.0" width="144.0" height="44.0" rx="22.0" fill="#E4EFEA" opacity="1.0"/>
+<text x="254.0" y="596.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#356451">无需注册</text>
+<rect x="854.0" y="58.0" width="674.0" height="594.0" rx="28.0" fill="#233952" opacity="0.045"/>
+<rect x="854.0" y="50.0" width="674.0" height="594.0" rx="28.0" fill="#FFFFFF" opacity="1.0"/>
+<rect x="883.84375" y="71.53125" width="76.3125" height="76.3125" rx="17.53125" fill="#14263E" opacity="0.08"/>
+<rect x="883.5" y="70.5" width="77.0" height="77.0" rx="17.53125" fill="#DCE3EC" opacity="1.0"/>
+<rect x="883.7578125" y="70.7578125" width="76.484375" height="76.3125" rx="17.2734375" fill="#F4F7FB" opacity="1.0"/>
+<rect x="884.015625" y="70.9296875" width="75.96875" height="75.625" rx="17.015625" fill="#F8FAFC" opacity="1.0"/>
+<rect x="897.078125" y="85.96875" width="21.65625" height="48.125" rx="3.4375" fill="#14263E" opacity="0.075"/>
+<rect x="897.078125" y="83.90625" width="21.65625" height="48.125" rx="3.4375" fill="#273D58" opacity="1.0"/>
+<rect x="897.25" y="84.078125" width="21.3125" height="47.78125" rx="3.265625" fill="#304A68" opacity="1.0"/>
+<rect x="900.859375" y="90.3515625" width="14.09375" height="2.40625" rx="1.203125" fill="#E1EAF4" opacity="1.0"/>
+<rect x="900.859375" y="95.25" width="9.28125" height="2.0625" rx="1.03125" fill="#8FA6C0" opacity="1.0"/>
+<rect x="900.859375" y="123.5234375" width="11.515625" height="2.0625" rx="1.03125" fill="#8FA6C0" opacity="1.0"/>
+<rect x="925.265625" y="85.96875" width="21.65625" height="48.125" rx="3.4375" fill="#14263E" opacity="0.075"/>
+<rect x="925.265625" y="83.90625" width="21.65625" height="48.125" rx="3.4375" fill="#273D58" opacity="1.0"/>
+<rect x="925.4375" y="84.078125" width="21.3125" height="47.78125" rx="3.265625" fill="#304A68" opacity="1.0"/>
+<rect x="929.046875" y="90.3515625" width="14.09375" height="2.40625" rx="1.203125" fill="#E1EAF4" opacity="1.0"/>
+<rect x="929.046875" y="95.25" width="9.28125" height="2.0625" rx="1.03125" fill="#8FA6C0" opacity="1.0"/>
+<rect x="929.046875" y="123.5234375" width="11.515625" height="2.0625" rx="1.03125" fill="#8FA6C0" opacity="1.0"/>
+<rect x="895.015625" y="102.7265625" width="25.78125" height="13.921875" rx="2.921875" fill="#F2A2A8" opacity="1.0"/>
+<rect x="923.203125" y="102.7265625" width="25.78125" height="13.921875" rx="2.921875" fill="#8FD4BE" opacity="1.0"/>
+<rect x="902.578125" y="108.484375" width="10.65625" height="2.40625" rx="1.203125" fill="#713846" opacity="1.0"/>
+<rect x="930.765625" y="108.484375" width="10.65625" height="2.40625" rx="1.203125" fill="#215B50" opacity="1.0"/>
+<rect x="934.890625" y="104.359375" width="2.40625" height="10.65625" rx="1.203125" fill="#215B50" opacity="1.0"/>
+<text x="982.0" y="105.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="25.0" font-weight="600" letter-spacing="-0.5" fill="#233952">一个工作台，无限可能。</text>
+<text x="984.0" y="135.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="400" letter-spacing="-0.5" fill="#667A91">基础能力与专业插件，自由组合。</text>
+<rect x="882.0" y="176.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="896.0" y="189.0" width="45.0" height="30.0" rx="8.0" fill="#EAF0F7" opacity="1.0"/>
+<text x="907.4513661139426" y="210.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#506981">Aa</text>
+<text x="897.0" y="246.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">文本与代码</text>
+<rect x="1093.0" y="176.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="1107.0" y="189.0" width="45.0" height="30.0" rx="8.0" fill="#EAF0F7" opacity="1.0"/>
+<text x="1126.8198084134638" y="210.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#506981">/</text>
+<text x="1108.0" y="246.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">文件夹</text>
+<rect x="1304.0" y="176.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="1318.0" y="189.0" width="45.0" height="30.0" rx="8.0" fill="#EAF0F7" opacity="1.0"/>
+<text x="1330.0212050676346" y="210.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.0" font-weight="600" letter-spacing="-0.5" fill="#506981">ZIP</text>
+<text x="1319.0" y="246.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">压缩包</text>
+<rect x="882.0" y="281.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="896.0" y="294.0" width="45.0" height="30.0" rx="8.0" fill="#E5F0EA" opacity="1.0"/>
+<text x="905.9420818686485" y="315.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.0" font-weight="600" letter-spacing="-0.5" fill="#397159">IMG</text>
+<text x="897.0" y="351.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">图片</text>
+<rect x="1093.0" y="281.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="1107.0" y="294.0" width="45.0" height="30.0" rx="8.0" fill="#E5F0EA" opacity="1.0"/>
+<text x="1115.8690621852875" y="315.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.0" font-weight="600" letter-spacing="-0.5" fill="#397159">RGB</text>
+<text x="1108.0" y="351.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">摄影</text>
+<rect x="1304.0" y="281.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="1318.0" y="294.0" width="45.0" height="30.0" rx="8.0" fill="#F0ECF6" opacity="1.0"/>
+<text x="1327.6960017085075" y="315.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.0" font-weight="600" letter-spacing="-0.5" fill="#796193">PDF</text>
+<text x="1319.0" y="351.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">PDF</text>
+<rect x="882.0" y="386.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="896.0" y="399.0" width="45.0" height="30.0" rx="8.0" fill="#F0ECF6" opacity="1.0"/>
+<text x="905.8942667841911" y="420.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.0" font-weight="600" letter-spacing="-0.5" fill="#796193">XLS</text>
+<text x="897.0" y="456.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">办公文档</text>
+<rect x="1093.0" y="386.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="1107.0" y="399.0" width="45.0" height="30.0" rx="8.0" fill="#F6ECEA" opacity="1.0"/>
+<text x="1122.5328273773193" y="420.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.0" font-weight="600" letter-spacing="-0.5" fill="#99616A">{ }</text>
+<text x="1108.0" y="456.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">API</text>
+<rect x="1304.0" y="386.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="1318.0" y="399.0" width="45.0" height="30.0" rx="8.0" fill="#F6ECEA" opacity="1.0"/>
+<text x="1329.6955200110824" y="420.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#99616A">0F</text>
+<text x="1319.0" y="456.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">Hex 字节</text>
+<rect x="882.0" y="491.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="896.0" y="504.0" width="45.0" height="30.0" rx="8.0" fill="#E6EDF7" opacity="1.0"/>
+<text x="903.7387671470642" y="525.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.0" font-weight="600" letter-spacing="-0.5" fill="#4C6D99">WAV</text>
+<text x="897.0" y="561.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">音频</text>
+<rect x="1093.0" y="491.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="1107.0" y="504.0" width="45.0" height="30.0" rx="8.0" fill="#E6EDF7" opacity="1.0"/>
+<text x="1114.297278046608" y="525.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.0" font-weight="600" letter-spacing="-0.5" fill="#4C6D99">MOV</text>
+<text x="1108.0" y="561.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">视频</text>
+<rect x="1304.0" y="491.0" width="195.0" height="91.0" rx="14.0" fill="#F6F8FA" opacity="1.0"/>
+<rect x="1318.0" y="504.0" width="45.0" height="30.0" rx="8.0" fill="#EDF0F3" opacity="1.0"/>
+<text x="1334.8243589233316" y="525.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18.0" font-weight="600" letter-spacing="-0.5" fill="#657384">+</text>
+<text x="1319.0" y="561.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="19.0" font-weight="600" letter-spacing="-0.5" fill="#3C566F">插件扩展</text>
+<text x="886.0" y="620.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17.0" font-weight="400" letter-spacing="-0.5" fill="#667A91">同样顺手，不同深度。</text>
 </svg>

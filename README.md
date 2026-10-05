@@ -1,114 +1,200 @@
 <div align="center">
 
-<img src="Resources/Brand/hero-zh-CN.png" alt="CrossDiff — 对比一切。原生 macOS、本地隐私、无需注册、免费开源。" width="100%">
+<img src="Resources/Brand/hero-zh-CN.png" alt="CrossDiff — 对比一切，把每一处变化看清。" width="100%">
+
+<h1>CrossDiff</h1>
 
 **对比一切，把每一处变化看清。**
 
 为 Mac 打造的免费开源比较工作台。<br>
-本地处理，原生体验，无需注册，开箱即用。用插件，让比较的边界继续扩展。
+从文字与代码，到文档、照片、声音和视频。原生体验，本地处理，无需注册。
 
 [简体中文](README.md) · [English](README.en.md)
 
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-304A68?style=flat-square)](#快速开始)
 [![Swift](https://img.shields.io/badge/Built_with-Swift-F05138?style=flat-square)](Package.swift)
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
-[![Preview](https://img.shields.io/badge/Status-Developer_preview-7C6DAA?style=flat-square)](CHANGELOG.md)
 
-[下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上) · [路线图](#对比一切持续向前)
+[快速开始](#快速开始) · [下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [界面一览](#不同对象同一个工作台) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上)
 
 </div>
 
 > 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.14.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.14.0/CrossDiff-0.14.0-full-macOS-arm64.zip)。**
 >
-> 适用于 macOS 14+ 的 Apple 芯片 Mac。已预装本版本全部官方插件，打开即可比较；只需基础功能时也可选择 Base。
->
-> 草稿版本需发布后才能下载。若上方链接尚未开放，请前往 [GitHub Releases](https://github.com/JunyangZhangUSTC/CrossDiff/releases) 下载当前公开版本。
+> 适用于 macOS 14+ 的 Apple 芯片 Mac。预装本版本全部官方插件，打开即可比较。
 
 <table>
 <tr><td>
+<a href="docs/assets/screenshots/text-zh-CN-light.png">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/text-zh-CN-dark.png">
-  <img src="docs/assets/screenshots/text-zh-CN-light.png" alt="CrossDiff 原生窗口：对齐的代码双栏、精确到字符的红绿差异高亮" width="100%">
+  <img src="docs/assets/screenshots/text-zh-CN-light.png" alt="CrossDiff 文本与代码比较：行对齐、字符差异高亮、逐块合并与原生编辑器" width="100%">
 </picture>
+</a>
 </td></tr>
 </table>
 
-<p align="center"><sub>真实应用窗口，使用示例文本；截图随 GitHub 的浅深色主题切换。</sub></p>
+<p align="center"><sub>文本与代码：从一处字符变化到整段修改，看清差异，再决定如何合并。</sub></p>
 
 ## 一个工作台，专注每一处变化
 
-从临时粘贴的两段文字，到代码目录、压缩包、图片和论文 PDF。CrossDiff 把不同对象的比较带到同一个原生 Mac 工作台：看得清楚，操作直接，文件始终由你掌握。
+粘贴两段文字，检查一次发布，研究一张照片，或逐帧核对剪辑。CrossDiff 为不同内容提供合适的视图，让你看见真正需要关注的变化。
 
 | | |
 | :--- | :--- |
-| **为 Mac 原生打造**<br>SwiftUI + AppKit，原生编辑器、标准菜单和熟悉的快捷键。无需内置浏览器运行环境。 | **本地运行，隐私优先**<br>文件比较在本机完成，无需上传。无遥测、无追踪，离线也能安心比较。 |
-| **免费开源，没有付费墙**<br>AGPL v3 开源，源码可审查、构建和修改。无订阅、试用倒计时或付费解锁。 | **无需注册，开箱即用**<br>没有账号、登录或激活步骤。打开应用、选好左右内容，就能开始比较。 |
-| **细致比较，修改可控**<br>字符级差异、行对齐、逐块合并、独立撤销与手动保存。只做比较，不会覆盖原文件。 | **优雅界面，按需扩展**<br>浅深色主题、中英文切换、多标签与同步滚动。安装插件，继续拓展比较能力。 |
+| **为 Mac 原生打造**<br>SwiftUI + AppKit，原生编辑器、标准菜单和熟悉的快捷键。无需内置浏览器运行环境。 | **文件留在本机**<br>比较内容无需上传，无遥测或追踪。安装好插件后，可以一直离线比较。 |
+| **免费开源，无需注册**<br>没有账号、订阅或付费解锁。AGPL v3 开源，源码可审查、构建和修改。 | **原文件由你掌握**<br>文本逐块合并、独立撤销、手动保存；图片与媒体调整仅影响查看，不改写源文件。 |
+| **清晰，也赏心悦目**<br>浅深色主题，中英文界面，多标签与同步滚动。不同内容沿用熟悉的原生操作。 | **用插件继续扩展**<br>完整版预装七个官方插件；也可从基础版开始，在应用内下载或拖入插件安装。 |
 
-**0.14.0** 带来对齐的文件夹双栏、更多压缩包格式、图片智能对齐、摄影分析增强与更可靠的 PDF 配对，并新增视频插件。[本版更新](docs/releases/0.14.0.md)
+**0.14.0**：对齐的文件夹双栏、更多压缩包格式、图片智能对齐、摄影分析增强、PDF 配对改进，以及全新视频对比。[查看本版更新](docs/releases/0.14.0.md)
 
-**把视频版本放在一起看。** 对照同一素材的剪辑、调色、字幕或压缩版本：双画面与双时间线、统一播放和逐帧、手动时间对齐；暂停后滑动对照或查看差异，局部区域可以保存复用。沿用原生界面、本地处理与只读方式，无需另装大型解码器或模型。[使用指南](docs/usage.md#video) · [能力与边界](docs/architecture/video-comparison.md#video-m1)
+## 不同对象，同一个工作台
 
-视频入口随 Full 预装，同版 Base 可安装 Video 插件。首版为手动对照，自动寻找剪辑对应片段仍在后续计划中。
+以下均为真实应用窗口，图片、音视频和示例文件使用程序生成的演示素材；随 GitHub 主题切换浅深色。点击截图可打开浅色原图，查看完整细节。
 
-## 看见声音里的变化
-
-用波形与 STFT 时频图观察声音，框选并保存区域，切换 A/B 试听。自动查找同源录音的固定速度片段，定位截取、剪辑重排与重复候选；变速／变调可手动试听，自动识别仍在研究。[音频指南](docs/usage.md#audio)
+### 图像与媒体
 
 <table>
-<tr><td>
+<tr>
+<td width="50%" valign="top">
+<p><b>图片 · 为共同内容找到对应位置</b></p>
+<a href="docs/assets/screenshots/image-zh-CN-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/image-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/image-zh-CN-light.png" alt="CrossDiff 图片对比：智能对齐后的两张图片与对应内容" width="100%">
+</picture>
+</a>
+<p>离线智能对齐裁剪、旋转或缩放后的同源图片，结合相似区域、滑动对照与像素差异查看局部变化。</p>
+<p><a href="docs/usage.md#compare-images">使用指南 →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>摄影 · 看懂影调与配色</b></p>
+<a href="docs/assets/screenshots/photography-zh-CN-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/photography-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/photography-zh-CN-light.png" alt="CrossDiff 摄影分析：照片对照、影调直方图与区域分析" width="100%">
+</picture>
+</a>
+<p>RGB／Lab L* 直方图、HSL 分布和独立区域比较，让照片风格有据可看；支持由 macOS 解码的 RAW。</p>
+<p><a href="docs/usage.md#photography">使用指南 →</a></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p><b>视频 · 把剪辑版本放在一起看</b></p>
+<a href="docs/assets/screenshots/video-zh-CN-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/video-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/video-zh-CN-light.png" alt="CrossDiff 视频对比：双画面、双时间线与统一播放控制" width="100%">
+</picture>
+</a>
+<p>双画面与双时间线支持手动对齐、逐帧浏览和片段循环，暂停后可滑动对照或查看帧差异。</p>
+<p><a href="docs/usage.md#video">使用指南 →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>音频 · 看见声音里的变化</b></p>
+<a href="docs/assets/screenshots/audio-zh-CN-light.png">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/audio-zh-CN-dark.png">
-  <img src="docs/assets/screenshots/audio-zh-CN-light.png" alt="CrossDiff 音频对比原生窗口：双时间线、声道波形、片段对应和区域试听" width="100%">
+  <img src="docs/assets/screenshots/audio-zh-CN-light.png" alt="CrossDiff 音频对比：声道波形、双时间线与片段比较" width="100%">
 </picture>
-</td></tr>
+</a>
+<p>波形、STFT 时频图与 A/B 试听深入局部声音，自动寻找同源录音中固定速度的对应片段。</p>
+<p><a href="docs/usage.md#audio">使用指南 →</a></p>
+</td>
+</tr>
 </table>
 
-## 把 API 差异看到字段里
-
-导入 HTTP、cURL 或 HAR，查看头、参数与 JSON 字段的值和类型差异。明确忽略时间戳等波动字段，聚焦需要排查的变化；只在本机解析，不发送请求。[API 指南](docs/usage.md#api)
+### 文档与办公
 
 <table>
-<tr><td>
+<tr>
+<td width="50%" valign="top">
+<p><b>PDF · 页面与文字，一起核对</b></p>
+<a href="docs/assets/screenshots/pdf-zh-CN-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/pdf-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/pdf-zh-CN-light.png" alt="CrossDiff PDF 对比：页码对应关系与双侧原页面预览" width="100%">
+</picture>
+</a>
+<p>保留原页面的同时查看可提取文字差异，按页码、智能匹配或手动选页，对照论文与文档。</p>
+<p><a href="docs/usage.md#pdf-文档与插件--pdf-documents-and-plugins">使用指南 →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>Office · 行重排，也能找到对应</b></p>
+<a href="docs/assets/screenshots/office-zh-CN-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/office-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/office-zh-CN-light.png" alt="CrossDiff 办公文档对比：Excel 行匹配与单元格内容变化" width="100%">
+</picture>
+</a>
+<p>Word 段落、Excel 跨行匹配与可选关键列、PowerPoint 幻灯片内容，配合原文件预览只读比较。</p>
+<p><a href="docs/usage.md#office">使用指南 →</a></p>
+</td>
+</tr>
+</table>
+
+### 文件与开发
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<p><b>文件夹 · 两边始终对得上</b></p>
+<a href="docs/assets/screenshots/folder-zh-CN-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/folder-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/folder-zh-CN-light.png" alt="CrossDiff 文件夹对比：对齐目录、文件状态与联动展开" width="100%">
+</picture>
+</a>
+<p>对齐目录、联动展开、排序与筛选让大型目录更易浏览，选中文件后先预览，再核验并复制。</p>
+<p><a href="docs/usage.md#compare-folders">使用指南 →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>压缩包 · 不解压，也能看里面</b></p>
+<a href="docs/assets/screenshots/archive-zh-CN-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/archive-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/archive-zh-CN-light.png" alt="CrossDiff 压缩包对比：虚拟目录、文件差异与跨路径相同内容" width="100%">
+</picture>
+</a>
+<p>压缩包与压缩包或本地目录互比，按路径检查差异，也能找出不同位置的相同文件。</p>
+<p><a href="docs/usage.md#archives">使用指南 →</a></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p><b>API · 把差异看到字段里</b></p>
+<a href="docs/assets/screenshots/api-zh-CN-light.png">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/api-zh-CN-dark.png">
-  <img src="docs/assets/screenshots/api-zh-CN-light.png" alt="CrossDiff API 对比原生窗口：响应头和 JSON 字段差异、类型与忽略规则" width="100%">
+  <img src="docs/assets/screenshots/api-zh-CN-light.png" alt="CrossDiff API 对比：响应头、JSON 字段、类型变化与忽略规则" width="100%">
 </picture>
-</td></tr>
+</a>
+<p>本地导入 HTTP、cURL 或 HAR，检查头、参数及 JSON 的值与类型差异，明确忽略波动字段。</p>
+<p><a href="docs/usage.md#api">使用指南 →</a></p>
+</td>
+<td width="50%" valign="top">
+<p><b>二进制 · 让每个字节都有位置</b></p>
+<a href="docs/assets/screenshots/binary-zh-CN-light.png">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/binary-zh-CN-dark.png">
+  <img src="docs/assets/screenshots/binary-zh-CN-light.png" alt="CrossDiff 二进制对比：双栏十六进制、ASCII 与插删对齐" width="100%">
+</picture>
+</a>
+<p>十六进制与 ASCII 双栏保留真实源地址，插删对齐、差异导航与地址跳转直达变化。</p>
+<p><a href="docs/usage.md#binary-hex">使用指南 →</a></p>
+</td>
+</tr>
 </table>
-
-## 多种对象，同样顺手
-
-| 比较对象 | 当前能力 |
-| :--- | :--- |
-| **文本与代码** | 粘贴文本或打开文本文件，字符／整行差异、行对齐、左右编辑、逐块合并、查找替换与独立撤销。支持 TXT、Markdown、HTML、JSON、XML、YAML 等文本格式。 |
-| **本地文件夹** | 提供左右对齐目录、联动展开、表头排序与状态筛选；先查看明确差异，再核验内容。复制前预览并重新校验。[文件夹指南](docs/usage.md#compare-folders) |
-| **压缩包** | 把 ZIP、TAR 及常见压缩 TAR 当作虚拟目录；提供无密码、单卷 7z 与受限 RAR 支持，与压缩包或本地文件夹互比。无需解压到磁盘，按内容校验，找出不同路径下的相同文件。基础版内置插件。 |
-| **图片** | 并排、叠加、滑动与像素差异；支持离线智能对齐，识别旋转、缩放和裁剪后的对应内容。可显示截图的完整对应轮廓及连续相似内容，支持左右联动查看，保留手动微调、对应点和一键恢复。 |
-| **二进制 / Hex** | 原生双栏十六进制与 ASCII，真实地址、插删对齐、差异导航、地址跳转和选中复制。按需读取，只读比较。 |
-| **PDF 文档** | 原生页面对照与可提取文字差异。支持按页码、智能匹配和手动选页；无关文档不再强行错页。完整版预装，基础版可安装官方 PDF 插件。 |
-| **办公文档** | Word 段落与表格、Excel 跨行匹配与关键列、PowerPoint 幻灯片内容；字符高亮、公式与保存的结果、原文件预览。支持 DOCX／XLSX／PPTX，只读比较。[办公指南](docs/usage.md#office) |
-| **API** | 结构化比较本地保存的请求与响应，排查字段变化。 |
-| **音频** | 用时间线对照录音与剪辑版本，深入比较局部声音。 |
-| **视频** | MOV／MP4／M4V 原生双画面对照、源时间逐帧、手动偏移、静音或 A/B 声音、选段循环与保存局部区域。滑动和差异在暂停时使用；差异图要求同像素尺寸与明确的 Rec.709 SDR 标记。 |
-| **摄影** | 只读双图、命名区域、HSL 和有记录的处理曲线；提供 RGB 通道灰度预览、Lab L*／RGB 直方图与区域高亮、拍摄参数左右对照。使用 Apple RAW 解码与 OpenCV 统计。[摄影指南](docs/usage.md#photography) |
 
 <details>
-<summary><b>细节也值得认真对比</b></summary>
+<summary><b>格式与能力范围</b></summary>
 
-- **看见删除，而不只看见新增。** 开启“显示删除”，右侧以红色删除线呈现被移除的文字。只读审阅不会把修订标记写入原文；普通复制仅含原文，含修订内容需显式选择。
-- **为图片找到共同视角。** 点击“智能对齐”自动寻找共同内容，也可拖动四角调整大小，默认锁定比例；解锁后可独立拉伸宽高。大小与旋转也可输入数值，所有变换仅影响预览。[图片对齐指南](docs/usage.md#compare-images)
-- **让字节变化可读。** Hex 两侧保留独立源偏移，插删空位对齐，支持 8／16 字节列宽。每个文件最多 8 GiB，复杂区域明确标注粗略对齐。[Hex 指南](docs/usage.md#binary-hex)
-- **不用先解压一地文件。** 支持 ZIP、TAR、TAR.GZ／TGZ、TAR.BZ2、TAR.XZ；也支持无密码、单卷 7z 与受限 RAR。“按路径”看目录差异，“相同内容”找跨路径重复。全程只读，流式解码，不写出解压文件。[压缩包指南](docs/usage.md#archives)
-
-<table>
-<tr><td>
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/deletions-zh-CN-dark.png">
-  <img src="docs/assets/screenshots/deletions-zh-CN-light.png" alt="CrossDiff 的显示删除功能：右侧只读审阅中的红色删除线" width="100%">
-</picture>
-</td></tr>
-</table>
+- **文本与代码**：支持 TXT、Markdown、HTML、JSON、XML、YAML 等文本文件；查找替换、撤销重做和“显示删除”只读审阅均可用。
+- **压缩包与办公文档**：支持 ZIP、TAR 与常见压缩 TAR，以及无密码、单卷 7z 和受限 RAR；Office 支持 DOCX／XLSX／PPTX，旧格式需先转换。
+- **图片与摄影**：智能对齐面向有足够共同细节的同源图片；RAW 解码取决于机型、编码和系统版本。摄影分析不反推拍摄参数，有记录才显示处理曲线。
+- **音频与视频**：音频的自动变速／变调识别、视频的自动剪辑匹配尚未实现。视频差异图要求同像素尺寸与明确的 Rec.709 SDR 标记，HDR 保留视觉浏览。
+- **PDF 与 Hex**：PDF 尚无 OCR；Hex 每侧最多 8 GiB，复杂区域会明确标注粗略对齐。更多限制见[使用指南](docs/usage.md)与[实现说明](docs/development.md#current-implementation-limits)。
 
 </details>
 
@@ -135,11 +221,11 @@
 
 **[前往 GitHub Releases 下载 →](https://github.com/JunyangZhangUSTC/CrossDiff/releases)**
 
-在版本的 **Assets** 中选择文件；每次发布另附对应源码、构建信息和 `SHA256SUMS`。插件需要兼容宿主，Release 草稿不提供公开下载；JSON 仅作为独立开发示例，不预装进 Full。
+在版本的 **Assets** 中选择文件；每次发布另附对应源码、构建信息和 `SHA256SUMS`。插件需要兼容宿主；JSON 仅作为独立开发示例，不预装进 Full。
 
 </details>
 
-Intel 构建尚未实测。当前为持续开发中的预览版本，也可按下方说明从源码构建。
+Intel 构建尚未实测。也可按下方说明从源码构建。
 
 ## 用插件拓展你的比较工作台
 
@@ -166,7 +252,7 @@ Intel 构建尚未实测。当前为持续开发中的预览版本，也可按�
 
 ### 首次在 macOS 上打开
 
-当前预览版尚未使用 Apple Developer ID 签名或公证，构建使用 ad-hoc 签名。因为开发者计划的年费成本，目前需要你在首次打开时手动确认一次。
+当前发行包尚未使用 Apple Developer ID 签名或公证，构建使用 ad-hoc 签名。因为开发者计划的年费成本，目前需要你在首次打开时手动确认一次。
 
 确认下载来自本仓库 Release 后：
 

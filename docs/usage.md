@@ -1,10 +1,10 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio and Office plugins. This guide includes the 0.13.1 folder-branch source preview; see GitHub Releases for published builds. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio, Office and Video plugins. This guide covers the published 0.14.0 release. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
-Click **New… / 新建…** (`⌘N`) in the toolbar or File menu. Choose a comparison type, then prepare the left and right inputs on the next page and start the comparison. Text accepts temporary pasted content or a file on each side. Folder, image and binary comparisons accept the corresponding sources; archive, PDF, photography, API and audio comparisons appear when the corresponding installed plugins are enabled. **More Comparisons / 更多对比项** opens plugin management. The **Compare** menu goes directly to the input page for a chosen type.
+Click **New… / 新建…** (`⌘N`) in the toolbar or File menu. Choose a comparison type, then prepare the left and right inputs on the next page and start the comparison. Text accepts temporary pasted content or a file on each side. Folder, image and binary comparisons accept the corresponding sources; archive, PDF, photography, API, audio, office and video comparisons appear when the corresponding installed plugins are enabled. **More Comparisons / 更多对比项** opens plugin management. The **Compare** menu goes directly to the input page for a chosen type.
 
 **File → Open…** (`⌘O`) still selects multiple files or folders and detects their types. Two compatible items open as a comparison. When you select more items, assign explicit left/right pairs before opening each comparison in its own tab. Finder opening and dropping items into the comparison window retain this automatic routing. You can also paste directly into an existing text comparison.
 
@@ -49,7 +49,7 @@ CrossDiff restores comparisons locally on the next launch. **Session → Clear L
 <a id="compare-folders"></a>
 ## Compare folders / 文件夹比较
 
-**0.13.1 文件夹分支预览：** 左右相同路径始终在同一行，两边共享选择与滚动；不存在的一侧显示占位，读取失败时显示未知。默认“目录”模式折叠子目录，通过任意一侧箭头联动展开；双击目录进入该范围，“上一级”和“全部目录”返回上层或根。双击两边都有的普通文件打开比较。
+**浏览目录：** 左右相同路径始终在同一行，两边共享选择与滚动；不存在的一侧显示占位，读取失败时显示未知。默认“目录”模式折叠子目录，通过任意一侧箭头联动展开；双击目录进入该范围，“上一级”和“全部目录”返回上层或根。双击两边都有的普通文件打开比较。
 
 左右标题栏各有 **更换…** 按钮，可在当前标签中替换对应文件夹并立即重新比较，另一侧保持不变。取消或选择同一目录不会重扫；新目录会清空旧选择并返回根范围，保留搜索、筛选、排序、展示模式与忽略规则。扫描期间可以更换；复制核验、确认和执行期间暂时禁用。新路径随本机会话保存。
 
@@ -57,7 +57,7 @@ CrossDiff restores comparisons locally on the next launch. **Session → Clear L
 
 状态菜单可查看全部、需关注、内容改动、仅左侧、仅右侧、问题或待校验。搜索当前范围的相对路径，保留并临时展开命中项的祖先；清空搜索恢复原展开状态。目录摘要统计整个子树，折叠不改变数量；悬停可查看详细分类。选择排序后保留，筛选或折叠后隐藏的选择会清除。选择目录不会隐式递归复制。
 
-**0.13.1 folder-branch preview:** Both panes share rows, selection and scrolling. Missing items have placeholders; unreadable locations remain unknown. **Tree** starts with collapsed folders; either disclosure arrow expands both sides. Double-click a folder to browse within it, then use **Parent Folder** or **All Folders** to return. Double-click a pair of regular files to compare them.
+**Browse folders:** Both panes share rows, selection and scrolling. Missing items have placeholders; unreadable locations remain unknown. **Tree** starts with collapsed folders; either disclosure arrow expands both sides. Double-click a folder to browse within it, then use **Parent Folder** or **All Folders** to return. Double-click a pair of regular files to compare them.
 
 Use **Change…** in either folder header to replace that side and compare again in the same tab. The opposite side stays unchanged. Canceling or selecting the same directory does not rescan. A new folder clears old selections and returns to the root scope while retaining search, filter, sort, view and ignore preferences. Replacement is available during scans, but disabled during copy verification, confirmation and execution. New paths are saved in the local session.
 
@@ -84,9 +84,9 @@ Select a regular file in a completed comparison to copy it in either direction. 
 
 Choose **Compare → Archive Comparison… / 比较 → 压缩包比较…**, then select two archives, or an archive and a local folder in either order. The normal **Open…** and drag-in pairing paths also recognize compatible archive/folder pairs. For more than two inputs, explicitly assign the pairs. The official archive plugin is included and enabled by default; it can be disabled in **CrossDiff → Plugins…**. An explicitly selected archive comparison also accepts two local folders under these read-only content-comparison rules.
 
-Supported formats: ZIP (stored/deflate), TAR, TAR.GZ/TGZ, TAR.BZ2/TBZ/TBZ2 and TAR.XZ/TXZ. Extension alone does not prove a valid format. Gzip, bzip2 and xz streams must contain TAR. The 0.13.0 source preview additionally accepts **unencrypted, single-volume 7z and a limited RAR subset**, described below. Passwords, multiple volumes, self-extracting executables and recursive expansion of nested archives are not supported. ZIP64, non-UTF-8 names and ZIP Unicode-path override extra fields are currently outside the supported ZIP subset. XZ accepts a single stream without trailing stream padding, with one LZMA2 filter per block and at most a 64 MiB dictionary. CRC32, CRC64 or SHA-256 checks are required; the index is capped at 1 MiB, with at most 10,000 blocks and 100,000 chunks.
+Supported formats: ZIP (stored/deflate), TAR, TAR.GZ/TGZ, TAR.BZ2/TBZ/TBZ2 and TAR.XZ/TXZ. Extension alone does not prove a valid format. Gzip, bzip2 and xz streams must contain TAR. CrossDiff also accepts **unencrypted, single-volume 7z and a limited RAR subset**, described below. Passwords, multiple volumes, self-extracting executables and recursive expansion of nested archives are not supported. ZIP64, non-UTF-8 names and ZIP Unicode-path override extra fields are currently outside the supported ZIP subset. XZ accepts a single stream without trailing stream padding, with one LZMA2 filter per block and at most a 64 MiB dictionary. CRC32, CRC64 or SHA-256 checks are required; the index is capped at 1 MiB, with at most 10,000 blocks and 100,000 chunks.
 
-**7z / RAR source-preview compatibility:**
+**7z / RAR compatibility:**
 
 | Format | Accepted subset | Explicit exclusions |
 | --- | --- | --- |
@@ -96,7 +96,7 @@ Supported formats: ZIP (stored/deflate), TAR, TAR.GZ/TGZ, TAR.BZ2/TBZ/TBZ2 and T
 
 7z and RAR5 dictionaries are capped at **64 MiB**. Both the compressed and decoded 7z header are capped at **1 MiB**. Final acceptance also depends on the system libraries included with macOS; an extension alone is not a compatibility guarantee. Unsupported methods/features, passwords and missing volumes do not yield partial matches. Updating the Archive script alone does not add host decoders: use an application build containing this feature.
 
-**中文提示：** 本次源码预览新增无密码、单卷 7z 和受限 RAR，沿用原来的“按路径”和“相同内容”视图。7z 支持常见 LZMA／LZMA2 固实包；RAR4 不支持固实，RAR5 仅接受算法 v0。密码、分卷、恢复记录、注释等不受支持的特性会明确拒绝；并非所有 `.rar` 文件均可读取。
+**中文提示：** 支持无密码、单卷 7z 和受限 RAR，可使用“按路径”和“相同内容”视图。7z 支持常见 LZMA／LZMA2 固实包；RAR4 不支持固实，RAR5 仅接受算法 v0。密码、分卷、恢复记录、注释等不受支持的特性会明确拒绝；并非所有 `.rar` 文件均可读取。
 
 **By Path / 按路径** presents an expandable native directory tree. A file is **Same** only when its length and SHA-256 digest match; timestamps and permissions are not compared. Directories summarize their descendants, preserving empty directories. Use the path filter and **Changes Only / 仅差异** to focus the tree; ancestors remain available. **Same Content / 相同内容** groups verified matching files at different paths across the two sources, keeping every member without generating a Cartesian list. This is evidence of identical contents, not an inferred rename or move.
 
@@ -110,19 +110,19 @@ There is no extraction, contained-file editing, merge, copy-back or export actio
 
 ## Compare images
 
-**0.13.0 源码预览：** 点击 **智能对齐**，以左侧原图为参照，自动调整右图的大小、旋转和位置。成功时，并排视图会切换到滑动对比；其他模式保留。可开启 **对应点** 查看少量带编号的验证点，继续手动微调，或点击 **恢复对齐前** 恢复此前两侧的变换、比例锁和比较模式。重新读取图片会清除旧的匹配证据与恢复记录，保留当前变换。
+点击 **智能对齐**，以左侧原图为参照，自动调整右图的大小、旋转和位置。成功时，并排视图会切换到滑动对比；其他模式保留。可开启 **对应点** 查看少量带编号的验证点，继续手动微调，或点击 **恢复对齐前** 恢复此前两侧的变换、比例锁和比较模式。重新读取图片会清除旧的匹配证据与恢复记录，保留当前变换。
 
 匹配完全在本机使用 OpenCV SIFT 和稳健几何估计完成，无需下载模型。适用于具有足够细节的同源图片，包括旋转、等比缩放、裁剪及部分局部修改；细节不足、重复图案歧义或变换超限时保留当前对齐并说明原因。误差数字是验证点的中位配准误差，不是修改比例或置信度。对应点不能代表完整区域边界，未匹配区域也不等于被删除或遮挡。首版不自动处理透视、翻转、非等比拉伸或多个独立移动／拼接区域；可继续使用手动操作。
 
-**0.13.2 相似区域：** 智能对齐成功后，点击 **相似区域**，后台核验后，虚线标出两图的完整几何对应范围，低透明度填色标出核验后的相似内容。范围内仍可能有修改，虚线本身不表示全部相同。此开关默认关闭，开启后持续显示；点击编号或前后箭头可联动强调左右对应部分。并排视图适合同时核对两边；滑动对比的标注随分界显示各侧，叠加和像素差异视图跟随当前“拖动哪张图片”的选择显示该侧证据。关闭即可恢复原图显示，已完成结果会在当前标签缓存；重新对齐、读取图片或恢复对齐前状态会清除旧结果。
+**相似区域：** 智能对齐成功后，点击 **相似区域**，后台核验后，虚线标出两图的完整几何对应范围，低透明度填色标出核验后的相似内容。范围内仍可能有修改，虚线本身不表示全部相同。此开关默认关闭，开启后持续显示；点击编号或前后箭头可联动强调左右对应部分。并排视图适合同时核对两边；滑动对比的标注随分界显示各侧，叠加和像素差异视图跟随当前“拖动哪张图片”的选择显示该侧证据。关闭即可恢复原图显示，已完成结果会在当前标签缓存；重新对齐、读取图片或恢复对齐前状态会清除旧结果。
 
 相似区域表示**预览中局部纹理与颜色差异较小的近似范围**，允许小幅中性亮度偏移，不保证像素完全相同。可靠对齐后，相同的平坦背景也会接入有纹理证据支持的连续区域，纯裁剪不再只显示零散细节。低纹理部分使用严格的绝对颜色检查，不单独推断匹配。标注保留已检测修改处的孔洞；透明、未通过核验和零碎证据可能不标注，最多显示 12 个较大区域，**未标注不等于不同**。更细的修改请结合滑动对比或像素差异查看。标注只影响显示，不写入图片，也不会改变手动对齐参数。[区域分析设计](architecture/image-similarity-regions.md)
 
-**0.13.0 source preview:** Choose **Smart Align** to align the right image to the original left image using scale, rotation and position. A successful estimate switches Side by Side to Wipe; other modes remain unchanged. **Match Points** shows a small numbered sample of verified correspondences. Continue refining manually or use **Restore Alignment** to recover the previous transforms, aspect locks and comparison mode. Reload clears old match evidence and the restore snapshot while retaining the current transforms.
+Choose **Smart Align** to align the right image to the original left image using scale, rotation and position. A successful estimate switches Side by Side to Wipe; other modes remain unchanged. **Match Points** shows a small numbered sample of verified correspondences. Continue refining manually or use **Restore Alignment** to recover the previous transforms, aspect locks and comparison mode. Reload clears old match evidence and the restore snapshot while retaining the current transforms.
 
 Matching runs locally with OpenCV SIFT and robust geometry, without model downloads. It handles sufficiently detailed versions of the same image, including rotation, proportional resizing, crops and some local edits. Insufficient or ambiguous evidence and unsupported transforms leave your alignment unchanged. The reported error is the median registration residual, not the edited fraction or a confidence score. Points are not complete region boundaries, and unmatched areas do not establish deletion or occlusion. Automatic perspective, reflection, nonuniform scaling and independently moved/composited regions are outside this first version; manual controls remain available.
 
-**0.13.2 Similar Regions:** After successful alignment, choose **Similar Regions** to see a dashed outline of the full geometric correspondence and translucent fills for verified similar content. The dashed outline does not claim that all content inside is the same. The toggle defaults off and stays on until hidden. Click a numbered region or use the previous/next arrows to highlight both counterparts. Side by Side shows both; Wipe clips each side's evidence at the divider; Overlay and Pixel Difference show the evidence for the selected Image to Move. Completed results are cached in the tab; a new alignment, reload or Restore Alignment clears them.
+**Similar Regions:** After successful alignment, choose **Similar Regions** to see a dashed outline of the full geometric correspondence and translucent fills for verified similar content. The dashed outline does not claim that all content inside is the same. The toggle defaults off and stays on until hidden. Click a numbered region or use the previous/next arrows to highlight both counterparts. Side by Side shows both; Wipe clips each side's evidence at the divider; Overlay and Pixel Difference show the evidence for the selected Image to Move. Completed results are cached in the tab; a new alignment, reload or Restore Alignment clears them.
 
 These are approximate preview regions with similar texture and small color differences, allowing modest neutral brightness shifts, **not proof of identical pixels**. After reliable alignment, strictly color-verified flat backgrounds can join texture-supported regions, keeping an unedited crop continuous. Flat patches cannot establish a match independently and receive no local brightness compensation. Detected holes remain unfilled. Transparent, unverified or fragmented evidence may remain unmarked; up to 12 larger regions are displayed. **Unmarked does not mean different.** Use Wipe or Pixel Difference to inspect fine edits. The overlay never writes source files or changes manual transforms. See the [analysis design](architecture/image-similarity-regions.md).
 
@@ -147,9 +147,9 @@ Comparison uses an 8-bit sRGB preview with a maximum 1600-pixel longest edge. Im
 <a id="photography"></a>
 ## Photography / 摄影对比
 
-**摄影插件 Photography 0.1.0。** Full 预装，同版本 Base 可安装独立摄影包。以下包含当前源码中的摄影分析增强，公开安装包的能力以对应 Release 为准。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
+**摄影插件 Photography 0.1.0。** Full 预装，同版本 Base 可安装独立摄影包。0.14.0 应用已包含下述摄影分析增强。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
 
-**Photography 0.1.0.** Full bundles this plugin; a matching Base host can install its standalone package. This guide includes photography analysis enhancements in the current source; published packages follow their own Release notes. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
+**Photography 0.1.0.** Full bundles this plugin; a matching Base host can install its standalone package. The 0.14.0 app includes the photography analysis enhancements described below. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
 
 默认以双图和 **Lab 感知明度 L*** 直方图为主。摘要显示 L* 中位数、P90−P10 明度跨度和低／高明度区域占比；这些数值描述当前选区，不代表曝光调整值或作品质量。**专业图表**保留 HSL、实际记录的处理曲线以及拍摄与分析信息。Lab L* 的范围是 0–100，与 HSL 明度 L 分开；两者均不是物理亮度或曝光值。
 
@@ -237,7 +237,7 @@ When a search field is focused, editing commands operate on that field. When Set
 
 在“新建… → PDF 文档”分别选择两侧文件，也可从“文件 → 打开…”选入两个 PDF，或使用“比较 → PDF 比较…”。页面对照保留原版面，左侧列表显示页码对应关系；可切换到文字差异、逐处导航并缩放页面。扫描页和提取受限会明确提示，当前没有 OCR。此视图只读，不改原文件。
 
-0.12.2 源码预览提供三种页面配对方式：
+提供三种页面配对方式：
 
 - **按页码（默认）：** 第 1 页对第 1 页，依次比较；多出页面显示为单侧页，不据此断言版本新增或删除。
 - **智能匹配：** 适合同一文档的不同版本。使用唯一预览或有信息量的文字寻找顺序一致的对应；证据不足、重复或歧义时明确提示并按页码比较。它不做 OCR 或语义理解，不能保证所有推断配对正确。
@@ -247,7 +247,7 @@ When a search field is focused, editing commands operate on that field. When Set
 
 Choose each side through New… → PDF Documents, or open two PDFs through File → Open… or Compare → PDF Comparison…. Page view retains page layout and the sidebar shows corresponding pages. Switch to Text Differences for extracted text, navigate changes, or zoom the page. Scanned pages and extraction limits are indicated; OCR is not included. The view is read-only.
 
-The 0.12.2 source preview offers **By Page** (default), **Smart Match** and **Manual Pairing**. Page order compares the same original page numbers without inferring revision history. Smart Match uses unique preview or informative text evidence for related revisions; insufficient or ambiguous evidence falls back to page order with an explanation. It does not perform OCR or semantic analysis, and pages between reliable anchors may still be paired by relative order.
+CrossDiff offers **By Page** (default), **Smart Match** and **Manual Pairing**. Page order compares the same original page numbers without inferring revision history. Smart Match uses unique preview or informative text evidence for related revisions; insufficient or ambiguous evidence falls back to page order with an explanation. It does not perform OCR or semantic analysis, and pages between reliable anchors may still be paired by relative order.
 
 Manual Pairing provides independent page-number fields and previous/next controls on each side. Page previews and text differences follow the selected source pages. Choices remain in the current tab when switching tabs or pairing modes; manual settings are not newly persisted across app restarts. Invalid entries revert to the current page. **Pair N / M** identifies the comparison group; source page numbers appear under the file names. Selection is limited to the pages read (at most 200 per side).
 
@@ -255,9 +255,9 @@ Manual Pairing provides independent page-number fields and previous/next control
 
 Manage extensions under CrossDiff → Plugins…: choose or drop a `.crossdiffplugin` file, or enter an HTTPS URL and click Download & Inspect. Review the name, identifier, version, unverified publisher and runtime permissions before installation. Downloads from arbitrary URLs require review before installation. Changed packages must use a new version number.
 
-官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；当前完整版额外预装 PDF、摄影、API、音频与办公。基础版可安装兼容的独立包；未发布版本的目录下载地址需等待对应 Release 发布，研发时使用本地打包安装。联网只发生在你主动下载时，比较内容仍在本机处理。
+官方插件列表随应用提供，离线可查看。点击“下载并安装”后，应用从固定版本的 GitHub Release 下载，核对整包 SHA-256、大小、标识和版本，再自动安装受限插件。基础版内置压缩包插件；完整版额外预装 PDF、摄影、API、音频、办公与视频。基础版可在“发现插件”页下载并安装兼容插件，也可导入对应 Release 的独立包。联网只发生在你主动下载时，比较内容仍在本机处理。
 
-The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. The current Full edition adds PDF, Photography, API Compare, Audio and Office. Base can install compatible standalone packages. Catalog URLs for an unpublished version become available only after its Release is published; use local packages during development. Network access occurs only when you request a download; comparison content stays on your Mac.
+The official catalog is bundled and available offline. Download & Install fetches a version-pinned GitHub Release asset, verifies its complete SHA-256, size, identifier and version, then installs the restricted plugin. Base bundles Archive. Full adds PDF, Photography, API Compare, Audio, Office and Video. Base can download and install compatible plugins from Discover, or import standalone packages from the matching Release. Network access occurs only when you request a download; comparison content stays on your Mac.
 
 插件页默认打开**已安装**，卡片上直接提供启用开关与**卸载…**或**移除…**，可先确认再执行；**发现插件**页用于查找和安装。
 
@@ -320,7 +320,7 @@ Each input is limited to **8 GiB**. The bounded algorithm may use explicitly ind
 
 限制：每侧分析最多 2 GiB、2 小时、8 声道；试听仅支持单声道／立体声，3–8 声道仍可查看波形、频谱与比较结果。导入格式取决于 macOS 解码器，支持选择 WAV/AIFF/FLAC/MP3/M4A/AAC/CAF 等扩展名并不保证所有编码变体。波形为最多 8192 桶/声道的概览包络，放大不会凭空增加采样级细节。谱图使用 48 kHz 分析副本，每次处理选区前最多 30 秒；FFT/hop 配置触及预算会进一步缩短并标记实际范围。双方频率轴相同，超过源 Nyquist 的区域显示无数据；原始高于 24 kHz 的频带不在此图谱内。图谱取逐声道线性功率平均；指纹使用原文件能量最高的一个声道，以避免反相降混抵消。源文件变化需要重新读取。
 
-**English:** Choose **New… → Audio** and select two local files. Full bundles Audio 0.1.0; a matching Base host can install its standalone package. Inspect per-channel waveforms or calibrated STFT spectrograms, select and save up to 32 region pairs, and audition A/B or loop a region. Audition supports mono/stereo. B has independent rate and pitch controls; these never rewrite the source. Find Matches uses a bundled Olaf helper for fixed-speed excerpts of the same recording, including reordered and repeated candidates. Automatic recognition of independent tempo or pitch changes is not supported in this preview. Unmatched regions are not proof of deletion. Analysis accepts up to 2 GiB, two hours and eight channels per side; three-to-eight-channel files remain available for waveforms, spectra and comparison, without audition. Codec support is probed by macOS. Waveforms are bounded overview envelopes. Spectra analyze at most the first 30 seconds of the selected region at 48 kHz, with smaller explicit ranges for dense settings. All comparison remains local.
+**English:** Choose **New… → Audio** and select two local files. Full bundles Audio 0.1.0; a matching Base host can install its standalone package. Inspect per-channel waveforms or calibrated STFT spectrograms, select and save up to 32 region pairs, and audition A/B or loop a region. Audition supports mono/stereo. B has independent rate and pitch controls; these never rewrite the source. Find Matches uses a bundled Olaf helper for fixed-speed excerpts of the same recording, including reordered and repeated candidates. Automatic recognition of independent tempo or pitch changes is not currently supported. Unmatched regions are not proof of deletion. Analysis accepts up to 2 GiB, two hours and eight channels per side; three-to-eight-channel files remain available for waveforms, spectra and comparison, without audition. Codec support is probed by macOS. Waveforms are bounded overview envelopes. Spectra analyze at most the first 30 seconds of the selected region at 48 kHz, with smaller explicit ranges for dense settings. All comparison remains local.
 
 **Clear Audio Temporary Files** in the parameter panel removes abandoned analysis caches while preserving active jobs. Normal completions clean up automatically. Original audio and saved regions are unaffected.
 
@@ -351,7 +351,7 @@ Results cover the selected sections, not complete visual or file identity. Forma
 
 ## 视频对比 / Video Compare
 
-0.14.0 源码预览支持 Video 插件：Full 预装，同版 Base 可在插件页安装 `Video.crossdiffplugin`。从 **新建… → 视频** 选择两个本地 MOV、MP4 或 M4V 文件；格式能否播放由 macOS 实际解码能力决定。
+**Video 0.1.0。** 0.14.0 Full 预装；同版 Base 可在“发现插件”页下载并安装，或导入对应 Release 的独立 `.crossdiffplugin` 包。从 **新建… → 视频** 选择两个本地 MOV、MP4 或 M4V 文件；格式能否播放由 macOS 实际解码能力决定。
 
 - 默认双画面、双时间线；点击时间线定位。点击画面后，用 **空格** 播放／暂停，**← / →** 逐帧；A/B 选择逐帧的基准侧。对应命令也在“比较”菜单中。
 - 默认按同时间联动，这不代表内容已匹配。关闭联动分别找对应画面，然后在 **时间对齐… → 将当前两帧设为对应** 配对。也可输入偏移：`B 时间 = A 时间 + 偏移`。调整支持撤销／重做。
@@ -362,6 +362,6 @@ Results cover the selected sections, not complete visual or file identity. Forma
 
 位置、偏移和区域在本机会话中恢复；切换标签或关闭比较会停止播放。原视频始终只读。首版不含自动剪辑匹配、视频导出或实时播放差异。
 
-**English.** In the 0.14.0 source preview, choose **New… → Video** and select two local MOV, MP4 or M4V files. Full includes the Video plugin; Base can install it locally. Click either timeline to seek, then focus a frame to use **Space** and the **Left/Right arrows**. A/B chooses the reference for frame stepping. Unlink to find corresponding frames independently, then use **Time Alignment… → Pair Current Frames**, or enter `B time = A time + offset`. Undo/redo restores viewing adjustments.
+**English.** Choose **New… → Video** and select two local MOV, MP4 or M4V files. The 0.14.0 Full edition includes Video 0.1.0. A matching Base host can use Download & Install in Discover, or import the standalone `.crossdiffplugin` package from the corresponding Release. Click either timeline to seek, then focus a frame to use **Space** and the **Left/Right arrows**. A/B chooses the reference for frame stepping. Unlink to find corresponding frames independently, then use **Time Alignment… → Pair Current Frames**, or enter `B time = A time + offset`. Undo/redo restores viewing adjustments.
 
 Playback starts muted; choose A or B to hear only that source. Looping requires linked browsing and a range that exists in both videos. Wipe and difference inspect paused frames; playing returns to side-by-side. The difference preview requires explicit Rec.709 SDR tags and equal decoded/cropped dimensions. It is not a codec-quality score. Pause to select independent or linked regions and save up to 32 named pairs. Positions and viewing choices stay in the local session; switching tabs stops playback. Original media is never modified. Automatic edit matching and video export are not part of this milestone.

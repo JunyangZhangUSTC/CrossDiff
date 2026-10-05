@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing version tag, for example v0.8.0'
+        description: 'Existing vX.Y.Z tag; verified new versions publish as stable releases'
         required: true
         type: string
 
@@ -200,8 +200,8 @@ jobs:
           retention-days: 14
           compression-level: 0
 
-  draft:
-    name: Upload, verify, and apply release publication intent
+  publish:
+    name: Upload, verify, and publish release
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -220,7 +220,7 @@ jobs:
           name: ${{ needs.build.outputs.artifact }}
           path: ${{ needs.build.outputs.directory }}
 
-      - name: Verify uploaded files and apply committed publication intent
+      - name: Verify uploaded files and publish with the tagged release policy
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.build.outputs.tag }}
