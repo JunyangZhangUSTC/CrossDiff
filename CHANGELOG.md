@@ -1,6 +1,12 @@
 # 变更记录
 
-## 0.15.0 — 正式版
+## 0.15.1 — 正式版
+
+- 发布下列 0.15.0 开发阶段的 Git 比较、标签栏和摄影改进；0.15.0 未形成公开发行包，相关功能由本版交付。Ships the Git, tab-bar and photography improvements developed for 0.15.0, which did not reach a public release.
+- 修复暂存区元数据读取依赖较新 Git 输出格式的问题，兼容较旧系统 Git 的暂存区与工作区读取；比较仍只读，不修改仓库。Staged metadata reading no longer relies on newer Git output formatting, preserving read-only index and working-tree comparison on older system Git installations.
+- 版本 0.15.1 / build 38；Base、Full 与八个官方插件包按正式 Release 分发，默认推荐 Full。
+
+## 0.15.0 — 未发布，随 0.15.1 交付
 
 - 摄影对比默认展开专业图表，仍可手动收起；修复高饱和颜色转换的浮点边界误差造成直方图像素漏计、近中性色误判及插件归一化报错的问题，保留严格的数据校验。Photography starts with professional charts expanded; bounded HSL conversion results preserve saturated samples and prevent false normalization errors without weakening validation.
 - 修复标签图标和留白处点击不响应的问题；标签选择与关闭按钮各有完整、独立的点击区域。Tab selection and close buttons now have complete, separate hit areas, including icon gaps and padding.

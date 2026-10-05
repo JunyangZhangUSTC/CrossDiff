@@ -132,16 +132,18 @@ extension GitRepository {
         let indexURL = URL(fileURLWithPath: indexPath)
         let before = try GitWorkingAccess.stamp(at: indexURL)
         var entries: [GitTreeEntry] = [], seen = Set<Data>()
-        try localRecords(["ls-files", "--cached", "--full-name", "-z", "--format=%(objectmode) %(objectname) %(stage) %(objectsize)%x09%(path)"], isCancelled: isCancelled) { record in
+        // The stable --stage protocol also works with older Apple Git versions;
+        // ls-files --format objectsize and hex escapes are version-dependent.
+        try localRecords(["ls-files", "--cached", "--stage", "--full-name", "-z"], isCancelled: isCancelled) { record in
             if isCancelled() { throw GitError.cancelled }
             guard let tab = record.firstIndex(of: 9) else { throw GitError.invalidOutput }
             let parts = String(decoding: record[..<tab], as: UTF8.self).split(separator: " ")
-            guard parts.count == 4, let stage = Int(parts[2]) else { throw GitError.invalidOutput }
+            guard parts.count == 3, let stage = Int(parts[2]) else { throw GitError.invalidOutput }
             guard stage == 0 else { throw GitError.unmergedIndex }
             let rawPath = Data(record[record.index(after: tab)...])
             let path = try GitWorkingAccess.path(rawPath)
             guard seen.insert(rawPath).inserted else { throw GitError.invalidOutput }
-            let mode = String(parts[0]), oid = String(parts[1]), size = Int(parts[3])
+            let mode = String(parts[0]), oid = String(parts[1])
             guard Self.validObjectID(oid) else { throw GitError.invalidOutput }
             let kind: GitObjectKind
             switch mode {
@@ -150,9 +152,9 @@ extension GitRepository {
             case "160000": kind = .submodule
             default: throw GitError.invalidOutput
             }
-            guard kind == .submodule || (size != nil && size! >= 0) else { throw GitError.missingObject }
-            entries.append(GitTreeEntry(path: path, objectID: oid, mode: mode, size: size, kind: kind))
+            entries.append(GitTreeEntry(path: path, objectID: oid, mode: mode, size: nil, kind: kind))
         }
+        entries = try indexObjectSizes(entries, isCancelled: isCancelled)
         // Diff against Git's canonical empty tree does not require creating an object.
         // --ita-invisible excludes `git add -N` placeholders without parsing the index
         // format or unstable human-readable `ls-files --debug` flags.
@@ -183,6 +185,40 @@ extension GitRepository {
         let result = GitIndexCapture(all: entries, staged: staged, skipPaths: skipped, indexURL: indexURL, indexStamp: before)
         try verifyIndex(result)
         return result
+    }
+    private func indexObjectSizes(_ entries: [GitTreeEntry], isCancelled: () -> Bool) throws -> [GitTreeEntry] {
+        // Only inspect referenced blobs, never scan the whole object database or
+        // spawn one process per file. Repeated content shares a single size lookup.
+        var objectIDs: [String] = [], seen = Set<String>(), sizes: [String: Int] = [:]
+        for entry in entries {
+            if isCancelled() { throw GitError.cancelled }
+            if entry.kind != .submodule, seen.insert(entry.objectID).inserted { objectIDs.append(entry.objectID) }
+        }
+        for start in stride(from: 0, to: objectIDs.count, by: 128) {
+            if isCancelled() { throw GitError.cancelled }
+            let batch = objectIDs[start..<min(start + 128, objectIDs.count)]
+            let input = Data((batch.joined(separator: "\n") + "\n").utf8)
+            let output = try GitProcess.run(at: url,
+                arguments: ["cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"],
+                input: input, maximumBytes: batch.count * 128, isCancelled: isCancelled)
+            guard output.last == 10 else { throw GitError.invalidOutput }
+            let records = output.dropLast().split(separator: 10, omittingEmptySubsequences: false)
+            guard records.count == batch.count else { throw GitError.invalidOutput }
+            for (oid, record) in zip(batch, records) {
+                let fields = String(decoding: record, as: UTF8.self).split(separator: " ")
+                guard fields.first.map(String.init) == oid else { throw GitError.invalidOutput }
+                if fields.count == 2, fields[1] == "missing" { throw GitError.missingObject }
+                guard fields.count == 3, fields[1] == "blob",
+                      let size = Int(fields[2]), size >= 0 else { throw GitError.invalidOutput }
+                sizes[oid] = size
+            }
+        }
+        return try entries.map { entry in
+            if isCancelled() { throw GitError.cancelled }
+            let size = sizes[entry.objectID]
+            guard entry.kind == .submodule || size != nil else { throw GitError.missingObject }
+            return GitTreeEntry(path: entry.path, objectID: entry.objectID, mode: entry.mode, size: size, kind: entry.kind)
+        }
     }
     private func verifyIndex(_ capture: GitIndexCapture) throws {
         guard try GitWorkingAccess.stamp(at: capture.indexURL) == capture.indexStamp else { throw GitError.snapshotChanged }

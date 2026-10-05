@@ -1,6 +1,6 @@
 # Using CrossDiff
 
-CrossDiff compares text, folders, images, Git repositories, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio, Office and Video plugins. This guide covers the 0.15.0 stable release. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
+CrossDiff compares text, folders, images, Git repositories, binary files, archives and PDF documents on your Mac. Full also includes Photography, API Compare, Audio, Office and Video plugins. This guide covers the 0.15.1 stable release. There is no sign-in. For build instructions, see the [development guide](development.md); for planned capabilities such as legacy Office and full visual comparison, see the [roadmap](roadmap.md).
 
 ## Start a comparison
 
@@ -153,9 +153,9 @@ Comparison uses an 8-bit sRGB preview with a maximum 1600-pixel longest edge. Im
 <a id="photography"></a>
 ## Photography / 摄影对比
 
-**摄影插件 Photography 0.1.0。** Full 预装，同版本 Base 可安装独立摄影包。0.15.0 应用包含下述摄影分析能力。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
+**摄影插件 Photography 0.1.0。** Full 预装，同版本 Base 可安装独立摄影包。0.15.1 应用包含下述摄影分析能力。安装并启用后，选择 **新建… → 摄影**，分别选择两张照片。普通图片的自动打开仍使用基础图片比较，摄影入口需显式选择。
 
-**Photography 0.1.0.** Full bundles this plugin; a matching Base host can install its standalone package. The 0.15.0 app includes the photography analysis features described below. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
+**Photography 0.1.0.** Full bundles this plugin; a matching Base host can install its standalone package. The 0.15.1 app includes the photography analysis features described below. Enable the plugin, choose **New… → Photography**, and select the two photographs. Ordinary automatic image opening continues to use basic image comparison.
 
 默认以双图和 **Lab 感知明度 L*** 直方图为主。摘要显示 L* 中位数、P90−P10 明度跨度和低／高明度区域占比；这些数值描述当前选区，不代表曝光调整值或作品质量。**专业图表**保留 HSL、实际记录的处理曲线以及拍摄与分析信息。Lab L* 的范围是 0–100，与 HSL 明度 L 分开；两者均不是物理亮度或曝光值。
 
@@ -361,7 +361,7 @@ Results cover the selected sections, not complete visual or file identity. Forma
 
 ## 视频对比 / Video Compare
 
-**Video 0.1.0。** 0.15.0 Full 预装；同版 Base 可在“发现插件”页下载并安装，或导入对应 Release 的独立 `.crossdiffplugin` 包。从 **新建… → 视频** 选择两个本地 MOV、MP4 或 M4V 文件；格式能否播放由 macOS 实际解码能力决定。
+**Video 0.1.0。** 0.15.1 Full 预装；同版 Base 可在“发现插件”页下载并安装，或导入对应 Release 的独立 `.crossdiffplugin` 包。从 **新建… → 视频** 选择两个本地 MOV、MP4 或 M4V 文件；格式能否播放由 macOS 实际解码能力决定。
 
 - 默认双画面、双时间线；点击时间线定位。点击画面后，用 **空格** 播放／暂停，**← / →** 逐帧；A/B 选择逐帧的基准侧。对应命令也在“比较”菜单中。
 - 默认按同时间联动，这不代表内容已匹配。关闭联动分别找对应画面，然后在 **时间对齐… → 将当前两帧设为对应** 配对。也可输入偏移：`B 时间 = A 时间 + 偏移`。调整支持撤销／重做。
@@ -372,7 +372,7 @@ Results cover the selected sections, not complete visual or file identity. Forma
 
 位置、偏移和区域在本机会话中恢复；切换标签或关闭比较会停止播放。原视频始终只读。首版不含自动剪辑匹配、视频导出或实时播放差异。
 
-**English.** Choose **New… → Video** and select two local MOV, MP4 or M4V files. The 0.15.0 Full edition includes Video 0.1.0. A matching Base host can use Download & Install in Discover, or import the standalone `.crossdiffplugin` package from the corresponding Release. Click either timeline to seek, then focus a frame to use **Space** and the **Left/Right arrows**. A/B chooses the reference for frame stepping. Unlink to find corresponding frames independently, then use **Time Alignment… → Pair Current Frames**, or enter `B time = A time + offset`. Undo/redo restores viewing adjustments.
+**English.** Choose **New… → Video** and select two local MOV, MP4 or M4V files. The 0.15.1 Full edition includes Video 0.1.0. A matching Base host can use Download & Install in Discover, or import the standalone `.crossdiffplugin` package from the corresponding Release. Click either timeline to seek, then focus a frame to use **Space** and the **Left/Right arrows**. A/B chooses the reference for frame stepping. Unlink to find corresponding frames independently, then use **Time Alignment… → Pair Current Frames**, or enter `B time = A time + offset`. Undo/redo restores viewing adjustments.
 
 Playback starts muted; choose A or B to hear only that source. Looping requires linked browsing and a range that exists in both videos. Wipe and difference inspect paused frames; playing returns to side-by-side. The difference preview requires explicit Rec.709 SDR tags and equal decoded/cropped dimensions. It is not a codec-quality score. Pause to select independent or linked regions and save up to 32 named pairs. Positions and viewing choices stay in the local session; switching tabs stops playback. Original media is never modified. Automatic edit matching and video export are not part of this milestone.
 
@@ -380,7 +380,7 @@ Playback starts muted; choose A or B to hear only that source. Looping requires 
 <a id="git"></a>
 ## Git 仓库 / Git repositories
 
-**新建…** 依次显示文本、文件夹、图片、Git、二进制、压缩包，其余项目顺序不变；停用或移除的插件隐藏。选择 **Git** 后，可选择本地仓库，或输入 GitHub、GitLab、Gitee、自建 Git 服务的 HTTPS／SSH 克隆地址。0.15.0 的 Base 与 Full 均内置 Git 插件。运行需要系统 Git（Apple Command Line Tools 提供），应用不会自动安装工具。
+**新建…** 依次显示文本、文件夹、图片、Git、二进制、压缩包，其余项目顺序不变；停用或移除的插件隐藏。选择 **Git** 后，可选择本地仓库，或输入 GitHub、GitLab、Gitee、自建 Git 服务的 HTTPS／SSH 克隆地址。0.15.1 的 Base 与 Full 均内置 Git 插件。运行需要系统 Git（Apple Command Line Tools 提供），应用不会自动安装工具。
 
 **本地仓库默认显示“全部未提交”。** 无需先 commit 或 stash：
 

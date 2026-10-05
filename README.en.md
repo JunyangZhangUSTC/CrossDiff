@@ -15,11 +15,11 @@ From text and code to documents, photographs, sound and video. Native. Local. No
 [![Swift](https://img.shields.io/badge/Built_with-Swift-F05138?style=flat-square)](Package.swift)
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 
-[Quick start](#quick-start) · [Download Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.0/CrossDiff-0.15.0-full-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Screenshots](#different-inputs-one-workspace) · [Editions](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac)
+[Quick start](#quick-start) · [Download Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.1/CrossDiff-0.15.1-full-macOS-arm64.zip) · [Features](#one-workspace-every-change-in-focus) · [Screenshots](#different-inputs-one-workspace) · [Editions](#choose-your-edition) · [Plugins](#extend-your-comparison-workspace) · [Privacy](#your-work-stays-on-your-mac)
 
 </div>
 
-> 🌟 **Not sure which edition to choose? Download Full: [CrossDiff-0.15.0-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.0/CrossDiff-0.15.0-full-macOS-arm64.zip).**
+> 🌟 **Not sure which edition to choose? Download Full: [CrossDiff-0.15.1-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.1/CrossDiff-0.15.1-full-macOS-arm64.zip).**
 >
 > For Apple silicon Macs running macOS 14+. Every official plugin for this version is preinstalled and ready to use.
 
@@ -46,7 +46,7 @@ Paste two passages, inspect a release, study a photograph, or check an edit fram
 | **Free. Open source. No sign-up.**<br>No accounts, subscriptions or feature paywalls. AGPL v3 source you can inspect, build and modify. | **Your originals, under your control**<br>Merge text blocks, undo independently and save explicitly. Image and media adjustments affect viewing, never the source. |
 | **Clear and considered**<br>Light and dark themes, English and Simplified Chinese, tabs and synchronized scrolling. Familiar native controls across views. | **Room to grow with plugins**<br>Full includes eight official plugins. Or start with Base, then download plugins in the app or drag in a package. |
 
-**0.15.0 stable release**: Git Compare joins Base, covering commits, branches, the staging area and working tree. Browse crowded tab bars more easily, open professional photography charts by default, and analyze saturated colors without histogram errors. [What’s new](docs/releases/0.15.0.md)
+**0.15.1 stable release**: Git Compare joins Base, covering commits, branches, the staging area and working tree. Browse crowded tab bars more easily, open professional photography charts by default, and analyze saturated colors without histogram errors. [What’s new](docs/releases/0.15.1.md)
 
 ## Different inputs. One workspace.
 
@@ -203,9 +203,9 @@ Real app windows using programmatically generated demo images, audio, video and 
 
 ## Choose your edition
 
-**Download above: 0.15.0 · macOS 14+ · Apple silicon (arm64)**
+**Download above: 0.15.1 · macOS 14+ · Apple silicon (arm64)**
 
-See the [release notes](docs/releases/0.15.0.md) for capabilities and limits, and the [validation records](docs/validation/README.md) for local test coverage.
+See the [release notes](docs/releases/0.15.1.md) for capabilities and limits, and the [validation records](docs/validation/README.md) for local test coverage.
 
 **Full is recommended: all core features and every official plugin for the version, ready to use.** All eight official plugins—Archive, Git, PDF, Photography, API, Audio, Office and Video—are included.
 
@@ -245,7 +245,7 @@ Base features such as Git and Archive also ship as plugins, keeping different do
 
 ## Quick start
 
-Download [Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.0/CrossDiff-0.15.0-full-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
+Download [Full](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.1/CrossDiff-0.15.1-full-macOS-arm64.zip), extract it, and open **CrossDiff.app**. No Swift toolchain is required.
 
 1. Click **New…** (⌘N), then choose Text, Folders, Images, Git, Binary, Archives, or another installed plugin.
 2. Prepare the left and right inputs and click **Compare**. For text, paste directly or select a file; for Git, open a repository and choose the two sources.

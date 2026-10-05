@@ -1,8 +1,8 @@
 # CrossDiff 插件源码 / Plugin sources
 
-0.15.0 包含以下插件；版本与下载见 [README](../README.md)。基础版与完整版共享同版本宿主，区别仅在预装清单。
+0.15.1 包含以下插件；版本与下载见 [README](../README.md)。基础版与完整版共享同版本宿主，区别仅在预装清单。
 
-Version 0.15.0 includes the plugins below. See [README](../README.en.md) for editions and downloads. Base and Full share the same host and differ in their bundled plugins.
+Version 0.15.1 includes the plugins below. See [README](../README.en.md) for editions and downloads. Base and Full share the same host and differ in their bundled plugins.
 
 | 源码 / Source | 能力 / Capability | 预装 / Bundled |
 | --- | --- | --- |

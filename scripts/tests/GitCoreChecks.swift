@@ -170,6 +170,8 @@ import Darwin
         expect(GitBlobText.decode(Data([0xEF, 0xBB, 0xBF]) + Data(combinedText.utf8)).map { Data($0.utf8) } == Data(combinedText.utf8), "UTF-8 BOM and combining characters remain byte-exact")
         expect(GitBlobText.decode(Data([1, 2, 3, 127])) == nil, "Non-NUL binary controls route to hexadecimal preview")
         expect(GitBlobText.decode(Data([0xFF, 0xFE, 0, 0, 65, 0, 0, 0])) == nil, "UTF-32 is not misclassified as UTF-16")
+        try batchInputChecks(root: root)
+        try indexMetadataChecks(root: root)
         try localSourceChecks(root: root)
         try largeSourceChecks(root: root)
         if ProcessInfo.processInfo.environment["CROSSDIFF_GIT_NETWORK_CHECK"] == "1" {
@@ -196,6 +198,60 @@ import Darwin
             try FileManager.default.moveItem(at: moved, to: cache)
         }
         print("All \(passed) Git core checks passed.")
+    }
+    static func batchInputChecks(root: URL) throws {
+        let bytes = Data(repeating: 65, count: GitProcess.maximumInput)
+        let expected = value(try git(["hash-object", "--stdin"], at: root, input: bytes))
+        let actual = value(try GitProcess.run(at: root, arguments: ["hash-object", "--stdin"], input: bytes))
+        expect(actual == expected, "Bounded stdin transmits all bytes and closes before waiting for Git")
+        let empty = try GitProcess.run(at: root, arguments: ["cat-file", "--batch-check"], input: Data())
+        expect(empty.isEmpty, "Empty batch stdin delivers EOF")
+        let missing = String(repeating: "0", count: 40)
+        let requests = Data(String(repeating: missing + "\n", count: 390).utf8)
+        let replies = try GitProcess.run(at: root, arguments: ["cat-file", "--batch-check"], input: requests)
+        expect(replies == Data(String(repeating: missing + " missing\n", count: 390).utf8), "Larger output drains while batch stdin is written without pipe deadlock")
+        expectError("Oversized process stdin fails before launching Git") {
+            _ = try GitProcess.run(at: root, arguments: ["hash-object", "--stdin"], input: Data(repeating: 0, count: GitProcess.maximumInput + 1))
+        }
+        expectError("Batch stdin respects cancellation") {
+            _ = try GitProcess.run(at: root, arguments: ["cat-file", "--batch-check"], input: requests, isCancelled: { true })
+        }
+        expectError("Batch stdin respects deadline") {
+            _ = try GitProcess.run(at: root, arguments: ["cat-file", "--batch-check"], input: requests, timeout: 0)
+        }
+        for _ in 0..<8 {
+            do { _ = try GitProcess.run(at: root, arguments: ["version"], input: bytes) }
+            catch GitError.commandFailed { }
+        }
+        expect(true, "Early Git exit with pending stdin cannot terminate the host via SIGPIPE")
+    }
+    static func indexMetadataChecks(root parent: URL) throws {
+        let root = parent.appendingPathComponent("index-metadata-batches")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try git(["init", "-q", "--initial-branch=main", "--template="], at: root)
+        var expected: [String: Int] = [:]
+        for n in 0..<263 {
+            let path = n == 262 ? "中文\t含换行\n.txt" : "file-\(n).txt"
+            let content = "\(n) 👩🏽‍💻 " + String(repeating: "x", count: n)
+            try write(content, path, root); expected[path] = content.utf8.count
+        }
+        try write("", "empty.txt", root); expected["empty.txt"] = 0
+        try FileManager.default.createSymbolicLink(atPath: root.appendingPathComponent("link").path, withDestinationPath: "file-0.txt")
+        expected["link"] = "file-0.txt".utf8.count
+        try git(["add", "--all"], at: root)
+        let indexBefore = try Data(contentsOf: root.appendingPathComponent(".git/index"))
+        let objectsBefore = try FileManager.default.subpathsOfDirectory(atPath: root.appendingPathComponent(".git/objects").path).sorted()
+        let repo = try GitRepository.open(root)
+        let snapshot = try repo.compareSources(left: .commit("HEAD"), right: .index)
+        expect(snapshot.rightTree.count == expected.count && snapshot.rightTree.allSatisfy { expected[$0.path] == $0.size }, "Multiple metadata batches preserve byte sizes, empty blobs, symlinks and unusual paths")
+        expect(try Data(contentsOf: root.appendingPathComponent(".git/index")) == indexBefore && FileManager.default.subpathsOfDirectory(atPath: root.appendingPathComponent(".git/objects").path).sorted() == objectsBefore, "Metadata queries leave the source index and object database byte-identical")
+        let oid = snapshot.rightTree.first { $0.path == "file-0.txt" }!.objectID
+        try FileManager.default.removeItem(at: root.appendingPathComponent(".git/objects/" + oid.prefix(2) + "/" + oid.dropFirst(2)))
+        do {
+            _ = try repo.compareSources(left: .commit("HEAD"), right: .index)
+            fatalError("Missing staged object was accepted")
+        } catch GitError.missingObject { }
+        expect(true, "Missing staged blob fails explicitly instead of silently assigning zero size")
     }
     static func localSourceChecks(root parent: URL) throws {
         let root = parent.appendingPathComponent("local-sources")

@@ -74,6 +74,13 @@ jobs:
       - name: Check core behavior
         run: bash scripts/check.sh
 
+      - name: Git comparison checks
+        run: |
+          /usr/bin/git --version
+          bash scripts/tests/check-git-core.sh
+          bash scripts/tests/check-git-plugin.sh
+          bash scripts/tests/check-git-workflow.sh --build-only
+
       - name: Check plugin packages and processes
         run: |
           bash scripts/tests/check-plugins-core.sh
@@ -107,12 +114,6 @@ jobs:
           bash scripts/tests/check-binary-core.sh
           bash scripts/tests/check-binary-detection.sh
           bash scripts/tests/check-binary-workflow.sh --build-only
-
-      - name: Git comparison checks
-        run: |
-          bash scripts/tests/check-git-core.sh
-          bash scripts/tests/check-git-plugin.sh
-          bash scripts/tests/check-git-workflow.sh --build-only
 
       - name: API comparison checks
         run: |

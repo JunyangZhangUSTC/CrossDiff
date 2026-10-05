@@ -6,6 +6,7 @@ import Darwin
 /// previews and network operations retain explicit limits. Never call on the UI thread.
 enum GitProcess {
     static let maximumOutput = 16 * 1024 * 1024
+    static let maximumInput = 16 * 1024
     static var systemGitAvailable: Bool {
         let fm = FileManager.default
         let selected = URL(fileURLWithPath: "/var/db/xcode_select_link").resolvingSymlinksInPath()
@@ -16,11 +17,11 @@ enum GitProcess {
     }
     static let sshCommand = "/usr/bin/ssh -F /dev/null -o BatchMode=yes -o StrictHostKeyChecking=yes -o UpdateHostKeys=no -o ControlMaster=no -o ControlPath=none -o ProxyCommand=none -o ProxyJump=none -o PermitLocalCommand=no -o ConnectTimeout=15"
 
-    static func run(at directory: URL?, arguments: [String], network: Bool = false,
+    static func run(at directory: URL?, arguments: [String], network: Bool = false, input: Data? = nil,
                     maximumBytes: Int = maximumOutput, timeout: TimeInterval = 45,
                     isCancelled: () -> Bool = { false }, checkResources: () throws -> Void = {}) throws -> Data {
         var output = Data()
-        try execute(at: directory, arguments: arguments, network: network, timeout: timeout,
+        try execute(at: directory, arguments: arguments, network: network, input: input, timeout: timeout,
                     isCancelled: isCancelled, checkResources: checkResources) { chunk in
             guard chunk.count <= maximumBytes - output.count else { throw GitError.tooLarge }
             output.append(chunk)
@@ -52,12 +53,14 @@ enum GitProcess {
         guard pending.isEmpty else { throw GitError.invalidOutput }
     }
 
-    private static func execute(at directory: URL?, arguments: [String], network: Bool = false,
+    private static func execute(at directory: URL?, arguments: [String], network: Bool = false, input: Data? = nil,
                                 timeout: TimeInterval?, isCancelled: () -> Bool,
                                 checkResources: () throws -> Void = {}, onBytes: (Data) throws -> Void) throws {
         guard !isCancelled() else { throw GitError.cancelled }
+        guard (input?.count ?? 0) <= maximumInput else { throw GitError.tooLarge }
         guard systemGitAvailable, FileManager.default.isExecutableFile(atPath: "/usr/bin/git") else { throw GitError.unavailable }
         let process = Process(), stdout = Pipe(), stderr = Pipe()
+        let stdin = input == nil ? nil : Pipe()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         process.currentDirectoryURL = directory
         process.arguments = ["--no-pager", "--no-optional-locks", "--literal-pathspecs",
@@ -82,13 +85,17 @@ enum GitProcess {
         // Preserve the user's identity/agent location, never repoint HOME or load shell startup files.
         for key in ["HOME", "TMPDIR", "SSH_AUTH_SOCK"] { if let value = inherited[key] { env[key] = value } }
         process.environment = env
-        process.standardInput = FileHandle.nullDevice
+        if let stdin { process.standardInput = stdin }
+        else { process.standardInput = FileHandle.nullDevice }
         process.standardOutput = stdout
         process.standardError = stderr
         do { try process.run() } catch { throw GitError.unavailable }
+        try? stdin?.fileHandleForReading.close()
         try? stdout.fileHandleForWriting.close(); try? stderr.fileHandleForWriting.close()
         let outFD = stdout.fileHandleForReading.fileDescriptor, errFD = stderr.fileHandleForReading.fileDescriptor
+        let inFD = stdin?.fileHandleForWriting.fileDescriptor
         defer {
+            try? stdin?.fileHandleForWriting.close()
             if process.isRunning {
                 // Foundation normally gives spawned processes a separate process group. Only
                 // signal a group if verified; never signal the application's process group.
@@ -100,6 +107,12 @@ enum GitProcess {
             try? stdout.fileHandleForReading.close(); try? stderr.fileHandleForReading.close()
         }
         guard fcntl(outFD, F_SETFL, O_NONBLOCK) == 0, fcntl(errFD, F_SETFL, O_NONBLOCK) == 0 else { throw GitError.commandFailed }
+        if let inFD {
+            let flags = fcntl(inFD, F_GETFL)
+            guard flags >= 0, fcntl(inFD, F_SETFL, flags | O_NONBLOCK) == 0,
+                  fcntl(inFD, F_SETNOSIGPIPE, 1) == 0 else { throw GitError.commandFailed }
+        }
+        var inputOffset = 0, inputClosed = stdin == nil, inputRejected = false
         var errorBytes = 0, outEnded = false, errEnded = false
         var buffer = [UInt8](repeating: 0, count: 64 * 1024)
         let deadline = timeout.map { ProcessInfo.processInfo.systemUptime + $0 }
@@ -112,6 +125,25 @@ enum GitProcess {
                 nextResourceCheck = ProcessInfo.processInfo.systemUptime + 0.25
             }
             var readSomething = false
+            // A bounded batch may still exceed pipe capacity. Interleave nonblocking
+            // input with both output drains so cat-file cannot deadlock under pressure.
+            if !inputClosed, let input, let inFD {
+                if inputOffset < input.count {
+                    let n = input.withUnsafeBytes { bytes in
+                        Darwin.write(inFD, bytes.baseAddress!.advanced(by: inputOffset),
+                                     min(64 * 1024, input.count - inputOffset))
+                    }
+                    if n > 0 { inputOffset += n; readSomething = true }
+                    else if n < 0 {
+                        if errno == EPIPE { inputRejected = true }
+                        else if errno != EAGAIN && errno != EINTR { throw GitError.commandFailed }
+                    }
+                }
+                if inputOffset == input.count || inputRejected {
+                    try? stdin?.fileHandleForWriting.close()
+                    inputClosed = true
+                }
+            }
             if !outEnded {
                 let n = Darwin.read(outFD, &buffer, buffer.count)
                 if n > 0 {
@@ -131,7 +163,8 @@ enum GitProcess {
             if !readSomething { Thread.sleep(forTimeInterval: 0.008) }
         }
         process.waitUntilExit()
-        guard process.terminationReason == .exit, process.terminationStatus == 0 else {
+        guard !inputRejected, inputOffset == (input?.count ?? 0),
+              process.terminationReason == .exit, process.terminationStatus == 0 else {
             throw network ? GitError.networkFailed : GitError.commandFailed
         }
     }
