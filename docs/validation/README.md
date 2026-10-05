@@ -4,7 +4,7 @@ These records describe checks performed for specific development previews, inclu
 
 | Preview | Record |
 | --- | --- |
-| 0.15.1 Git compatibility | [Portable staging metadata, older Git reproduction and batch I/O regression](git-compatibility-0.15.1.md) |
+| 0.15.2 Git compatibility | [Portable staging metadata, symlink buffers and older-toolchain regression](git-compatibility-0.15.2.md) |
 | 0.15.0 photography | [Saturated-color normalization repair and default professional charts](photography-normalization-0.15.0.md) |
 | 0.15.0 session tabs | [Hover scrollbar, active-tab visibility and native input regression](session-tabs-0.15.0.md) |
 | 0.15.0 Git scan scale | [Streaming catalogs, large files, batched plugin validation and chooser placement](git-scale-0.15.0.md) |

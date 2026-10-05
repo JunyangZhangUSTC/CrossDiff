@@ -236,14 +236,23 @@ import Darwin
             try write(content, path, root); expected[path] = content.utf8.count
         }
         try write("", "empty.txt", root); expected["empty.txt"] = 0
-        try FileManager.default.createSymbolicLink(atPath: root.appendingPathComponent("link").path, withDestinationPath: "file-0.txt")
-        expected["link"] = "file-0.txt".utf8.count
+        let linkTargets = ["link": "file-0.txt", "unicode-link": "不存在的目录/👩🏽‍💻\n.txt", "long-link": String(repeating: "long/", count: 100) + "target"]
+        for (path, target) in linkTargets {
+            try FileManager.default.createSymbolicLink(atPath: root.appendingPathComponent(path).path, withDestinationPath: target)
+            expected[path] = target.utf8.count
+        }
         try git(["add", "--all"], at: root)
         let indexBefore = try Data(contentsOf: root.appendingPathComponent(".git/index"))
         let objectsBefore = try FileManager.default.subpathsOfDirectory(atPath: root.appendingPathComponent(".git/objects").path).sorted()
         let repo = try GitRepository.open(root)
         let snapshot = try repo.compareSources(left: .commit("HEAD"), right: .index)
         expect(snapshot.rightTree.count == expected.count && snapshot.rightTree.allSatisfy { expected[$0.path] == $0.size }, "Multiple metadata batches preserve byte sizes, empty blobs, symlinks and unusual paths")
+        let working = try repo.compareSources(left: .index, right: .workingTree)
+        expect(working.changedFiles.isEmpty, "Working symlink buffers preserve short, Unicode and long targets without following them")
+        for (path, target) in linkTargets {
+            let entry = working.rightTree.first { $0.path == path }!
+            expect(try repo.readContent(entry: entry, in: working.rightSnapshot) == Data(target.utf8), "Symlink preview returns exact target bytes: " + path)
+        }
         expect(try Data(contentsOf: root.appendingPathComponent(".git/index")) == indexBefore && FileManager.default.subpathsOfDirectory(atPath: root.appendingPathComponent(".git/objects").path).sorted() == objectsBefore, "Metadata queries leave the source index and object database byte-identical")
         let oid = snapshot.rightTree.first { $0.path == "file-0.txt" }!.objectID
         try FileManager.default.removeItem(at: root.appendingPathComponent(".git/objects/" + oid.prefix(2) + "/" + oid.dropFirst(2)))

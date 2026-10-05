@@ -457,7 +457,11 @@ private final class GitWorkingAccess {
         if expected.type == UInt32(S_IFLNK) {
             guard expected.size <= 1024 * 1024 else { throw GitError.invalidOutput }
             var bytes = [UInt8](repeating: 0, count: Int(expected.size) + 1)
-            let count = readlinkat(parent, name, &bytes, bytes.count)
+            // Pass byte storage explicitly. Older Swift imports of readlinkat
+            // can otherwise treat &Array<UInt8> as the array value's address.
+            let count = bytes.withUnsafeMutableBytes { buffer in
+                readlinkat(parent, name, buffer.baseAddress!, buffer.count)
+            }
             guard count == expected.size else { throw GitError.snapshotChanged }
             let data = Data(bytes.prefix(count))
             if format == "sha256" { sha256.update(data: data) } else { sha1.update(data: data) }

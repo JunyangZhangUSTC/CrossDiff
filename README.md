@@ -15,11 +15,11 @@
 [![Swift](https://img.shields.io/badge/Built_with-Swift-F05138?style=flat-square)](Package.swift)
 [![AGPL v3](https://img.shields.io/badge/License-AGPL_v3-22816B?style=flat-square)](LICENSE)
 
-[快速开始](#快速开始) · [下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.1/CrossDiff-0.15.1-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [界面一览](#不同对象同一个工作台) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上)
+[快速开始](#快速开始) · [下载完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.2/CrossDiff-0.15.2-full-macOS-arm64.zip) · [功能特色](#一个工作台专注每一处变化) · [界面一览](#不同对象同一个工作台) · [选择版本](#选择适合你的版本) · [插件扩展](#用插件拓展你的比较工作台) · [隐私](#文件留在你的-mac-上)
 
 </div>
 
-> 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.15.1-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.1/CrossDiff-0.15.1-full-macOS-arm64.zip)。**
+> 🌟 **不想选版本？直接下载完整版：[CrossDiff-0.15.2-full-macOS-arm64.zip](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.2/CrossDiff-0.15.2-full-macOS-arm64.zip)。**
 >
 > 适用于 macOS 14+ 的 Apple 芯片 Mac。预装本版本全部官方插件，打开即可比较。
 
@@ -46,7 +46,7 @@
 | **免费开源，无需注册**<br>没有账号、订阅或付费解锁。AGPL v3 开源，源码可审查、构建和修改。 | **原文件由你掌握**<br>文本逐块合并、独立撤销、手动保存；图片与媒体调整仅影响查看，不改写源文件。 |
 | **清晰，也赏心悦目**<br>浅深色主题，中英文界面，多标签与同步滚动。不同内容沿用熟悉的原生操作。 | **用插件继续扩展**<br>完整版预装八个官方插件；也可从基础版开始，在应用内下载或拖入插件安装。 |
 
-**0.15.1 正式版**：Git 比较加入基础版，提交、分支、暂存区和工作区都能对照；多标签浏览更顺畅，摄影专业图表默认展开，并修复直方图分析报错。[查看本版更新](docs/releases/0.15.1.md)
+**0.15.2 正式版**：Git 比较加入基础版，提交、分支、暂存区和工作区都能对照；多标签浏览更顺畅，摄影专业图表默认展开，并修复直方图分析报错。[查看本版更新](docs/releases/0.15.2.md)
 
 ## 不同对象，同一个工作台
 
@@ -203,9 +203,9 @@
 
 ## 选择适合你的版本
 
-**上方下载对应 0.15.1 · macOS 14+ · Apple 芯片（arm64）**
+**上方下载对应 0.15.2 · macOS 14+ · Apple 芯片（arm64）**
 
-本版功能与限制见[发布说明](docs/releases/0.15.1.md)，本地验证范围见[验收记录](docs/validation/README.md)。
+本版功能与限制见[发布说明](docs/releases/0.15.2.md)，本地验证范围见[验收记录](docs/validation/README.md)。
 
 **推荐完整版 Full：基础功能与本版本全部官方插件一次备齐。** 包含压缩包、Git、PDF、摄影、API、音频、办公与视频八个官方插件，下载后即可使用。
 
@@ -245,7 +245,7 @@ Git、压缩包等基础能力也由内置插件提供，不同领域沿用一�
 
 ## 快速开始
 
-下载[完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.1/CrossDiff-0.15.1-full-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
+下载[完整版](https://github.com/JunyangZhangUSTC/CrossDiff/releases/download/v0.15.2/CrossDiff-0.15.2-full-macOS-arm64.zip)，解压并打开 **CrossDiff.app**。无需安装 Swift 开发工具。
 
 1. 点击 **新建…**（⌘N），选择文本、文件夹、图片、Git、二进制、压缩包或其他已安装插件。
 2. 分别准备左右内容，点击 **开始比较**。文本可直接粘贴或选择文件；Git 则先打开仓库，再选择两侧来源。
